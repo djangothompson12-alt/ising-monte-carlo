@@ -48,6 +48,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 from numba import njit
+from scipy.fft import fft2, ifft2
 
 #: Onsager's exact critical temperature for the 2D square-lattice Ising model (J = 1, k_B = 1).
 T_CRITICAL: float = 2.0 / np.log(1.0 + np.sqrt(2.0))
@@ -371,57 +372,29 @@ def sample_snapshot(T: float, config: SimulationConfig, seed: int) -> np.ndarray
 # as the (interpolated) distance r at which C(r, t) first decays to 1/2.
 
 
-@njit(cache=True)
 def _axis_correlation(lattice: np.ndarray, r_max: int) -> np.ndarray:
-    """Compute C(r) = <sigma_i sigma_{i+r}> for r = 0..r_max.
+    """Compute C(r) = <sigma_i sigma_{i+r}> for r = 0..r_max via 2D FFT.
+
+    By the Wiener-Khinchin theorem, the full periodic 2D autocorrelation of
+    the spin field equals the inverse FFT of its power spectrum. This gives
+    every displacement (dx, dy) at once in O(L^2 log L), versus the
+    O(L^2 * r_max) cost of directly summing shifted-lattice products for
+    each r individually. The two axis correlations needed here are then a
+    vectorized slice out of that 2D result.
 
     Averaged over all lattice sites and both principal (x, y) directions,
     under periodic boundary conditions.
     """
     L = lattice.shape[0]
-    C = np.zeros(r_max + 1)
+    spins = lattice.astype(np.float64)
+    power_spectrum = np.abs(fft2(spins)) ** 2
+    autocorr = ifft2(power_spectrum).real / (L * L)  # autocorr[dx, dy], periodic
+
+    C = np.empty(r_max + 1)
     C[0] = 1.0
-    for r in range(1, r_max + 1):
-        acc = 0.0
-        for i in range(L):
-            for j in range(L):
-                s = lattice[i, j]
-                acc += s * lattice[(i + r) % L, j]
-                acc += s * lattice[i, (j + r) % L]
-        C[r] = acc / (2.0 * L * L)
+    if r_max > 0:
+        C[1:] = 0.5 * (autocorr[1 : r_max + 1, 0] + autocorr[0, 1 : r_max + 1])
     return C
-
-
-@njit(cache=True)
-def _quench_trajectory(
-    lattice: np.ndarray,
-    beta: float,
-    J: float,
-    checkpoints: np.ndarray,
-    r_max: int,
-) -> np.ndarray:
-    """Evolve `lattice` under post-quench Metropolis dynamics, recording C(r) at each
-    sweep count in `checkpoints` (a sorted array of non-negative integers).
-
-    Returns:
-        Array of shape (len(checkpoints), r_max + 1): C(r) at each checkpoint.
-    """
-    n_checkpoints = checkpoints.shape[0]
-    C_traj = np.zeros((n_checkpoints, r_max + 1))
-    max_sweep = checkpoints[n_checkpoints - 1]
-
-    ckpt_idx = 0
-    sweep = 0
-    while True:
-        if ckpt_idx < n_checkpoints and sweep == checkpoints[ckpt_idx]:
-            C_traj[ckpt_idx] = _axis_correlation(lattice, r_max)
-            ckpt_idx += 1
-        if sweep >= max_sweep:
-            break
-        _metropolis_sweep(lattice, beta, J)
-        sweep += 1
-
-    return C_traj
 
 
 @njit(cache=True)
@@ -435,6 +408,24 @@ def _init_lattice_jit(L: int) -> np.ndarray:
 
 
 @njit(cache=True)
+def _seed_and_init_lattice(L: int, seed: int) -> np.ndarray:
+    """Seed Numba's RNG and return a fresh random +-1 lattice.
+
+    Seeding Numba's RNG (rather than only seeding the initial lattice via
+    NumPy's generator) makes every subsequent jitted Metropolis sweep that
+    follows -- not just the initial condition -- deterministic given `seed`.
+    """
+    np.random.seed(seed)
+    return _init_lattice_jit(L)
+
+
+@njit(cache=True)
+def _run_n_sweeps(lattice: np.ndarray, beta: float, J: float, n_sweeps: int) -> None:
+    """Advance `lattice` by n_sweeps Metropolis sweeps in place."""
+    for _ in range(n_sweeps):
+        _metropolis_sweep(lattice, beta, J)
+
+
 def _run_quench_replica(
     L: int,
     seed: int,
@@ -448,16 +439,25 @@ def _run_quench_replica(
     """Run one full, independently seeded quench replica: init -> equilibrate at
     T_initial -> quench to T_final -> record C(r,t) at each checkpoint.
 
-    Seeding Numba's RNG once at the top of this jitted call (rather than only
-    seeding the initial lattice via NumPy's generator) makes the entire
-    trajectory -- initial condition and all subsequent Metropolis moves --
-    deterministic given `seed`.
+    Sweeps advance in Numba-jitted chunks between checkpoints; C(r,t) is then
+    measured with the FFT-based `_axis_correlation`, which (relying on SciPy)
+    cannot run inside nopython-mode Numba code, so this outer orchestration
+    stays in plain Python while the hot inner loop (`_run_n_sweeps`) stays jitted.
+
+    Returns:
+        Array of shape (len(checkpoints), r_max + 1): C(r) at each checkpoint.
     """
-    np.random.seed(seed)
-    lattice = _init_lattice_jit(L)
-    for _ in range(eq_sweeps_initial):
-        _metropolis_sweep(lattice, beta_initial, J)
-    return _quench_trajectory(lattice, beta_final, J, checkpoints, r_max)
+    lattice = _seed_and_init_lattice(L, seed)
+    _run_n_sweeps(lattice, beta_initial, J, eq_sweeps_initial)
+
+    n_checkpoints = len(checkpoints)
+    C_traj = np.zeros((n_checkpoints, r_max + 1))
+    sweep = 0
+    for k in range(n_checkpoints):
+        _run_n_sweeps(lattice, beta_final, J, int(checkpoints[k]) - sweep)
+        sweep = int(checkpoints[k])
+        C_traj[k] = _axis_correlation(lattice, r_max)
+    return C_traj
 
 
 def _log_time_checkpoints(max_sweeps: int, n_points: int) -> np.ndarray:

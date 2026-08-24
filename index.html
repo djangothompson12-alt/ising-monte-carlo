@@ -241,6 +241,8 @@
 
 <footer>
   Metropolis single-spin-flip dynamics, H = −J Σ σᵢσⱼ − H Σ σᵢ, J = 1, periodic boundary conditions.
+  <br>
+  Performance: main loop capped at 60 FPS; the canvas redraws every 5 sweeps rather than every sweep.
 </footer>
 
 <script>
@@ -426,10 +428,14 @@
   });
   resetBtn.addEventListener("click", resetLattice);
 
+  let sweepsSinceRender = 0;
+
   function resetLattice() {
     state.lattice = initLattice(state.L);
     state.sweepCount = 0;
+    sweepsSinceRender = 0;
     setupCanvasBuffer(state.L);
+    renderLattice(state.lattice, state.L); // avoid a blank canvas until the next 5-sweep redraw
     labels.length = 0;
     mHistory.length = 0;
     eHistory.length = 0;
@@ -440,16 +446,37 @@
   }
 
   // ---- Main loop ----
+  // Sweeps and canvas rendering are decoupled: the lattice can advance every
+  // frame, but the (comparatively expensive) pixel-buffer redraw only runs
+  // once RENDER_EVERY_N_SWEEPS sweeps have accumulated. The loop itself is
+  // throttled to TARGET_FPS regardless of the display's native refresh rate,
+  // so a 120/144 Hz monitor doesn't silently double or triple the CPU load.
+  const TARGET_FPS = 60;
+  const FRAME_INTERVAL_MS = 1000 / TARGET_FPS;
+  const RENDER_EVERY_N_SWEEPS = 5;
+
+  let lastFrameTime = 0;
   let lastFpsTime = performance.now();
   let frameCount = 0;
 
   function frame(now) {
+    if (now - lastFrameTime < FRAME_INTERVAL_MS) {
+      requestAnimationFrame(frame);
+      return;
+    }
+    lastFrameTime = now;
+
     if (state.running) {
       for (let s = 0; s < state.sweepsPerFrame; s++) {
         metropolisSweep(state.lattice, state.L, state.T, state.H);
         state.sweepCount++;
+        sweepsSinceRender++;
       }
-      renderLattice(state.lattice, state.L);
+
+      if (sweepsSinceRender >= RENDER_EVERY_N_SWEEPS) {
+        renderLattice(state.lattice, state.L);
+        sweepsSinceRender = 0;
+      }
 
       const obs = computeObservables(state.lattice, state.L, state.H);
       mVal.textContent = obs.M.toFixed(4);
