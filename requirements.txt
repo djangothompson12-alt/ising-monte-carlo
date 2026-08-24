@@ -1,0 +1,8 @@
+numpy>=1.24
+numba>=0.58
+matplotlib>=3.7
+scipy>=1.10
+
+# Note (Intel macOS only): numba dropped x86_64 macOS wheels after 0.62.1.
+# On an Intel Mac, pin instead with:
+#   numba==0.62.1
