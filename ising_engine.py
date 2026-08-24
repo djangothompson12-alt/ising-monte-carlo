@@ -101,6 +101,54 @@ class SweepResult:
     energy_err: np.ndarray = field(default_factory=lambda: np.array([]))
 
 
+@dataclass
+class QuenchConfig:
+    """Parameters for a non-equilibrium temperature quench.
+
+    The lattice is first equilibrated at `T_initial`, then the temperature
+    is instantaneously dropped to `T_final` and evolved for `max_sweeps`
+    sweeps, with the spin-spin correlation function recorded at
+    logarithmically spaced sweep counts. Averaging over `n_replicas`
+    independent runs suppresses realization noise in the extracted domain size.
+
+    Attributes:
+        L: Linear lattice dimension (lattice has L * L spins).
+        J: Nearest-neighbor coupling constant.
+        T_initial: Temperature the lattice is equilibrated at before the quench.
+        T_final: Post-quench temperature the system evolves at.
+        n_replicas: Number of independent quench realizations to average over.
+        max_sweeps: Number of post-quench sweeps to evolve.
+        n_time_samples: Number of logarithmically spaced sweep counts to sample.
+        eq_sweeps_initial: Sweeps used to equilibrate at T_initial before the quench.
+        seed: Base random seed; each replica gets a derived, distinct seed.
+    """
+
+    L: int = 128
+    J: float = 1.0
+    T_initial: float = 5.0
+    T_final: float = 1.5
+    n_replicas: int = 16
+    max_sweeps: int = 2000
+    n_time_samples: int = 28
+    eq_sweeps_initial: int = 200
+    seed: int = 123
+
+
+@dataclass
+class QuenchResult:
+    """Domain-growth kinetics extracted from a quench.
+
+    Attributes:
+        t: Post-quench sweep counts (Monte Carlo time) at which C(r, t) was sampled.
+        domain_size: Characteristic domain size L(t), averaged over replicas.
+        domain_size_err: Standard error of L(t) across replicas.
+    """
+
+    t: np.ndarray
+    domain_size: np.ndarray
+    domain_size_err: np.ndarray
+
+
 def init_lattice(L: int, seed: int) -> np.ndarray:
     """Initialize an L x L lattice of random +-1 spins ("hot start").
 
@@ -300,3 +348,186 @@ def sample_snapshot(T: float, config: SimulationConfig, seed: int) -> np.ndarray
     """
     obs = simulate_temperature(T, config, seed=seed, return_lattice=True)
     return obs["lattice"]
+
+
+# ---------------------------------------------------------------------------
+# Non-equilibrium quench kinetics
+# ---------------------------------------------------------------------------
+#
+# Quenching the system from a high-temperature disordered state to T_final < T_c
+# breaks ergodicity: ferromagnetic domains nucleate and coarsen over time rather
+# than the lattice reaching global equilibrium. Phase-ordering ("Allen-Cahn" /
+# Lifshitz-Allen-Cahn) theory predicts that for a non-conserved scalar order
+# parameter (single-spin-flip dynamics, as here), domains grow as a power law
+#
+#     L(t) ~ t^n,   n = 1/2
+#
+# driven by curvature-reducing interface motion. L(t) is estimated from the
+# equal-time spatial spin-autocorrelation function
+#
+#     C(r, t) = < sigma_i(t) sigma_{i+r}(t) >
+#
+# averaged over lattice sites i and the two principal lattice directions,
+# as the (interpolated) distance r at which C(r, t) first decays to 1/2.
+
+
+@njit(cache=True)
+def _axis_correlation(lattice: np.ndarray, r_max: int) -> np.ndarray:
+    """Compute C(r) = <sigma_i sigma_{i+r}> for r = 0..r_max.
+
+    Averaged over all lattice sites and both principal (x, y) directions,
+    under periodic boundary conditions.
+    """
+    L = lattice.shape[0]
+    C = np.zeros(r_max + 1)
+    C[0] = 1.0
+    for r in range(1, r_max + 1):
+        acc = 0.0
+        for i in range(L):
+            for j in range(L):
+                s = lattice[i, j]
+                acc += s * lattice[(i + r) % L, j]
+                acc += s * lattice[i, (j + r) % L]
+        C[r] = acc / (2.0 * L * L)
+    return C
+
+
+@njit(cache=True)
+def _quench_trajectory(
+    lattice: np.ndarray,
+    beta: float,
+    J: float,
+    checkpoints: np.ndarray,
+    r_max: int,
+) -> np.ndarray:
+    """Evolve `lattice` under post-quench Metropolis dynamics, recording C(r) at each
+    sweep count in `checkpoints` (a sorted array of non-negative integers).
+
+    Returns:
+        Array of shape (len(checkpoints), r_max + 1): C(r) at each checkpoint.
+    """
+    n_checkpoints = checkpoints.shape[0]
+    C_traj = np.zeros((n_checkpoints, r_max + 1))
+    max_sweep = checkpoints[n_checkpoints - 1]
+
+    ckpt_idx = 0
+    sweep = 0
+    while True:
+        if ckpt_idx < n_checkpoints and sweep == checkpoints[ckpt_idx]:
+            C_traj[ckpt_idx] = _axis_correlation(lattice, r_max)
+            ckpt_idx += 1
+        if sweep >= max_sweep:
+            break
+        _metropolis_sweep(lattice, beta, J)
+        sweep += 1
+
+    return C_traj
+
+
+@njit(cache=True)
+def _init_lattice_jit(L: int) -> np.ndarray:
+    """Random +-1 lattice drawn from Numba's own RNG (seedable with np.random.seed inside jit)."""
+    lattice = np.empty((L, L), dtype=np.int8)
+    for i in range(L):
+        for j in range(L):
+            lattice[i, j] = 1 if np.random.random() < 0.5 else -1
+    return lattice
+
+
+@njit(cache=True)
+def _run_quench_replica(
+    L: int,
+    seed: int,
+    beta_initial: float,
+    beta_final: float,
+    J: float,
+    eq_sweeps_initial: int,
+    checkpoints: np.ndarray,
+    r_max: int,
+) -> np.ndarray:
+    """Run one full, independently seeded quench replica: init -> equilibrate at
+    T_initial -> quench to T_final -> record C(r,t) at each checkpoint.
+
+    Seeding Numba's RNG once at the top of this jitted call (rather than only
+    seeding the initial lattice via NumPy's generator) makes the entire
+    trajectory -- initial condition and all subsequent Metropolis moves --
+    deterministic given `seed`.
+    """
+    np.random.seed(seed)
+    lattice = _init_lattice_jit(L)
+    for _ in range(eq_sweeps_initial):
+        _metropolis_sweep(lattice, beta_initial, J)
+    return _quench_trajectory(lattice, beta_final, J, checkpoints, r_max)
+
+
+def _log_time_checkpoints(max_sweeps: int, n_points: int) -> np.ndarray:
+    """Return unique, ascending, logarithmically spaced integer sweep counts in [1, max_sweeps]."""
+    raw = np.logspace(0.0, np.log10(max_sweeps), n_points)
+    checkpoints = np.unique(np.round(raw).astype(np.int64))
+    return checkpoints[checkpoints >= 1]
+
+
+def domain_size_from_correlation(C: np.ndarray) -> float:
+    """Extract the characteristic domain size as the r where C(r) crosses 0.5.
+
+    Linearly interpolates between the two integer separations bracketing the
+    crossing. Returns NaN if C(r) never decays to 0.5 within the sampled
+    range (e.g. too early after the quench, or the correlation length has
+    outgrown the measurable half-lattice at late times).
+    """
+    for r in range(len(C) - 1):
+        if C[r] >= 0.5 > C[r + 1]:
+            span = C[r] - C[r + 1]
+            if span <= 0.0:
+                return float(r)
+            frac = (C[r] - 0.5) / span
+            return r + frac
+    return float("nan")
+
+
+def run_quench_kinetics(config: QuenchConfig) -> QuenchResult:
+    """Simulate a T_initial -> T_final quench and extract domain-growth kinetics L(t).
+
+    For each of `config.n_replicas` independent runs, a lattice is equilibrated
+    at `T_initial`, instantaneously cooled to `T_final`, and evolved while
+    sampling C(r, t) at logarithmically spaced sweep counts; L(t) is then
+    extracted per replica and averaged.
+
+    Args:
+        config: Quench simulation parameters.
+
+    Returns:
+        A QuenchResult with domain_size(t) and its standard error across replicas.
+    """
+    checkpoints = _log_time_checkpoints(config.max_sweeps, config.n_time_samples)
+    r_max = config.L // 2
+    n_ckpt = len(checkpoints)
+
+    L_replicas = np.full((config.n_replicas, n_ckpt), np.nan)
+
+    beta_initial = 1.0 / config.T_initial
+    beta_final = 1.0 / config.T_final
+
+    for rep in range(config.n_replicas):
+        C_traj = _run_quench_replica(
+            config.L,
+            config.seed + rep,
+            beta_initial,
+            beta_final,
+            config.J,
+            config.eq_sweeps_initial,
+            checkpoints,
+            r_max,
+        )
+        for k in range(n_ckpt):
+            L_replicas[rep, k] = domain_size_from_correlation(C_traj[k])
+
+    with np.errstate(invalid="ignore"):
+        domain_size = np.nanmean(L_replicas, axis=0)
+        domain_size_err = np.nanstd(L_replicas, axis=0) / np.sqrt(config.n_replicas)
+
+    return QuenchResult(
+        t=checkpoints.astype(np.float64),
+        domain_size=domain_size,
+        domain_size_err=domain_size_err,
+    )
