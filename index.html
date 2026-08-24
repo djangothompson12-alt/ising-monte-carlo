@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Ising Model — Live Monte Carlo Simulation</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #1f4e79;
+    --rust: #a63603;
+    --green: #2e7d32;
+    --purple: #6a1b9a;
+    --bg: #fafafa;
+    --panel: #ffffff;
+    --border: #e0e0e0;
+    --text: #1a1a1a;
+    --muted: #666666;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  header {
+    max-width: 1180px;
+    margin: 0 auto 20px auto;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin: 0 0 4px 0;
+    font-weight: 600;
+  }
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  header a { color: var(--navy); }
+  .layout {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .panel + .panel { margin-top: 20px; }
+  .panel h2 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 0 0 14px 0;
+  }
+  .control { margin-bottom: 16px; }
+  .control:last-child { margin-bottom: 0; }
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+  }
+  .control label .val {
+    font-variant-numeric: tabular-nums;
+    color: var(--navy);
+    font-weight: 600;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--navy);
+  }
+  .hint { font-size: 0.76rem; color: var(--muted); margin-top: 3px; }
+  .buttons { display: flex; gap: 10px; margin-top: 18px; }
+  button {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #f2f2f2;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button:hover { background: #e6e6e6; }
+  button.primary {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+  }
+  button.primary:hover { background: #163a5c; }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .stat {
+    background: #f6f6f6;
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .stat .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat .value { font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  #latticeWrap {
+    display: flex;
+    justify-content: center;
+    background: #f6f6f6;
+    border-radius: 8px;
+    padding: 12px;
+  }
+  #latticeCanvas {
+    width: 100%;
+    max-width: 560px;
+    aspect-ratio: 1 / 1;
+    image-rendering: pixelated;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+  }
+  @media (max-width: 700px) {
+    .charts { grid-template-columns: 1fr; }
+  }
+  .chart-box { position: relative; height: 220px; }
+  footer {
+    max-width: 1180px;
+    margin: 28px auto 0 auto;
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-align: center;
+  }
+  footer a { color: var(--navy); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>2D Ising Model — Live Monte Carlo Simulation</h1>
+  <p>
+    Real-time Metropolis dynamics on a periodic square lattice, running entirely in the browser.
+    See the <a href="https://github.com/djangothompson12-alt/ising-monte-carlo">repository</a>
+    for the offline research pipeline (Numba-accelerated sweeps, publication figures).
+  </p>
+</header>
+
+<div class="layout">
+
+  <div>
+    <div class="panel">
+      <h2>Parameters</h2>
+
+      <div class="control">
+        <label for="tempSlider">Temperature <span>T</span> <span class="val" id="tempVal">2.30</span></label>
+        <input type="range" id="tempSlider" min="0.5" max="5.0" step="0.01" value="2.30">
+        <div class="hint">Critical temperature T<sub>c</sub> ≈ 2.269 (J = k<sub>B</sub> = 1)</div>
+      </div>
+
+      <div class="control">
+        <label for="fieldSlider">External Field <span>H</span> <span class="val" id="fieldVal">0.00</span></label>
+        <input type="range" id="fieldSlider" min="-2" max="2" step="0.01" value="0.00">
+      </div>
+
+      <div class="control">
+        <label for="sizeSlider">Lattice Size <span>L</span> <span class="val" id="sizeVal">64</span></label>
+        <input type="range" id="sizeSlider" min="16" max="200" step="4" value="64">
+        <div class="hint">Reallocates and re-randomizes the lattice (N = L²)</div>
+      </div>
+
+      <div class="control">
+        <label for="sweepsSlider">Sweeps / Frame <span class="val" id="sweepsVal">1</span></label>
+        <input type="range" id="sweepsSlider" min="1" max="20" step="1" value="1">
+      </div>
+
+      <div class="buttons">
+        <button class="primary" id="playPauseBtn">Pause</button>
+        <button id="resetBtn">Reset Lattice</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Live Observables</h2>
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Magnetization ⟨M⟩</div>
+          <div class="value" id="mVal">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Energy / Spin ⟨E⟩</div>
+          <div class="value" id="eVal">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Sweeps Elapsed</div>
+          <div class="value" id="sweepVal">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">FPS</div>
+          <div class="value" id="fpsVal">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2>Spin Lattice (dark = −1, light = +1)</h2>
+      <div id="latticeWrap">
+        <canvas id="latticeCanvas" width="64" height="64"></canvas>
+      </div>
+    </div>
+
+    <div class="charts">
+      <div class="panel">
+        <h2>Magnetization vs. Time</h2>
+        <div class="chart-box"><canvas id="mChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>Energy per Spin vs. Time</h2>
+        <div class="chart-box"><canvas id="eChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Metropolis single-spin-flip dynamics, H = −J Σ σᵢσⱼ − H Σ σᵢ, J = 1, periodic boundary conditions.
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  const J = 1.0;
+
+  const state = {
+    L: 64,
+    T: 2.30,
+    H: 0.0,
+    sweepsPerFrame: 1,
+    running: true,
+    lattice: null,
+    sweepCount: 0,
+  };
+
+  const SPIN_DOWN_COLOR = [31, 78, 121];    // #1f4e79
+  const SPIN_UP_COLOR = [242, 242, 242];    // #f2f2f2
+
+  function initLattice(L) {
+    const lattice = new Int8Array(L * L);
+    for (let k = 0; k < lattice.length; k++) {
+      lattice[k] = Math.random() < 0.5 ? -1 : 1;
+    }
+    return lattice;
+  }
+
+  function metropolisSweep(lattice, L, T, H) {
+    const N = L * L;
+    for (let n = 0; n < N; n++) {
+      const i = (Math.random() * L) | 0;
+      const j = (Math.random() * L) | 0;
+      const idx = i * L + j;
+      const s = lattice[idx];
+
+      const up = ((i - 1 + L) % L) * L + j;
+      const down = ((i + 1) % L) * L + j;
+      const left = i * L + ((j - 1 + L) % L);
+      const right = i * L + ((j + 1) % L);
+
+      const neighborSum = lattice[up] + lattice[down] + lattice[left] + lattice[right];
+      const dE = 2.0 * s * (J * neighborSum + H);
+
+      if (dE <= 0 || Math.random() < Math.exp(-dE / T)) {
+        lattice[idx] = -s;
+      }
+    }
+  }
+
+  function computeObservables(lattice, L, H) {
+    const N = L * L;
+    let sumSpin = 0;
+    let energy = 0;
+    for (let i = 0; i < L; i++) {
+      for (let j = 0; j < L; j++) {
+        const s = lattice[i * L + j];
+        sumSpin += s;
+        const right = lattice[i * L + ((j + 1) % L)];
+        const down = lattice[((i + 1) % L) * L + j];
+        energy += -J * s * (right + down) - H * s;
+      }
+    }
+    return { M: sumSpin / N, E: energy / N };
+  }
+
+  // ---- Canvas rendering (offscreen pixel buffer, scaled to display size) ----
+  const latticeCanvas = document.getElementById("latticeCanvas");
+  const ctx = latticeCanvas.getContext("2d");
+  let imageData = null;
+
+  function setupCanvasBuffer(L) {
+    latticeCanvas.width = L;
+    latticeCanvas.height = L;
+    ctx.imageSmoothingEnabled = false;
+    imageData = ctx.createImageData(L, L);
+  }
+
+  function renderLattice(lattice, L) {
+    const data = imageData.data;
+    for (let k = 0; k < L * L; k++) {
+      const color = lattice[k] === 1 ? SPIN_UP_COLOR : SPIN_DOWN_COLOR;
+      const p = k * 4;
+      data[p] = color[0];
+      data[p + 1] = color[1];
+      data[p + 2] = color[2];
+      data[p + 3] = 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  // ---- Charts ----
+  const HISTORY_LEN = 240;
+  const mHistory = [];
+  const eHistory = [];
+  const labels = [];
+
+  function makeChart(canvasId, label, color) {
+    const c = document.getElementById(canvasId).getContext("2d");
+    return new Chart(c, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: label,
+          data: [],
+          borderColor: color,
+          backgroundColor: color + "22",
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.15,
+          fill: true,
+        }],
+      },
+      options: {
+        animation: false,
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { display: false },
+          y: { grid: { color: "#eeeeee" } },
+        },
+        plugins: { legend: { display: false } },
+      },
+    });
+  }
+
+  const mChart = makeChart("mChart", "⟨M⟩", "#1f4e79");
+  const eChart = makeChart("eChart", "⟨E⟩", "#a63603");
+
+  function pushHistory(m, e) {
+    labels.push(state.sweepCount);
+    mHistory.push(m);
+    eHistory.push(e);
+    if (labels.length > HISTORY_LEN) {
+      labels.shift();
+      mHistory.shift();
+      eHistory.shift();
+    }
+    mChart.data.datasets[0].data = mHistory;
+    eChart.data.datasets[0].data = eHistory;
+    mChart.update("none");
+    eChart.update("none");
+  }
+
+  // ---- UI wiring ----
+  const tempSlider = document.getElementById("tempSlider");
+  const fieldSlider = document.getElementById("fieldSlider");
+  const sizeSlider = document.getElementById("sizeSlider");
+  const sweepsSlider = document.getElementById("sweepsSlider");
+  const tempVal = document.getElementById("tempVal");
+  const fieldVal = document.getElementById("fieldVal");
+  const sizeVal = document.getElementById("sizeVal");
+  const sweepsVal = document.getElementById("sweepsVal");
+  const mVal = document.getElementById("mVal");
+  const eVal = document.getElementById("eVal");
+  const sweepVal = document.getElementById("sweepVal");
+  const fpsVal = document.getElementById("fpsVal");
+  const playPauseBtn = document.getElementById("playPauseBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  tempSlider.addEventListener("input", () => {
+    state.T = parseFloat(tempSlider.value);
+    tempVal.textContent = state.T.toFixed(2);
+  });
+  fieldSlider.addEventListener("input", () => {
+    state.H = parseFloat(fieldSlider.value);
+    fieldVal.textContent = state.H.toFixed(2);
+  });
+  sizeSlider.addEventListener("input", () => {
+    state.L = parseInt(sizeSlider.value, 10);
+    sizeVal.textContent = state.L;
+    resetLattice();
+  });
+  sweepsSlider.addEventListener("input", () => {
+    state.sweepsPerFrame = parseInt(sweepsSlider.value, 10);
+    sweepsVal.textContent = state.sweepsPerFrame;
+  });
+  playPauseBtn.addEventListener("click", () => {
+    state.running = !state.running;
+    playPauseBtn.textContent = state.running ? "Pause" : "Play";
+  });
+  resetBtn.addEventListener("click", resetLattice);
+
+  function resetLattice() {
+    state.lattice = initLattice(state.L);
+    state.sweepCount = 0;
+    setupCanvasBuffer(state.L);
+    labels.length = 0;
+    mHistory.length = 0;
+    eHistory.length = 0;
+    mChart.data.datasets[0].data = mHistory;
+    eChart.data.datasets[0].data = eHistory;
+    mChart.update("none");
+    eChart.update("none");
+  }
+
+  // ---- Main loop ----
+  let lastFpsTime = performance.now();
+  let frameCount = 0;
+
+  function frame(now) {
+    if (state.running) {
+      for (let s = 0; s < state.sweepsPerFrame; s++) {
+        metropolisSweep(state.lattice, state.L, state.T, state.H);
+        state.sweepCount++;
+      }
+      renderLattice(state.lattice, state.L);
+
+      const obs = computeObservables(state.lattice, state.L, state.H);
+      mVal.textContent = obs.M.toFixed(4);
+      eVal.textContent = obs.E.toFixed(4);
+      sweepVal.textContent = state.sweepCount;
+      pushHistory(obs.M, obs.E);
+    }
+
+    frameCount++;
+    if (now - lastFpsTime >= 500) {
+      const fps = (frameCount * 1000) / (now - lastFpsTime);
+      fpsVal.textContent = fps.toFixed(0);
+      frameCount = 0;
+      lastFpsTime = now;
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  resetLattice();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>

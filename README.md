@@ -1,5 +1,7 @@
 # 2D Ising Model Monte Carlo Engine
 
+**🔴 [Live Demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)** — real-time Metropolis dynamics running in-browser via HTML5 Canvas, with live Chart.js plots of magnetization and energy.
+
 A from-scratch, Numba-accelerated Metropolis Monte Carlo simulation of the two-dimensional square-lattice Ising model, built to generate quantitative thermodynamic data (order parameter, energy, specific heat, and susceptibility) across the ferromagnetic phase transition.
 
 This engine was developed as the computational component of a research paper examining statistical-mechanical entropy and its relationship to philosophical treatments of time (eternalism / the "block universe" view). The code below is self-contained physics and simulation infrastructure; it makes no philosophical claims on its own.
@@ -70,13 +72,18 @@ which is marked as a vertical reference line in the generated figures.
 
 ```
 .
-├── ising_engine.py   # Numba-jitted Metropolis MC core + observable calculation
-├── visualizer.py      # Publication-quality figure generation (matplotlib)
-├── main.py            # CLI entry point: runs the sweep, saves data + figures
+├── index.html          # Standalone live demo (Canvas + Chart.js, no build step)
+├── ising_engine.py     # Numba-jitted Metropolis MC core + observable calculation
+├── visualizer.py       # Publication-quality figure generation (matplotlib)
+├── main.py             # CLI entry point: runs the sweep, saves data + figures
 ├── requirements.txt
-├── figures/            # Generated PNGs (fig1, fig2)
-└── results/            # Generated observables.csv
+├── figures/             # Generated PNGs (fig1, fig2)
+└── results/             # Generated observables.csv
 ```
+
+### Live demo (`index.html`)
+
+A self-contained, single-file browser simulation — open `index.html` directly (or visit the [live demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)) to run Metropolis dynamics interactively at ~60 FPS. It reimplements the same physics as `ising_engine.py` (including an external field term $H = -J\sum_{\langle i,j\rangle}\sigma_i\sigma_j - H\sum_i \sigma_i$) directly in JavaScript, rendered with an HTML5 Canvas pixel buffer, with live [Chart.js](https://www.chartjs.org/) plots of magnetization and energy. Sliders control temperature, external field, lattice size, and sweeps per frame — no build step or server required.
 
 - **`ising_engine.py`** — `SimulationConfig` (lattice size, temperature range, equilibration/sampling sweeps), the JIT-compiled Metropolis sweep and energy/magnetization kernels, and `run_temperature_sweep` / `sample_snapshot` for producing sweep-level and single-temperature results.
 - **`visualizer.py`** — `plot_phase_transitions` (4-panel $|M|$, $E$, $C_v$, $\chi$ vs. $T$) and `plot_spin_domains` (lattice snapshots at representative temperatures).
