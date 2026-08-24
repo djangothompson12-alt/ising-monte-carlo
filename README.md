@@ -107,7 +107,8 @@ which is non-negative for a relaxing system and is expected to decay towards zer
 ├── plot_kinetics.py    # Quench simulation + domain-growth/entropy-production plot
 ├── requirements.txt
 ├── figures/             # Generated PNGs (fig1, fig2, fig3)
-└── results/             # Generated observables.csv, quench_kinetics.csv
+├── results/             # Generated observables.csv, quench_kinetics.csv
+└── manuscript/          # main.tex (revtex4-2 PRL format) + compiled main.pdf
 ```
 
 ### Live demo (`index.html`)
@@ -192,9 +193,19 @@ result = run_quench_kinetics(config)
 # result.t, .domain_size, .domain_size_err, .entropy_production, .entropy_production_err
 ```
 
+### Manuscript
+
+[`manuscript/main.pdf`](manuscript/main.pdf) is a short Physical Review Letters–format writeup ("Quantifying Phase-Ordering Kinetics and Non-Equilibrium Entropy Production in the Two-Dimensional Ising Quench") built from [`manuscript/main.tex`](manuscript/main.tex) with `revtex4-2`, covering the theoretical background, methodology, and results above in full, citation-backed detail. Rebuild it with:
+
+```bash
+cd manuscript && pdflatex main.tex && pdflatex main.tex
+```
+
+(two passes, to resolve citations and cross-references).
+
 ## Verification
 
-The generated `fig1_phase_transitions.png` shows the expected signatures of a second-order phase transition: $\langle |M| \rangle$ drops from near 1 to near 0 across $T_c$, $\langle E \rangle$ rises smoothly, and both $C_v$ and $\chi$ peak sharply near $T_c \approx 2.269$ — consistent with Onsager's exact solution. `fig2_spin_domains.png` shows a single dominant magnetic domain at $T = 1.5$, scale-spanning clusters at $T \approx T_c$, and fine-grained disorder at $T = 3.5$. `fig3_kinetics_entropy.png`'s top panel shows $L(t)$ tracking the predicted $t^{1/2}$ line closely across roughly two decades of Monte Carlo time (fitted exponent $\alpha = 0.4841$); points from the earliest post-quench sweeps (lattice-discreteness transient) and the latest sweeps (where $L(t)$ approaches the periodic lattice's finite-size limit) are shown but excluded from the power-law fit, and are visibly where the data departs from the scaling line. Its bottom panel shows $\dot{S}(t)$ falling by roughly three orders of magnitude over the same window, consistent with dissipation being concentrated at domain-wall annihilation events that become rarer as coarsening proceeds.
+The generated `fig1_phase_transitions.png` shows the expected signatures of a second-order phase transition: $\langle |M| \rangle$ drops from near 1 to near 0 across $T_c$, $\langle E \rangle$ rises smoothly, and both $C_v$ and $\chi$ peak sharply near $T_c \approx 2.269$ — consistent with Onsager's exact solution. `fig2_spin_domains.png` shows a single dominant magnetic domain at $T = 1.5$, scale-spanning clusters at $T \approx T_c$, and fine-grained disorder at $T = 3.5$. `fig3_kinetics_entropy.png`'s top panel shows $L(t)$ tracking the predicted $t^{1/2}$ line closely across roughly two decades of Monte Carlo time (fitted exponent $\alpha = 0.4841$); points from the earliest post-quench sweeps (lattice-discreteness transient) and the latest sweeps (where $L(t)$ approaches the periodic lattice's finite-size limit) are shown but excluded from the power-law fit, and are visibly where the data departs from the scaling line. Its bottom panel shows $\dot{S}(t)$ falling from $\approx 0.295$ to $\approx 1.2\times 10^{-5}$ (per spin, $k_B$ units) — over four orders of magnitude — over the same window, consistent with dissipation being concentrated at domain-wall annihilation events that become rarer as coarsening proceeds.
 
 ## License
 
