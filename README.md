@@ -71,7 +71,7 @@ which is marked as a vertical reference line in the generated figures.
 ### Non-equilibrium quench kinetics
 
 <p align="center">
-  <img src="figures/fig3_domain_growth.png" width="600" alt="Domain growth kinetics after a temperature quench">
+  <img src="figures/fig3_kinetics_entropy.png" width="600" alt="Domain growth and entropy production kinetics after a temperature quench">
 </p>
 
 Quenching the lattice from a disordered high-temperature state ($T_{\text{initial}} = 5.0 \gg T_c$) to an ordered low-temperature state ($T_{\text{final}} = 1.5 < T_c$) leaves the system far from equilibrium: rather than relaxing instantly, ferromagnetic domains nucleate and then coarsen, growing over time. For this **non-conserved** order parameter (single-spin-flip dynamics, no magnetization conservation), phase-ordering theory predicts curvature-driven interfacial motion obeying the **Lifshitz–Allen–Cahn growth law**
@@ -88,6 +88,14 @@ $$
 
 (averaged over lattice sites and the two principal lattice directions) as the lattice distance $r$ at which $C(r, t)$ first decays to $1/2$, linearly interpolated between the bracketing integer separations. `run_quench_kinetics` (in `ising_engine.py`) averages this over many independent quench replicas and samples $C(r,t)$ at logarithmically spaced sweep counts, since the growth is expected to be a power law in time.
 
+**Entropy production.** The lattice is coupled to a heat bath at fixed $T_{\text{final}}$: every accepted Metropolis flip changes the system's energy by $\Delta E$, and by conservation of energy the bath absorbs heat $-\Delta E$ over that move. Summing accepted $\Delta E$ within each inter-checkpoint interval gives an estimate of the (per-spin) irreversible entropy production rate
+
+$$
+\dot{S}(t) = -\frac{1}{T}\frac{\langle \Delta E \rangle}{dt}
+$$
+
+which is non-negative for a relaxing system and is expected to decay towards zero as domain walls annihilate and accepted moves become rarer — the system's dissipation subsides as it approaches a slowly coarsening, quasi-equilibrium state.
+
 ## Repository structure
 
 ```
@@ -96,7 +104,7 @@ $$
 ├── ising_engine.py     # Numba-jitted Metropolis MC core + observable calculation
 ├── visualizer.py       # Publication-quality figure generation (matplotlib)
 ├── main.py             # CLI entry point: runs the sweep, saves data + figures
-├── plot_kinetics.py    # Quench simulation + domain-growth scaling plot
+├── plot_kinetics.py    # Quench simulation + domain-growth/entropy-production plot
 ├── requirements.txt
 ├── figures/             # Generated PNGs (fig1, fig2, fig3)
 └── results/             # Generated observables.csv, quench_kinetics.csv
@@ -109,7 +117,7 @@ A self-contained, single-file browser simulation — open `index.html` directly 
 - **`ising_engine.py`** — `SimulationConfig` (lattice size, temperature range, equilibration/sampling sweeps), the JIT-compiled Metropolis sweep and energy/magnetization kernels, and `run_temperature_sweep` / `sample_snapshot` for producing sweep-level and single-temperature results.
 - **`visualizer.py`** — `plot_phase_transitions` (4-panel $|M|$, $E$, $C_v$, $\chi$ vs. $T$) and `plot_spin_domains` (lattice snapshots at representative temperatures).
 - **`main.py`** — orchestrates a full run: temperature sweep → `results/observables.csv` → `figures/fig1_phase_transitions.png` and `figures/fig2_spin_domains.png`.
-- **`plot_kinetics.py`** — runs a $T_{\text{initial}} \to T_{\text{final}}$ quench via `ising_engine.run_quench_kinetics`, saves `results/quench_kinetics.csv`, fits a power law to the domain-growth scaling regime, and renders `figures/fig3_domain_growth.png`.
+- **`plot_kinetics.py`** — runs a $T_{\text{initial}} \to T_{\text{final}}$ quench via `ising_engine.run_quench_kinetics`, saves `results/quench_kinetics.csv`, fits a power law to the domain-growth scaling regime, and renders the two-panel `figures/fig3_kinetics_entropy.png` ($L(t)$ scaling fit on top, entropy production rate $\dot{S}(t)$ below).
 
 ## Installation
 
@@ -174,18 +182,19 @@ lattice = sample_snapshot(T=2.269, config=config, seed=0)  # (L, L) array of +-1
 python plot_kinetics.py
 ```
 
-Runs a $T=5.0 \to T=1.5$ quench (default: $L=128$, 16 independent replicas, 2000 sweeps), writes `results/quench_kinetics.csv` ($t$, $L(t)$, standard error), fits the domain-growth power law over the genuine scaling regime, and saves `figures/fig3_domain_growth.png`. On the same hardware as the pipeline above, this takes under a minute and gives a fitted exponent within a few percent of the Lifshitz–Allen–Cahn prediction of $0.5$.
+Runs a $T=5.0 \to T=1.5$ quench (default: $L=128$, 16 independent replicas, 2000 sweeps), writes `results/quench_kinetics.csv` ($t$, $L(t)$ and its standard error, $\dot{S}(t)$ and its standard error), fits the domain-growth power law over the genuine scaling regime, and saves `figures/fig3_kinetics_entropy.png`. On the same hardware as the pipeline above, this takes under a minute and gives a fitted exponent within a few percent of the Lifshitz–Allen–Cahn prediction of $0.5$.
 
 ```python
 from ising_engine import QuenchConfig, run_quench_kinetics
 
 config = QuenchConfig(L=64, T_initial=5.0, T_final=1.5, n_replicas=8, max_sweeps=1000)
-result = run_quench_kinetics(config)   # result.t, .domain_size, .domain_size_err
+result = run_quench_kinetics(config)
+# result.t, .domain_size, .domain_size_err, .entropy_production, .entropy_production_err
 ```
 
 ## Verification
 
-The generated `fig1_phase_transitions.png` shows the expected signatures of a second-order phase transition: $\langle |M| \rangle$ drops from near 1 to near 0 across $T_c$, $\langle E \rangle$ rises smoothly, and both $C_v$ and $\chi$ peak sharply near $T_c \approx 2.269$ — consistent with Onsager's exact solution. `fig2_spin_domains.png` shows a single dominant magnetic domain at $T = 1.5$, scale-spanning clusters at $T \approx T_c$, and fine-grained disorder at $T = 3.5$. `fig3_domain_growth.png` shows $L(t)$ tracking the predicted $t^{1/2}$ line closely across roughly two decades of Monte Carlo time; points from the earliest post-quench sweeps (lattice-discreteness transient) and the latest sweeps (where $L(t)$ approaches the periodic lattice's finite-size limit) are shown but excluded from the power-law fit, and are visibly where the data departs from the scaling line.
+The generated `fig1_phase_transitions.png` shows the expected signatures of a second-order phase transition: $\langle |M| \rangle$ drops from near 1 to near 0 across $T_c$, $\langle E \rangle$ rises smoothly, and both $C_v$ and $\chi$ peak sharply near $T_c \approx 2.269$ — consistent with Onsager's exact solution. `fig2_spin_domains.png` shows a single dominant magnetic domain at $T = 1.5$, scale-spanning clusters at $T \approx T_c$, and fine-grained disorder at $T = 3.5$. `fig3_kinetics_entropy.png`'s top panel shows $L(t)$ tracking the predicted $t^{1/2}$ line closely across roughly two decades of Monte Carlo time; points from the earliest post-quench sweeps (lattice-discreteness transient) and the latest sweeps (where $L(t)$ approaches the periodic lattice's finite-size limit) are shown but excluded from the power-law fit, and are visibly where the data departs from the scaling line. Its bottom panel shows $\dot{S}(t)$ falling by roughly three orders of magnitude over the same window, consistent with dissipation being concentrated at domain-wall annihilation events that become rarer as coarsening proceeds.
 
 ## License
 

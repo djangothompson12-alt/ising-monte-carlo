@@ -137,17 +137,22 @@ class QuenchConfig:
 
 @dataclass
 class QuenchResult:
-    """Domain-growth kinetics extracted from a quench.
+    """Domain-growth and entropy-production kinetics extracted from a quench.
 
     Attributes:
         t: Post-quench sweep counts (Monte Carlo time) at which C(r, t) was sampled.
         domain_size: Characteristic domain size L(t), averaged over replicas.
         domain_size_err: Standard error of L(t) across replicas.
+        entropy_production: Per-spin entropy production rate S_dot(t), averaged
+            over replicas, estimated over each inter-checkpoint interval.
+        entropy_production_err: Standard error of S_dot(t) across replicas.
     """
 
     t: np.ndarray
     domain_size: np.ndarray
     domain_size_err: np.ndarray
+    entropy_production: np.ndarray = field(default_factory=lambda: np.array([]))
+    entropy_production_err: np.ndarray = field(default_factory=lambda: np.array([]))
 
 
 def init_lattice(L: int, seed: int) -> np.ndarray:
@@ -165,14 +170,20 @@ def init_lattice(L: int, seed: int) -> np.ndarray:
 
 
 @njit(cache=True)
-def _metropolis_sweep(lattice: np.ndarray, beta: float, J: float) -> None:
+def _metropolis_sweep(lattice: np.ndarray, beta: float, J: float) -> float:
     """Perform one Monte Carlo sweep (L*L single-spin-flip attempts) in place.
 
     Each attempt picks a random site, computes the energy change dE of
     flipping it (using the periodic nearest-neighbor sum), and accepts the
     flip with the Metropolis probability min(1, exp(-beta * dE)).
+
+    Returns:
+        The total system energy change summed over all accepted flips this
+        sweep. By energy conservation, the heat absorbed by the thermal bath
+        over the sweep is the negative of this value.
     """
     L = lattice.shape[0]
+    total_dE = 0.0
     for _ in range(L * L):
         i = np.random.randint(0, L)
         j = np.random.randint(0, L)
@@ -186,6 +197,8 @@ def _metropolis_sweep(lattice: np.ndarray, beta: float, J: float) -> None:
         dE = 2.0 * J * s * neighbor_sum
         if dE <= 0.0 or np.random.random() < np.exp(-beta * dE):
             lattice[i, j] = -s
+            total_dE += dE
+    return total_dE
 
 
 @njit(cache=True)
@@ -370,6 +383,19 @@ def sample_snapshot(T: float, config: SimulationConfig, seed: int) -> np.ndarray
 #
 # averaged over lattice sites i and the two principal lattice directions,
 # as the (interpolated) distance r at which C(r, t) first decays to 1/2.
+#
+# The lattice is coupled to a heat bath at fixed T_final: every accepted spin
+# flip changes the system's energy by dE, and by conservation of energy the
+# bath absorbs heat dQ = -dE over that move. This lets us estimate the rate
+# of irreversible entropy production in the bath from purely mechanical
+# bookkeeping already being done by the Metropolis step:
+#
+#     S_dot(t) = -(1/T) * <dE/dt>
+#
+# averaged over sweeps within an inter-checkpoint interval and over replicas.
+# S_dot(t) is expected to be positive and to decay towards zero as domain
+# walls annihilate and accepted moves become rarer -- i.e. as the quenched
+# system relaxes and irreversible dissipation subsides.
 
 
 def _axis_correlation(lattice: np.ndarray, r_max: int) -> np.ndarray:
@@ -426,6 +452,19 @@ def _run_n_sweeps(lattice: np.ndarray, beta: float, J: float, n_sweeps: int) -> 
         _metropolis_sweep(lattice, beta, J)
 
 
+@njit(cache=True)
+def _run_n_sweeps_with_heat(lattice: np.ndarray, beta: float, J: float, n_sweeps: int) -> float:
+    """Advance `lattice` by n_sweeps Metropolis sweeps in place.
+
+    Returns:
+        The total system energy change (sum of accepted dE) over all n_sweeps sweeps.
+    """
+    total_dE = 0.0
+    for _ in range(n_sweeps):
+        total_dE += _metropolis_sweep(lattice, beta, J)
+    return total_dE
+
+
 def _run_quench_replica(
     L: int,
     seed: int,
@@ -435,29 +474,36 @@ def _run_quench_replica(
     eq_sweeps_initial: int,
     checkpoints: np.ndarray,
     r_max: int,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray]:
     """Run one full, independently seeded quench replica: init -> equilibrate at
-    T_initial -> quench to T_final -> record C(r,t) at each checkpoint.
+    T_initial -> quench to T_final -> record C(r,t) and accepted-move energy
+    change at each checkpoint.
 
     Sweeps advance in Numba-jitted chunks between checkpoints; C(r,t) is then
     measured with the FFT-based `_axis_correlation`, which (relying on SciPy)
     cannot run inside nopython-mode Numba code, so this outer orchestration
-    stays in plain Python while the hot inner loop (`_run_n_sweeps`) stays jitted.
+    stays in plain Python while the hot inner loops stay jitted. Heat exchange
+    is only tracked post-quench (at T_final), not during T_initial equilibration.
 
     Returns:
-        Array of shape (len(checkpoints), r_max + 1): C(r) at each checkpoint.
+        (C_traj, delta_E_traj): C_traj has shape (len(checkpoints), r_max + 1).
+        delta_E_traj has shape (len(checkpoints),): the total system energy
+        change from accepted flips accrued during each inter-checkpoint
+        interval (from the previous checkpoint, or sweep 0 for the first).
     """
     lattice = _seed_and_init_lattice(L, seed)
     _run_n_sweeps(lattice, beta_initial, J, eq_sweeps_initial)
 
     n_checkpoints = len(checkpoints)
     C_traj = np.zeros((n_checkpoints, r_max + 1))
+    delta_E_traj = np.zeros(n_checkpoints)
     sweep = 0
     for k in range(n_checkpoints):
-        _run_n_sweeps(lattice, beta_final, J, int(checkpoints[k]) - sweep)
+        n_sweeps_interval = int(checkpoints[k]) - sweep
+        delta_E_traj[k] = _run_n_sweeps_with_heat(lattice, beta_final, J, n_sweeps_interval)
         sweep = int(checkpoints[k])
         C_traj[k] = _axis_correlation(lattice, r_max)
-    return C_traj
+    return C_traj, delta_E_traj
 
 
 def _log_time_checkpoints(max_sweeps: int, n_points: int) -> np.ndarray:
@@ -486,30 +532,46 @@ def domain_size_from_correlation(C: np.ndarray) -> float:
 
 
 def run_quench_kinetics(config: QuenchConfig) -> QuenchResult:
-    """Simulate a T_initial -> T_final quench and extract domain-growth kinetics L(t).
+    """Simulate a T_initial -> T_final quench and extract domain-growth and
+    entropy-production kinetics, L(t) and S_dot(t).
 
     For each of `config.n_replicas` independent runs, a lattice is equilibrated
     at `T_initial`, instantaneously cooled to `T_final`, and evolved while
-    sampling C(r, t) at logarithmically spaced sweep counts; L(t) is then
-    extracted per replica and averaged.
+    sampling C(r, t) and the accepted-move energy change at logarithmically
+    spaced sweep counts; L(t) and S_dot(t) are then extracted per replica and
+    averaged.
+
+    S_dot(t) is estimated per inter-checkpoint interval as
+    -(1/T_final) * <dE>/dt (per spin), where dE is the total system energy
+    change from accepted flips over the interval and dt is the interval's
+    sweep count; the minus sign converts the system's energy change into heat
+    delivered to the bath, so a relaxing (energy-losing) system gives a
+    non-negative S_dot.
 
     Args:
         config: Quench simulation parameters.
 
     Returns:
-        A QuenchResult with domain_size(t) and its standard error across replicas.
+        A QuenchResult with domain_size(t), entropy_production(t), and their
+        standard errors across replicas.
     """
     checkpoints = _log_time_checkpoints(config.max_sweeps, config.n_time_samples)
     r_max = config.L // 2
     n_ckpt = len(checkpoints)
+    N = config.L * config.L
+
+    interval_lengths = np.empty(n_ckpt)
+    interval_lengths[0] = checkpoints[0]
+    interval_lengths[1:] = np.diff(checkpoints)
 
     L_replicas = np.full((config.n_replicas, n_ckpt), np.nan)
+    entropy_replicas = np.full((config.n_replicas, n_ckpt), np.nan)
 
     beta_initial = 1.0 / config.T_initial
     beta_final = 1.0 / config.T_final
 
     for rep in range(config.n_replicas):
-        C_traj = _run_quench_replica(
+        C_traj, delta_E_traj = _run_quench_replica(
             config.L,
             config.seed + rep,
             beta_initial,
@@ -522,12 +584,19 @@ def run_quench_kinetics(config: QuenchConfig) -> QuenchResult:
         for k in range(n_ckpt):
             L_replicas[rep, k] = domain_size_from_correlation(C_traj[k])
 
+        dE_per_sweep_per_spin = delta_E_traj / interval_lengths / N
+        entropy_replicas[rep, :] = -dE_per_sweep_per_spin / config.T_final
+
     with np.errstate(invalid="ignore"):
         domain_size = np.nanmean(L_replicas, axis=0)
         domain_size_err = np.nanstd(L_replicas, axis=0) / np.sqrt(config.n_replicas)
+        entropy_production = np.nanmean(entropy_replicas, axis=0)
+        entropy_production_err = np.nanstd(entropy_replicas, axis=0) / np.sqrt(config.n_replicas)
 
     return QuenchResult(
         t=checkpoints.astype(np.float64),
         domain_size=domain_size,
         domain_size_err=domain_size_err,
+        entropy_production=entropy_production,
+        entropy_production_err=entropy_production_err,
     )
