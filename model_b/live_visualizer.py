@@ -55,8 +55,15 @@ _LATTICE_CMAP = ListedColormap([_SPIN_DOWN_COLOR, _SPIN_UP_COLOR])
 # bounded below near machine-precision-noise) avoid needing to rescale at all.
 _T_AXIS_MIN, _T_AXIS_MAX = 1.0, 2.0e5
 _DOMAIN_AXIS_MIN, _DOMAIN_AXIS_MAX = 0.3, L / 2.0
-_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-7, 1.0
-_ENTROPY_FLOOR = 1e-7  # display floor so S_dot=0 samples remain visible on a log axis
+_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-5, 1.0
+_ENTROPY_FLOOR = 1e-7  # internal floor so S_dot=0 samples don't hit log(0); below the visible axis range
+
+# Simple moving-average window (in frames) applied to S_dot(t) before plotting.
+# Late-time entropy production is a tiny per-sweep energy-change average over
+# only SWEEPS_PER_FRAME sweeps, so it's dominated by shot noise once the true
+# rate drops near the floor; smoothing turns that noise into a readable
+# asymptotic baseline without touching the underlying (still exact) data.
+ENTROPY_SMOOTHING_WINDOW = 10
 
 
 def init_balanced_lattice(L: int, seed: int) -> np.ndarray:
@@ -76,6 +83,31 @@ def init_balanced_lattice(L: int, seed: int) -> np.ndarray:
     rng = np.random.default_rng(seed)
     rng.shuffle(spins)
     return spins.reshape(L, L)
+
+
+def moving_average(values: list[float] | np.ndarray, window: int) -> np.ndarray:
+    """Trailing simple moving average, with a growing (partial) window at the start.
+
+    Unlike `np.convolve(..., mode="same")`, this never averages in zero-padding
+    at the edges, so the first few points aren't artificially pulled down.
+
+    Args:
+        values: 1D sequence to smooth.
+        window: Maximum number of trailing points to average over.
+
+    Returns:
+        An array the same length as `values`.
+    """
+    values = np.asarray(values, dtype=float)
+    n = len(values)
+    if n == 0:
+        return values
+    w = max(1, min(window, n))
+    cumsum = np.cumsum(np.insert(values, 0, 0.0))
+    idx = np.arange(n)
+    lo = np.maximum(0, idx - w + 1)
+    counts = idx - lo + 1
+    return (cumsum[idx + 1] - cumsum[lo]) / counts
 
 
 def total_energy(lattice: np.ndarray, Jx: float, Jy: float) -> float:
@@ -205,7 +237,8 @@ def build_dashboard(state: LiveKawasakiState):
         im.set_data(state.lattice)
         line_Lx.set_data(state.t_history, state.Lx_history)
         line_Ly.set_data(state.t_history, state.Ly_history)
-        line_S.set_data(state.t_history, state.Sdot_history)
+        Sdot_smoothed = moving_average(state.Sdot_history, ENTROPY_SMOOTHING_WINDOW)
+        line_S.set_data(state.t_history, Sdot_smoothed)
 
         E = total_energy(state.lattice, state.Jx, state.Jy)
         hud_text.set_text(
