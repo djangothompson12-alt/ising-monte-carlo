@@ -118,7 +118,8 @@ def moving_average(values: list[float] | np.ndarray, window: int) -> np.ndarray:
 # to run many times a second and part of what made this crash under load.
 #
 # The lattice heatmap itself is NOT matplotlib -- see build_lattice_figure()
-# in live_dashboard() below, which uses Plotly instead. An L x L PNG re-encode
+# below, which uses Plotly instead, built once here and mutated in place
+# every tick (same pattern as the two figures above). An L x L PNG re-encode
 # is by far the most expensive thing in this app's render path (it's the one
 # panel whose data volume scales with the lattice, not with the number of
 # history points), so it's the one panel most worth moving off the
@@ -156,6 +157,32 @@ def make_entropy_figure():
     ax.grid(True, which="both", alpha=0.3, linestyle="--")
     fig.subplots_adjust(left=0.16, right=0.97, top=0.93, bottom=0.16)
     return fig, ax, line_S
+
+
+def build_lattice_figure(lattice: np.ndarray) -> go.Figure:
+    """Create the lattice heatmap Plotly figure once; frames thereafter mutate
+    its existing data in place (fig.data[0].z = ...) rather than rebuilding it.
+
+    Plotly ships the raw z-array as JSON and the browser (canvas/WebGL)
+    rasterizes it client-side -- no server-side PNG encode at all (that was
+    the single biggest cost in the old matplotlib-based render path, since it
+    scaled with L^2 rather than with the number of history points). No axis
+    ticks, labels, or colorbar -- nothing decorative is computed here.
+    """
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=lattice,
+            zmin=-1,
+            zmax=1,
+            colorscale=[[0.0, _SPIN_DOWN_COLOR], [1.0, _SPIN_UP_COLOR]],
+            showscale=False,
+            hoverinfo="skip",
+        )
+    )
+    fig.update_xaxes(visible=False, fixedrange=True)
+    fig.update_yaxes(visible=False, fixedrange=True, scaleanchor="x")
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=480)
+    return fig
 
 
 # ---------------------------------------------------------------------------
@@ -242,11 +269,13 @@ if reset_clicked or st.session_state.get("sim_key") != sim_key:
     st.session_state.Sdot_history = []
     st.session_state.running = False
 
-    # Build each line-plot figure and its artists exactly once per simulation
-    # (not per frame, not per script rerun) and keep them in session_state;
-    # every frame thereafter only calls set_data()/set_xlim() on these same
-    # objects. (The lattice heatmap is Plotly now -- see live_dashboard() --
-    # cheap enough to build fresh each tick, no persistence needed.)
+    # Build each figure and its artists exactly once per simulation (not per
+    # frame, not per script rerun) and keep them in session_state; every
+    # frame thereafter only mutates these same objects' data in place --
+    # never constructs a new Figure -- which is what lets Streamlit's
+    # frontend patch each chart's existing DOM node instead of tearing it
+    # down and recreating it (the latter is what produces a visible
+    # fade/flicker on rerun).
     (
         st.session_state.fig_domain,
         st.session_state.ax_domain,
@@ -258,6 +287,7 @@ if reset_clicked or st.session_state.get("sim_key") != sim_key:
         st.session_state.ax_entropy,
         st.session_state.line_S,
     ) = make_entropy_figure()
+    st.session_state.fig_lattice_plotly = build_lattice_figure(st.session_state.lattice)
 
 if start_clicked:
     st.session_state.running = True
@@ -298,32 +328,6 @@ def advance_one_frame() -> None:
     st.session_state.Sdot_history.append(Sdot)
 
 
-def build_lattice_figure(lattice: np.ndarray) -> go.Figure:
-    """Build a lightweight Plotly heatmap of the lattice.
-
-    Unlike the matplotlib line plots, this is cheap to rebuild every tick:
-    Plotly ships the raw z-array as JSON and the browser (canvas/WebGL)
-    rasterizes it client-side, so there's no server-side PNG encode at all
-    (the single biggest cost in the old per-frame path, since it scaled with
-    L^2 rather than with the number of history points). No axis ticks,
-    labels, or colorbar -- nothing decorative is computed here.
-    """
-    fig = go.Figure(
-        data=go.Heatmap(
-            z=lattice,
-            zmin=-1,
-            zmax=1,
-            colorscale=[[0.0, _SPIN_DOWN_COLOR], [1.0, _SPIN_UP_COLOR]],
-            showscale=False,
-            hoverinfo="skip",
-        )
-    )
-    fig.update_xaxes(visible=False, fixedrange=True)
-    fig.update_yaxes(visible=False, fixedrange=True, scaleanchor="x")
-    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=480)
-    return fig
-
-
 # The live panel is an st.fragment: only ITS contents re-execute on each
 # tick, not the whole page (title, sidebar, etc. above are untouched after
 # the first run). This replaces the previous approach of a manual
@@ -349,6 +353,14 @@ def live_dashboard() -> None:
     n_up = int(np.count_nonzero(lattice == 1))
     concentration = n_up / N
     E = total_energy(lattice, Jx, Jy)
+    # st.metric() and st.pyplot() have no `key` parameter in this Streamlit
+    # version (verified -- passing one raises TypeError; st.pyplot's **kwargs
+    # forwards straight to matplotlib's savefig(), not to any Streamlit
+    # identity mechanism). Only st.plotly_chart() below genuinely supports
+    # one. These four calls instead rely on stable script-position inference,
+    # which is already correct here since the same 4 calls happen in the
+    # same order every tick -- Streamlit can match them to their previous
+    # render without ambiguity.
     metric_cols[0].metric("Sweep Count", f"{st.session_state.sweep_count:,}")
     metric_cols[1].metric("Energy E", f"{E:,.0f}")
     metric_cols[2].metric("Concentration", f"{concentration:.4f}")
@@ -358,10 +370,16 @@ def live_dashboard() -> None:
 
     with left_col:
         st.subheader("Live Lattice (Kawasaki Phase Separation)")
+        # Mutate the persisted figure's existing trace data in place -- do
+        # NOT construct a new go.Figure here -- then re-render it under the
+        # same key every tick, mirroring the matplotlib set_data() pattern
+        # below instead of rebuilding fresh content each frame.
+        st.session_state.fig_lattice_plotly.data[0].z = lattice
         st.plotly_chart(
-            build_lattice_figure(lattice),
+            st.session_state.fig_lattice_plotly,
             width="stretch",
             config={"displayModeBar": False, "staticPlot": True},
+            key="lattice_chart",
         )
 
     with right_col:
@@ -372,7 +390,9 @@ def live_dashboard() -> None:
         ax_domain = st.session_state.ax_domain
         ax_domain.set_xlim(*xlim)
         ax_domain.set_ylim(0.3, L / 2.0)
-        st.pyplot(st.session_state.fig_domain, width="stretch", clear_figure=False)
+        st.pyplot(
+            st.session_state.fig_domain, width="stretch", clear_figure=False,
+        )
 
         st.subheader("Entropy Production Rate")
         if t_hist:
@@ -381,7 +401,9 @@ def live_dashboard() -> None:
         ax_entropy = st.session_state.ax_entropy
         ax_entropy.set_xlim(*xlim)
         ax_entropy.set_ylim(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX)
-        st.pyplot(st.session_state.fig_entropy, width="stretch", clear_figure=False)
+        st.pyplot(
+            st.session_state.fig_entropy, width="stretch", clear_figure=False,
+        )
 
     st.caption("Status: **running**" if st.session_state.running else "Status: **paused**")
 
