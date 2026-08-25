@@ -213,7 +213,7 @@ MIT
 
 ## Model B: Conserved Kawasaki Dynamics & Anisotropy
 
-> **Live demo:** pending deployment. A badge linking to the hosted Streamlit app will go here once it's confirmed live and publicly reachable — run it locally in the meantime with the instructions below.
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://anisotropic-materials-sim.streamlit.app)
 
 ### Executive summary
 
