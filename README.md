@@ -213,7 +213,7 @@ MIT
 
 ## Model B: Conserved Kawasaki Dynamics & Anisotropy
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://anisotropic-materials-sim.streamlit.app)
+> **Live demo:** the previous badge here pointed at a Streamlit Community Cloud deployment (`anisotropic-materials-sim.streamlit.app`). The web dashboard has since been rebuilt on Solara (see below), which that platform can't host — Streamlit Cloud only runs Streamlit apps, and `model_b/app.py` no longer imports `streamlit` at all, so the old deployment will break once this change reaches it. No replacement deployment exists yet; run it locally with the instructions below in the meantime.
 
 ### Executive summary
 
@@ -272,16 +272,16 @@ Fitting $L_x(t)$ and $L_y(t)$ over the same style of trimmed scaling regime used
 
 ### Interactive dashboards
 
-Two live-updating visualizers sit alongside the batch pipeline (`run_simulation.py`) above — both read live simulation state via `st.session_state`/plain Python state, not the saved CSV/figure:
+Two live-updating visualizers sit alongside the batch pipeline (`run_simulation.py`) above — both read live simulation state directly (plain Python / reactive variables), not the saved CSV/figure:
 
 - **Native desktop dashboard** (`model_b/live_visualizer.py`, matplotlib + Tk): a lattice heatmap, directional domain-growth plot, and entropy-production plot, animated with `FuncAnimation`.
-- **Web dashboard** (`model_b/app.py`, Streamlit): the same three live panels in a browser, with sidebar sliders for the anisotropy ratio $J_x/J_y$, quench temperature $T_f$, lattice size, and sweeps per frame, plus a Start/Pause/Reset control and a "Materials Science & Engineering" expander covering the analogies above in more depth.
+- **Web dashboard** (`model_b/app.py`, [Solara](https://solara.dev/)): the same three live panels in a browser, with sidebar sliders for the anisotropy ratio $J_x/J_y$, quench temperature $T_f$, lattice size, and sweeps per frame, plus a Start/Pause/Reset control and a "Materials Science & Engineering" expander covering the analogies above in more depth. A background thread advances the simulation and publishes updates to `solara.reactive()` state, which Solara's component tree picks up automatically — no manual page-rerun/polling loop.
 
 Run the web dashboard locally with:
 
 ```bash
-pip install -r requirements.txt   # includes streamlit
-streamlit run model_b/app.py
+pip install -r requirements.txt   # includes solara
+solara run model_b/app.py
 ```
 
-(Streamlit apps are launched via the `streamlit` CLI, not `python model_b/app.py`.) This opens the dashboard in your browser at `http://localhost:8501`.
+(Solara apps are launched via the `solara` CLI, not `python model_b/app.py`.) This opens the dashboard in your browser at `http://localhost:8765`.
