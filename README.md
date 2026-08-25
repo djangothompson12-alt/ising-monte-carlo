@@ -213,6 +213,12 @@ MIT
 
 ## Model B: Conserved Kawasaki Dynamics & Anisotropy
 
+> **Live demo:** pending deployment. A badge linking to the hosted Streamlit app will go here once it's confirmed live and publicly reachable — run it locally in the meantime with the instructions below.
+
+### Executive summary
+
+This module simulates **anisotropic, conserved-order-parameter phase separation** and connects it to three real materials phenomena. **Binary alloy spinodal decomposition** is close to a literal correspondence: this simulation *is* the standard lattice-gas model of a quenched A/B alloy, with conserved magnetization standing in for conserved alloy composition and the measured $t^{1/3}$ growth law matching the Lifshitz–Slyozov description of precipitate coarsening (Ostwald ripening) used in metallurgy. **Directional grain alignment in rolled sheet metals** is a looser but genuinely useful parallel — rolling imposes a preferred direction via plastic deformation rather than diffusion, but the qualitative outcome (elongated, texture-aligned grains along one axis) is the same *shape* of phenomenon that $J_x \neq J_y$ produces here. **Single-crystal superalloy turbine blade microstructures** are the closest real-world analog to the anisotropy mechanism specifically: Ni-based superalloys grown as single crystals undergo directional $\gamma'$ precipitate coarsening ("rafting") under applied stress, driven by elastic anisotropy — an external asymmetry biasing which direction domains preferentially grow along, exactly like $J_x \neq J_y$ biases $L_x(t)$ vs. $L_y(t)$ in this model.
+
 Everything above (`ising_engine.py`, `visualizer.py`, `main.py`, `plot_kinetics.py`, `index.html`, `manuscript/`) implements **Model A** in the Hohenberg–Halperin classification: single-spin-flip Metropolis dynamics, in which the order parameter is *not* conserved. [`model_b/`](model_b/) is a fully standalone addition implementing the complementary case, **Model B**: Kawasaki spin-exchange dynamics, in which total magnetization $\sum_i \sigma_i$ is exactly conserved. It does not import, modify, or depend on any file outside `model_b/`.
 
 ### Physics
@@ -263,3 +269,19 @@ result = run_quench_kinetics(config)
 At the default configuration, $L_x(t)$ grows visibly faster than $L_y(t)$ throughout the run (e.g. $L_x \approx 4.0$ vs. $L_y \approx 1.9$ lattice units by $t=10{,}000$ sweeps), correctly reflecting the stronger horizontal coupling $J_x > J_y$. The entropy production rate falls from $\dot{S}(t{=}1) \approx 0.151$ to $\dot{S}(t{=}10{,}000) \approx 7.3\times 10^{-6}$ (per spin, $k_B$ units) — again over four orders of magnitude, as in Model A.
 
 Fitting $L_x(t)$ and $L_y(t)$ over the same style of trimmed scaling regime used for Model A gives effective exponents $\alpha_x \approx 0.18$ and $\alpha_y \approx 0.14$ — both well below the asymptotic Lifshitz–Slyozov prediction of $1/3$. This is expected, not a defect: conserved-order-parameter coarsening is well documented to have much stronger and longer-lived corrections to its asymptotic growth law than the non-conserved case, so an effective exponent well below $1/3$ at Monte-Carlo-accessible timescales (here, up to $10^4$ sweeps) is the physically correct outcome, not a fitting artifact — domain sizes reach only a small fraction of the periodic lattice's finite-size limit ($r_{\max}=48$) by the end of the run, so the shortfall isn't finite-size saturation either. Reaching closer to $1/3$ would require substantially longer runs than were practical to include here.
+
+### Interactive dashboards
+
+Two live-updating visualizers sit alongside the batch pipeline (`run_simulation.py`) above — both read live simulation state via `st.session_state`/plain Python state, not the saved CSV/figure:
+
+- **Native desktop dashboard** (`model_b/live_visualizer.py`, matplotlib + Tk): a lattice heatmap, directional domain-growth plot, and entropy-production plot, animated with `FuncAnimation`.
+- **Web dashboard** (`model_b/app.py`, Streamlit): the same three live panels in a browser, with sidebar sliders for the anisotropy ratio $J_x/J_y$, quench temperature $T_f$, lattice size, and sweeps per frame, plus a Start/Pause/Reset control and a "Materials Science & Engineering" expander covering the analogies above in more depth.
+
+Run the web dashboard locally with:
+
+```bash
+pip install -r requirements.txt   # includes streamlit
+streamlit run model_b/app.py
+```
+
+(Streamlit apps are launched via the `streamlit` CLI, not `python model_b/app.py`.) This opens the dashboard in your browser at `http://localhost:8501`.
