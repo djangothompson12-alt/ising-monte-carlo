@@ -45,6 +45,14 @@ _ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-5, 1.0
 _ENTROPY_SMOOTHING_WINDOW = 10
 _SEED = 2026
 
+# Frames advanced per script execution while running, before yielding back to
+# Streamlit with a single st.rerun(). Batching frames here (rather than one
+# rerun per frame) is what actually eliminates the UI flash: it avoids
+# rebuilding the whole page layout on every frame. Keep this modest so
+# Pause/Reset/slider changes still feel responsive (at 0.05s/frame, a chunk
+# of 10 takes ~0.5s to yield back).
+FRAMES_PER_CHUNK = 10
+
 st.set_page_config(page_title="Model B: Kawasaki Dynamics", layout="wide")
 
 
@@ -244,7 +252,7 @@ def render() -> None:
     ax_lattice.set_xticks([])
     ax_lattice.set_yticks([])
     fig_lattice.tight_layout()
-    lattice_placeholder.pyplot(fig_lattice, width="stretch")
+    lattice_placeholder.pyplot(fig_lattice, width="stretch", clear_figure=True)
     plt.close(fig_lattice)
 
     # --- domain growth plot ---
@@ -267,7 +275,7 @@ def render() -> None:
     ax_domain.set_ylabel("Domain size")
     ax_domain.grid(True, which="both", alpha=0.3, linestyle="--")
     fig_domain.tight_layout()
-    domain_placeholder.pyplot(fig_domain, width="stretch")
+    domain_placeholder.pyplot(fig_domain, width="stretch", clear_figure=True)
     plt.close(fig_domain)
 
     # --- entropy production plot (smoothed) ---
@@ -283,7 +291,7 @@ def render() -> None:
     ax_entropy.set_ylabel(r"$\dot{S}(t)$ (per spin, $k_B$)")
     ax_entropy.grid(True, which="both", alpha=0.3, linestyle="--")
     fig_entropy.tight_layout()
-    entropy_placeholder.pyplot(fig_entropy, width="stretch")
+    entropy_placeholder.pyplot(fig_entropy, width="stretch", clear_figure=True)
     plt.close(fig_entropy)
 
     # --- metrics row ---
@@ -302,10 +310,21 @@ def render() -> None:
 
 
 if st.session_state.running:
-    advance_one_frame()
-
-render()
+    # Advance several frames inside this single script execution, reusing the
+    # same st.empty() placeholders declared above, instead of doing one frame
+    # per full script rerun. Re-running the whole script every frame was the
+    # actual cause of the UI flashing: each rerun re-executes everything above
+    # (title, sidebar, columns, placeholder creation), so the browser briefly
+    # tears down and rebuilds the entire layout every ~50ms. Looping here lets
+    # each frame just update the *contents* of already-existing placeholders.
+    # We still yield back to Streamlit every FRAMES_PER_CHUNK frames (via
+    # st.rerun() below) so Pause/Reset/slider changes stay responsive.
+    for _ in range(FRAMES_PER_CHUNK):
+        advance_one_frame()
+        render()
+        time.sleep(0.05)
+else:
+    render()
 
 if st.session_state.running:
-    time.sleep(0.05)
     st.rerun()
