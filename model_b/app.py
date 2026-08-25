@@ -19,12 +19,12 @@ Usage (Streamlit apps are launched via the `streamlit` CLI, not `python`):
 from __future__ import annotations
 
 import sys
-import time
 from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")  # server-side rendering only; this is a web app, not a GUI window
 import numpy as np
+import plotly.graph_objects as go
 import streamlit as st
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.colors import ListedColormap
@@ -46,13 +46,10 @@ _ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-5, 1.0
 _ENTROPY_SMOOTHING_WINDOW = 10
 _SEED = 2026
 
-# Frames advanced per script execution while running, before yielding back to
-# Streamlit with a single st.rerun(). Batching frames here (rather than one
-# rerun per frame) is what actually eliminates the UI flash: it avoids
-# rebuilding the whole page layout on every frame. Keep this modest so
-# Pause/Reset/slider changes still feel responsive (at 0.05s/frame, a chunk
-# of 10 takes ~0.5s to yield back).
-FRAMES_PER_CHUNK = 10
+# Target refresh interval for the live panel, in seconds (~20 Hz). Driven by
+# st.fragment(run_every=...) rather than a manual sleep()+st.rerun() loop --
+# see the live_dashboard() fragment below for why.
+FRAME_INTERVAL = 0.05
 
 st.set_page_config(page_title="Model B: Kawasaki Dynamics", layout="wide")
 
@@ -105,7 +102,7 @@ def moving_average(values: list[float] | np.ndarray, window: int) -> np.ndarray:
 
 
 # ---------------------------------------------------------------------------
-# Persistent figure factories
+# Persistent figure factories (domain-growth / entropy line plots)
 # ---------------------------------------------------------------------------
 #
 # Figures are built via the plain matplotlib.figure.Figure API (not
@@ -119,20 +116,14 @@ def moving_average(values: list[float] | np.ndarray, window: int) -> np.ndarray:
 # also only runs once. tight_layout() is never called from the per-frame
 # path: it re-measures text/tick extents on every call, which is both slow
 # to run many times a second and part of what made this crash under load.
-
-
-def make_lattice_figure(L: int):
-    """Create the lattice heatmap figure/artist once; L fixes the image shape."""
-    fig = Figure(figsize=(5.2, 5.2))
-    FigureCanvasAgg(fig)
-    ax = fig.add_subplot(111)
-    im = ax.imshow(
-        np.zeros((L, L)), cmap=_LATTICE_CMAP, vmin=-1, vmax=1, interpolation="nearest",
-    )
-    ax.set_xticks([])
-    ax.set_yticks([])
-    fig.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
-    return fig, im
+#
+# The lattice heatmap itself is NOT matplotlib -- see build_lattice_figure()
+# in live_dashboard() below, which uses Plotly instead. An L x L PNG re-encode
+# is by far the most expensive thing in this app's render path (it's the one
+# panel whose data volume scales with the lattice, not with the number of
+# history points), so it's the one panel most worth moving off the
+# server-side-rasterize-a-PNG path entirely: Plotly ships the raw z-array as
+# JSON and lets the browser (canvas/WebGL, GPU-accelerated) do the rendering.
 
 
 def make_domain_figure():
@@ -183,7 +174,7 @@ T_final = st.sidebar.slider(
 )
 L = st.sidebar.selectbox("Lattice Size $L$", options=[64, 128], index=1)
 sweeps_per_frame = st.sidebar.slider(
-    "MC Sweeps per Frame Update", min_value=1, max_value=200, value=50, step=1,
+    "MC Sweeps per Frame Update", min_value=1, max_value=200, value=10, step=1,
 )
 
 Jx = 1.0
@@ -251,10 +242,11 @@ if reset_clicked or st.session_state.get("sim_key") != sim_key:
     st.session_state.Sdot_history = []
     st.session_state.running = False
 
-    # Build each figure and its artists exactly once per simulation (not per
-    # frame, not per script rerun) and keep them in session_state; every
-    # frame thereafter only calls set_data()/set_xlim() on these same objects.
-    st.session_state.fig_lattice, st.session_state.im_lattice = make_lattice_figure(L)
+    # Build each line-plot figure and its artists exactly once per simulation
+    # (not per frame, not per script rerun) and keep them in session_state;
+    # every frame thereafter only calls set_data()/set_xlim() on these same
+    # objects. (The lattice heatmap is Plotly now -- see live_dashboard() --
+    # cheap enough to build fresh each tick, no persistence needed.)
     (
         st.session_state.fig_domain,
         st.session_state.ax_domain,
@@ -282,30 +274,6 @@ st.caption(
     "with independent horizontal/vertical couplings."
 )
 
-_metric_cols = st.columns(4)
-# Plain columns don't support in-place replacement: calling col.metric() again
-# just appends another metric widget below the last one. Wrapping each column
-# in its own st.empty() gives each metric a placeholder that DOES replace its
-# content on every call, instead of stacking a new row every frame.
-metric_ph_sweep = _metric_cols[0].empty()
-metric_ph_energy = _metric_cols[1].empty()
-metric_ph_conc = _metric_cols[2].empty()
-metric_ph_aniso = _metric_cols[3].empty()
-
-left_col, right_col = st.columns(2)
-
-with left_col:
-    st.subheader("Live Lattice (Kawasaki Phase Separation)")
-    lattice_placeholder = st.empty()
-
-with right_col:
-    st.subheader("Directional Domain Growth $L_x(t)$, $L_y(t)$")
-    domain_placeholder = st.empty()
-    st.subheader(r"Entropy Production Rate $\dot{S}(t)$")
-    entropy_placeholder = st.empty()
-
-status_placeholder = st.empty()
-
 
 def advance_one_frame() -> None:
     """Run sweeps_per_frame Kawasaki sweeps and record the resulting observables."""
@@ -330,67 +298,92 @@ def advance_one_frame() -> None:
     st.session_state.Sdot_history.append(Sdot)
 
 
-def render() -> None:
-    """Update the persistent figures/artists and metrics from current state, and push them
-    to their placeholders. Creates no new Figure objects and calls no layout-solving
-    functions (tight_layout) -- everything here is a cheap in-place artist update."""
+def build_lattice_figure(lattice: np.ndarray) -> go.Figure:
+    """Build a lightweight Plotly heatmap of the lattice.
+
+    Unlike the matplotlib line plots, this is cheap to rebuild every tick:
+    Plotly ships the raw z-array as JSON and the browser (canvas/WebGL)
+    rasterizes it client-side, so there's no server-side PNG encode at all
+    (the single biggest cost in the old per-frame path, since it scaled with
+    L^2 rather than with the number of history points). No axis ticks,
+    labels, or colorbar -- nothing decorative is computed here.
+    """
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=lattice,
+            zmin=-1,
+            zmax=1,
+            colorscale=[[0.0, _SPIN_DOWN_COLOR], [1.0, _SPIN_UP_COLOR]],
+            showscale=False,
+            hoverinfo="skip",
+        )
+    )
+    fig.update_xaxes(visible=False, fixedrange=True)
+    fig.update_yaxes(visible=False, fixedrange=True, scaleanchor="x")
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=480)
+    return fig
+
+
+# The live panel is an st.fragment: only ITS contents re-execute on each
+# tick, not the whole page (title, sidebar, etc. above are untouched after
+# the first run). This replaces the previous approach of a manual
+# for-loop + time.sleep() + st.rerun() inside the main script body, which
+# tied up the session's script-execution thread for the full duration of
+# each batch and re-ran the entire script (full page rebuild) at every
+# batch boundary -- the combination that was causing multi-second stalls
+# and reset-like behavior under load. run_every is set to None (fragment
+# stays static) whenever the sim isn't running, and to FRAME_INTERVAL while
+# it is; since this decoration line re-executes on every normal script
+# rerun (e.g. a button click), it always reflects the current running state.
+@st.fragment(run_every=FRAME_INTERVAL if st.session_state.running else None)
+def live_dashboard() -> None:
+    if st.session_state.running:
+        advance_one_frame()
+
     lattice = st.session_state.lattice
     t_hist = st.session_state.t_history
     xlim = (1.0, max(10.0, st.session_state.sweep_count * 1.5))
 
-    # --- lattice heatmap ---
-    st.session_state.im_lattice.set_data(lattice)
-    lattice_placeholder.pyplot(st.session_state.fig_lattice, width="stretch", clear_figure=False)
-
-    # --- domain growth plot ---
-    if t_hist:
-        st.session_state.line_Lx.set_data(t_hist, st.session_state.Lx_history)
-        st.session_state.line_Ly.set_data(t_hist, st.session_state.Ly_history)
-    ax_domain = st.session_state.ax_domain
-    ax_domain.set_xlim(*xlim)
-    ax_domain.set_ylim(0.3, L / 2.0)
-    domain_placeholder.pyplot(st.session_state.fig_domain, width="stretch", clear_figure=False)
-
-    # --- entropy production plot (smoothed) ---
-    if t_hist:
-        Sdot_smoothed = moving_average(st.session_state.Sdot_history, _ENTROPY_SMOOTHING_WINDOW)
-        st.session_state.line_S.set_data(t_hist, Sdot_smoothed)
-    ax_entropy = st.session_state.ax_entropy
-    ax_entropy.set_xlim(*xlim)
-    ax_entropy.set_ylim(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX)
-    entropy_placeholder.pyplot(st.session_state.fig_entropy, width="stretch", clear_figure=False)
-
-    # --- metrics row (dedicated placeholders -- replace in place, never stack) ---
+    metric_cols = st.columns(4)
     N = L * L
     n_up = int(np.count_nonzero(lattice == 1))
     concentration = n_up / N
     E = total_energy(lattice, Jx, Jy)
-    metric_ph_sweep.metric("Sweep Count", f"{st.session_state.sweep_count:,}")
-    metric_ph_energy.metric("Energy E", f"{E:,.0f}")
-    metric_ph_conc.metric("Concentration", f"{concentration:.4f}")
-    metric_ph_aniso.metric("Jx/Jy", f"{Jx / Jy:.2f}")
+    metric_cols[0].metric("Sweep Count", f"{st.session_state.sweep_count:,}")
+    metric_cols[1].metric("Energy E", f"{E:,.0f}")
+    metric_cols[2].metric("Concentration", f"{concentration:.4f}")
+    metric_cols[3].metric("Jx/Jy", f"{Jx / Jy:.2f}")
 
-    status_placeholder.caption(
-        "Status: **running**" if st.session_state.running else "Status: **paused**"
-    )
+    left_col, right_col = st.columns(2)
+
+    with left_col:
+        st.subheader("Live Lattice (Kawasaki Phase Separation)")
+        st.plotly_chart(
+            build_lattice_figure(lattice),
+            width="stretch",
+            config={"displayModeBar": False, "staticPlot": True},
+        )
+
+    with right_col:
+        st.subheader("Directional Domain Growth")
+        if t_hist:
+            st.session_state.line_Lx.set_data(t_hist, st.session_state.Lx_history)
+            st.session_state.line_Ly.set_data(t_hist, st.session_state.Ly_history)
+        ax_domain = st.session_state.ax_domain
+        ax_domain.set_xlim(*xlim)
+        ax_domain.set_ylim(0.3, L / 2.0)
+        st.pyplot(st.session_state.fig_domain, width="stretch", clear_figure=False)
+
+        st.subheader("Entropy Production Rate")
+        if t_hist:
+            Sdot_smoothed = moving_average(st.session_state.Sdot_history, _ENTROPY_SMOOTHING_WINDOW)
+            st.session_state.line_S.set_data(t_hist, Sdot_smoothed)
+        ax_entropy = st.session_state.ax_entropy
+        ax_entropy.set_xlim(*xlim)
+        ax_entropy.set_ylim(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX)
+        st.pyplot(st.session_state.fig_entropy, width="stretch", clear_figure=False)
+
+    st.caption("Status: **running**" if st.session_state.running else "Status: **paused**")
 
 
-if st.session_state.running:
-    # Advance several frames inside this single script execution, reusing the
-    # same st.empty() placeholders declared above, instead of doing one frame
-    # per full script rerun. Re-running the whole script every frame was the
-    # actual cause of the UI flashing: each rerun re-executes everything above
-    # (title, sidebar, columns, placeholder creation), so the browser briefly
-    # tears down and rebuilds the entire layout every ~50ms. Looping here lets
-    # each frame just update the *contents* of already-existing placeholders.
-    # We still yield back to Streamlit every FRAMES_PER_CHUNK frames (via
-    # st.rerun() below) so Pause/Reset/slider changes stay responsive.
-    for _ in range(FRAMES_PER_CHUNK):
-        advance_one_frame()
-        render()
-        time.sleep(0.05)
-else:
-    render()
-
-if st.session_state.running:
-    st.rerun()
+live_dashboard()

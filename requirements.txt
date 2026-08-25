@@ -2,7 +2,8 @@ numpy>=1.24
 numba>=0.58
 matplotlib>=3.7
 scipy>=1.10
-streamlit>=1.30  # only required for model_b/app.py (web dashboard)
+streamlit>=1.37  # model_b/app.py; >=1.37 needed for st.fragment(run_every=...) (tested on 1.62.0)
+plotly>=5.20     # model_b/app.py; client-side (WebGL/canvas) lattice heatmap rendering
 
 # Note (Intel macOS only): numba dropped x86_64 macOS wheels after 0.62.1.
 # On an Intel Mac, pin instead with:
