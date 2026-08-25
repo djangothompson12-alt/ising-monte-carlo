@@ -24,10 +24,11 @@ from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")  # server-side rendering only; this is a web app, not a GUI window
-import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.colors import ListedColormap
+from matplotlib.figure import Figure
 
 sys.path.insert(0, str(Path(__file__).parent))
 from kawasaki_engine import (  # noqa: E402
@@ -101,6 +102,69 @@ def moving_average(values: list[float] | np.ndarray, window: int) -> np.ndarray:
     lo = np.maximum(0, idx - w + 1)
     counts = idx - lo + 1
     return (cumsum[idx + 1] - cumsum[lo]) / counts
+
+
+# ---------------------------------------------------------------------------
+# Persistent figure factories
+# ---------------------------------------------------------------------------
+#
+# Figures are built via the plain matplotlib.figure.Figure API (not
+# plt.subplots()) and never touch pyplot's global figure registry -- the
+# officially recommended pattern for using matplotlib from a threaded server
+# (each Streamlit user session runs its own script thread; pyplot's global
+# state is not thread-safe). Each figure/its artists are created exactly
+# once per simulation (stored in st.session_state, alongside the lattice and
+# history arrays) and updated in place every frame via set_data(), so
+# fig.subplots_adjust() -- the fixed-margin replacement for tight_layout() --
+# also only runs once. tight_layout() is never called from the per-frame
+# path: it re-measures text/tick extents on every call, which is both slow
+# to run many times a second and part of what made this crash under load.
+
+
+def make_lattice_figure(L: int):
+    """Create the lattice heatmap figure/artist once; L fixes the image shape."""
+    fig = Figure(figsize=(5.2, 5.2))
+    FigureCanvasAgg(fig)
+    ax = fig.add_subplot(111)
+    im = ax.imshow(
+        np.zeros((L, L)), cmap=_LATTICE_CMAP, vmin=-1, vmax=1, interpolation="nearest",
+    )
+    ax.set_xticks([])
+    ax.set_yticks([])
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
+    return fig, im
+
+
+def make_domain_figure():
+    """Create the Lx(t)/Ly(t) growth figure/artists once."""
+    fig = Figure(figsize=(5.5, 3.2))
+    FigureCanvasAgg(fig)
+    ax = fig.add_subplot(111)
+    (line_Lx,) = ax.plot([], [], "o-", ms=3, lw=1, color="#1f4e79")
+    (line_Ly,) = ax.plot([], [], "s-", ms=3, lw=1, color="#a63603")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Time t (sweeps)")
+    ax.set_ylabel("Domain size")
+    ax.legend([line_Lx, line_Ly], ["Lx(t)", "Ly(t)"], loc="upper left", fontsize=8)
+    ax.grid(True, which="both", alpha=0.3, linestyle="--")
+    fig.subplots_adjust(left=0.16, right=0.97, top=0.93, bottom=0.16)
+    return fig, ax, line_Lx, line_Ly
+
+
+def make_entropy_figure():
+    """Create the S_dot(t) figure/artist once."""
+    fig = Figure(figsize=(5.5, 3.2))
+    FigureCanvasAgg(fig)
+    ax = fig.add_subplot(111)
+    (line_S,) = ax.plot([], [], "o-", ms=3, lw=1, color="#6a1b9a")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Time t (sweeps)")
+    ax.set_ylabel("S_dot(t), per spin (kB units)")
+    ax.grid(True, which="both", alpha=0.3, linestyle="--")
+    fig.subplots_adjust(left=0.16, right=0.97, top=0.93, bottom=0.16)
+    return fig, ax, line_S
 
 
 # ---------------------------------------------------------------------------
@@ -187,6 +251,22 @@ if reset_clicked or st.session_state.get("sim_key") != sim_key:
     st.session_state.Sdot_history = []
     st.session_state.running = False
 
+    # Build each figure and its artists exactly once per simulation (not per
+    # frame, not per script rerun) and keep them in session_state; every
+    # frame thereafter only calls set_data()/set_xlim() on these same objects.
+    st.session_state.fig_lattice, st.session_state.im_lattice = make_lattice_figure(L)
+    (
+        st.session_state.fig_domain,
+        st.session_state.ax_domain,
+        st.session_state.line_Lx,
+        st.session_state.line_Ly,
+    ) = make_domain_figure()
+    (
+        st.session_state.fig_entropy,
+        st.session_state.ax_entropy,
+        st.session_state.line_S,
+    ) = make_entropy_figure()
+
 if start_clicked:
     st.session_state.running = True
 if pause_clicked:
@@ -202,7 +282,16 @@ st.caption(
     "with independent horizontal/vertical couplings."
 )
 
-metrics_row = st.columns(4)
+_metric_cols = st.columns(4)
+# Plain columns don't support in-place replacement: calling col.metric() again
+# just appends another metric widget below the last one. Wrapping each column
+# in its own st.empty() gives each metric a placeholder that DOES replace its
+# content on every call, instead of stacking a new row every frame.
+metric_ph_sweep = _metric_cols[0].empty()
+metric_ph_energy = _metric_cols[1].empty()
+metric_ph_conc = _metric_cols[2].empty()
+metric_ph_aniso = _metric_cols[3].empty()
+
 left_col, right_col = st.columns(2)
 
 with left_col:
@@ -242,67 +331,44 @@ def advance_one_frame() -> None:
 
 
 def render() -> None:
-    """Draw the lattice heatmap, both line plots, and the metrics row from current state."""
+    """Update the persistent figures/artists and metrics from current state, and push them
+    to their placeholders. Creates no new Figure objects and calls no layout-solving
+    functions (tight_layout) -- everything here is a cheap in-place artist update."""
     lattice = st.session_state.lattice
     t_hist = st.session_state.t_history
+    xlim = (1.0, max(10.0, st.session_state.sweep_count * 1.5))
 
     # --- lattice heatmap ---
-    fig_lattice, ax_lattice = plt.subplots(figsize=(5.2, 5.2))
-    ax_lattice.imshow(lattice, cmap=_LATTICE_CMAP, vmin=-1, vmax=1, interpolation="nearest")
-    ax_lattice.set_xticks([])
-    ax_lattice.set_yticks([])
-    fig_lattice.tight_layout()
-    lattice_placeholder.pyplot(fig_lattice, width="stretch", clear_figure=True)
-    plt.close(fig_lattice)
+    st.session_state.im_lattice.set_data(lattice)
+    lattice_placeholder.pyplot(st.session_state.fig_lattice, width="stretch", clear_figure=False)
 
     # --- domain growth plot ---
-    fig_domain, ax_domain = plt.subplots(figsize=(5.5, 3.2))
     if t_hist:
-        ax_domain.plot(
-            t_hist, st.session_state.Lx_history, "o-", ms=3, lw=1,
-            color="#1f4e79", label=rf"$L_x(t)$ ($J_x={Jx:.2f}$)",
-        )
-        ax_domain.plot(
-            t_hist, st.session_state.Ly_history, "s-", ms=3, lw=1,
-            color="#a63603", label=rf"$L_y(t)$ ($J_y={Jy:.2f}$)",
-        )
-        ax_domain.legend(loc="upper left", fontsize=8)
-    ax_domain.set_xscale("log")
-    ax_domain.set_yscale("log")
-    ax_domain.set_xlim(1.0, max(10.0, st.session_state.sweep_count * 1.5))
+        st.session_state.line_Lx.set_data(t_hist, st.session_state.Lx_history)
+        st.session_state.line_Ly.set_data(t_hist, st.session_state.Ly_history)
+    ax_domain = st.session_state.ax_domain
+    ax_domain.set_xlim(*xlim)
     ax_domain.set_ylim(0.3, L / 2.0)
-    ax_domain.set_xlabel("Time $t$ (sweeps)")
-    ax_domain.set_ylabel("Domain size")
-    ax_domain.grid(True, which="both", alpha=0.3, linestyle="--")
-    fig_domain.tight_layout()
-    domain_placeholder.pyplot(fig_domain, width="stretch", clear_figure=True)
-    plt.close(fig_domain)
+    domain_placeholder.pyplot(st.session_state.fig_domain, width="stretch", clear_figure=False)
 
     # --- entropy production plot (smoothed) ---
-    fig_entropy, ax_entropy = plt.subplots(figsize=(5.5, 3.2))
     if t_hist:
         Sdot_smoothed = moving_average(st.session_state.Sdot_history, _ENTROPY_SMOOTHING_WINDOW)
-        ax_entropy.plot(t_hist, Sdot_smoothed, "o-", ms=3, lw=1, color="#6a1b9a")
-    ax_entropy.set_xscale("log")
-    ax_entropy.set_yscale("log")
-    ax_entropy.set_xlim(1.0, max(10.0, st.session_state.sweep_count * 1.5))
+        st.session_state.line_S.set_data(t_hist, Sdot_smoothed)
+    ax_entropy = st.session_state.ax_entropy
+    ax_entropy.set_xlim(*xlim)
     ax_entropy.set_ylim(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX)
-    ax_entropy.set_xlabel("Time $t$ (sweeps)")
-    ax_entropy.set_ylabel(r"$\dot{S}(t)$ (per spin, $k_B$)")
-    ax_entropy.grid(True, which="both", alpha=0.3, linestyle="--")
-    fig_entropy.tight_layout()
-    entropy_placeholder.pyplot(fig_entropy, width="stretch", clear_figure=True)
-    plt.close(fig_entropy)
+    entropy_placeholder.pyplot(st.session_state.fig_entropy, width="stretch", clear_figure=False)
 
-    # --- metrics row ---
+    # --- metrics row (dedicated placeholders -- replace in place, never stack) ---
     N = L * L
     n_up = int(np.count_nonzero(lattice == 1))
     concentration = n_up / N
     E = total_energy(lattice, Jx, Jy)
-    metrics_row[0].metric("Sweep Count", f"{st.session_state.sweep_count:,}")
-    metrics_row[1].metric("Energy $E$", f"{E:,.0f}")
-    metrics_row[2].metric("Concentration", f"{concentration:.4f}")
-    metrics_row[3].metric("$J_x/J_y$", f"{Jx / Jy:.2f}")
+    metric_ph_sweep.metric("Sweep Count", f"{st.session_state.sweep_count:,}")
+    metric_ph_energy.metric("Energy E", f"{E:,.0f}")
+    metric_ph_conc.metric("Concentration", f"{concentration:.4f}")
+    metric_ph_aniso.metric("Jx/Jy", f"{Jx / Jy:.2f}")
 
     status_placeholder.caption(
         "Status: **running**" if st.session_state.running else "Status: **paused**"
