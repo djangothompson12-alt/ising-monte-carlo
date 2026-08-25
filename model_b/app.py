@@ -118,13 +118,15 @@ def moving_average(values: list[float] | np.ndarray, window: int) -> np.ndarray:
 # to run many times a second and part of what made this crash under load.
 #
 # The lattice heatmap itself is NOT matplotlib -- see build_lattice_figure()
-# below, which uses Plotly instead, built once here and mutated in place
-# every tick (same pattern as the two figures above). An L x L PNG re-encode
-# is by far the most expensive thing in this app's render path (it's the one
-# panel whose data volume scales with the lattice, not with the number of
-# history points), so it's the one panel most worth moving off the
-# server-side-rasterize-a-PNG path entirely: Plotly ships the raw z-array as
-# JSON and lets the browser (canvas/WebGL, GPU-accelerated) do the rendering.
+# below, which uses Plotly instead and (unlike the two figures above) is
+# rebuilt fresh every tick rather than persisted; see that function's
+# docstring for why persistence isn't the right trade-off there. An L x L
+# PNG re-encode is by far the most expensive thing in this app's render path
+# (it's the one panel whose data volume scales with the lattice, not with
+# the number of history points), so it's the one panel most worth moving off
+# the server-side-rasterize-a-PNG path entirely: Plotly ships the raw
+# z-array as JSON and lets the browser (canvas/WebGL, GPU-accelerated) do
+# the rendering.
 
 
 def make_domain_figure():
@@ -160,14 +162,19 @@ def make_entropy_figure():
 
 
 def build_lattice_figure(lattice: np.ndarray) -> go.Figure:
-    """Create the lattice heatmap Plotly figure once; frames thereafter mutate
-    its existing data in place (fig.data[0].z = ...) rather than rebuilding it.
+    """Build a fresh lattice heatmap Plotly figure from the current lattice.
 
-    Plotly ships the raw z-array as JSON and the browser (canvas/WebGL)
-    rasterizes it client-side -- no server-side PNG encode at all (that was
-    the single biggest cost in the old matplotlib-based render path, since it
-    scaled with L^2 rather than with the number of history points). No axis
-    ticks, labels, or colorbar -- nothing decorative is computed here.
+    Called once per st.fragment tick (see live_dashboard()) -- deliberately
+    NOT persisted+mutated in place the way the two matplotlib figures are,
+    since a small go.Figure is cheap to construct (no server-side
+    rasterization happens until st.plotly_chart renders it) and this avoids
+    mutating a stored object's nested attributes from inside a fragment's
+    background-timer tick. Plotly ships the raw z-array as JSON and the
+    browser (canvas/WebGL) rasterizes it client-side -- no server-side PNG
+    encode at all (that was the single biggest cost in the old
+    matplotlib-based render path, since it scaled with L^2 rather than with
+    the number of history points). No axis ticks, labels, or colorbar --
+    nothing decorative is computed here.
     """
     fig = go.Figure(
         data=go.Heatmap(
@@ -287,7 +294,9 @@ if reset_clicked or st.session_state.get("sim_key") != sim_key:
         st.session_state.ax_entropy,
         st.session_state.line_S,
     ) = make_entropy_figure()
-    st.session_state.fig_lattice_plotly = build_lattice_figure(st.session_state.lattice)
+    # The lattice heatmap (Plotly) is deliberately NOT persisted in
+    # session_state the way the two figures above are -- see build_lattice_figure()
+    # and its call site in live_dashboard() below for why.
 
 if start_clicked:
     st.session_state.running = True
@@ -370,13 +379,20 @@ def live_dashboard() -> None:
 
     with left_col:
         st.subheader("Live Lattice (Kawasaki Phase Separation)")
-        # Mutate the persisted figure's existing trace data in place -- do
-        # NOT construct a new go.Figure here -- then re-render it under the
-        # same key every tick, mirroring the matplotlib set_data() pattern
-        # below instead of rebuilding fresh content each frame.
-        st.session_state.fig_lattice_plotly.data[0].z = lattice
+        # Deliberately rebuilt fresh every tick rather than persisted +
+        # mutated in place: unlike the matplotlib plots below (where
+        # rebuilding means redoing real layout/text-measurement work),
+        # constructing a small go.Figure is cheap -- no server-side
+        # rasterization happens until st.plotly_chart renders it -- so
+        # there's no performance case for persisting it. Rebuilding also
+        # sidesteps mutating a stored object's nested attributes from
+        # inside an st.fragment(run_every=...) tick, which runs on
+        # Streamlit's own background timer rather than a normal script
+        # rerun; the stable key= below is what actually keeps the
+        # frontend chart component from flickering, independent of
+        # whether the Python-side Figure object is new or reused.
         st.plotly_chart(
-            st.session_state.fig_lattice_plotly,
+            build_lattice_figure(lattice),
             width="stretch",
             config={"displayModeBar": False, "staticPlot": True},
             key="lattice_chart",
