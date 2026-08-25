@@ -21,14 +21,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import matplotlib
-matplotlib.use("Agg")  # server-side rendering only; this is a web app, not a GUI window
 import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-from matplotlib.colors import ListedColormap
-from matplotlib.figure import Figure
 
 sys.path.insert(0, str(Path(__file__).parent))
 from kawasaki_engine import (  # noqa: E402
@@ -40,7 +35,12 @@ from kawasaki_engine import (  # noqa: E402
 # --- Display constants ---
 _SPIN_DOWN_COLOR = "#1f4e79"
 _SPIN_UP_COLOR = "#f2f2f2"
-_LATTICE_CMAP = ListedColormap([_SPIN_DOWN_COLOR, _SPIN_UP_COLOR])
+_DOMAIN_LX_COLOR = "#1f4e79"
+_DOMAIN_LY_COLOR = "#a63603"
+_ENTROPY_COLOR = "#6a1b9a"
+_CHART_MARGIN = dict(l=40, r=20, t=30, b=40)
+_CHART_HEIGHT = 300
+_DOMAIN_Y_MIN = 0.3  # upper bound is L/2 (r_max), computed per-call since it depends on lattice size
 _ENTROPY_FLOOR = 1e-7
 _ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-5, 1.0
 _ENTROPY_SMOOTHING_WINDOW = 10
@@ -105,77 +105,33 @@ def moving_average(values: list[float] | np.ndarray, window: int) -> np.ndarray:
 # Persistent figure factories (domain-growth / entropy line plots)
 # ---------------------------------------------------------------------------
 #
-# Figures are built via the plain matplotlib.figure.Figure API (not
-# plt.subplots()) and never touch pyplot's global figure registry -- the
-# officially recommended pattern for using matplotlib from a threaded server
-# (each Streamlit user session runs its own script thread; pyplot's global
-# state is not thread-safe). Each figure/its artists are created exactly
-# once per simulation (stored in st.session_state, alongside the lattice and
-# history arrays) and updated in place every frame via set_data(), so
-# fig.subplots_adjust() -- the fixed-margin replacement for tight_layout() --
-# also only runs once. tight_layout() is never called from the per-frame
-# path: it re-measures text/tick extents on every call, which is both slow
-# to run many times a second and part of what made this crash under load.
+# All three visualizations are Plotly figures, rebuilt fresh every
+# st.fragment tick rather than persisted+mutated: constructing a small
+# go.Figure is cheap (Plotly ships the trace data as JSON; no server-side
+# rasterization happens at all until st.plotly_chart renders it -- unlike
+# matplotlib's st.pyplot(), which re-encodes a brand-new PNG image every
+# call regardless of how much of the *Python-side* rendering work is
+# avoided). That PNG-swap is what st.pyplot() fundamentally does on every
+# single call: ship a new image blob, have the browser replace the <img>
+# src. Plotly's frontend component instead patches its existing chart
+# in place, which is what actually avoids the grey/fade transition -- no
+# amount of persisting matplotlib Figure objects server-side changes what
+# gets sent to the browser each tick. A stable key= on st.plotly_chart is
+# what lets the frontend recognize "this is the same chart, just new data"
+# across ticks.
 #
-# The lattice heatmap itself is NOT matplotlib -- see build_lattice_figure()
-# below, which uses Plotly instead and (unlike the two figures above) is
-# rebuilt fresh every tick rather than persisted; see that function's
-# docstring for why persistence isn't the right trade-off there. An L x L
-# PNG re-encode is by far the most expensive thing in this app's render path
-# (it's the one panel whose data volume scales with the lattice, not with
-# the number of history points), so it's the one panel most worth moving off
-# the server-side-rasterize-a-PNG path entirely: Plotly ships the raw
-# z-array as JSON and lets the browser (canvas/WebGL, GPU-accelerated) do
-# the rendering.
-
-
-def make_domain_figure():
-    """Create the Lx(t)/Ly(t) growth figure/artists once."""
-    fig = Figure(figsize=(5.5, 3.2))
-    FigureCanvasAgg(fig)
-    ax = fig.add_subplot(111)
-    (line_Lx,) = ax.plot([], [], "o-", ms=3, lw=1, color="#1f4e79")
-    (line_Ly,) = ax.plot([], [], "s-", ms=3, lw=1, color="#a63603")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel("Time t (sweeps)")
-    ax.set_ylabel("Domain size")
-    ax.legend([line_Lx, line_Ly], ["Lx(t)", "Ly(t)"], loc="upper left", fontsize=8)
-    ax.grid(True, which="both", alpha=0.3, linestyle="--")
-    fig.subplots_adjust(left=0.16, right=0.97, top=0.93, bottom=0.16)
-    return fig, ax, line_Lx, line_Ly
-
-
-def make_entropy_figure():
-    """Create the S_dot(t) figure/artist once."""
-    fig = Figure(figsize=(5.5, 3.2))
-    FigureCanvasAgg(fig)
-    ax = fig.add_subplot(111)
-    (line_S,) = ax.plot([], [], "o-", ms=3, lw=1, color="#6a1b9a")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel("Time t (sweeps)")
-    ax.set_ylabel("S_dot(t), per spin (kB units)")
-    ax.grid(True, which="both", alpha=0.3, linestyle="--")
-    fig.subplots_adjust(left=0.16, right=0.97, top=0.93, bottom=0.16)
-    return fig, ax, line_S
+# Explicit (log-space) axis ranges are set on every figure rather than
+# left to Plotly's autorange: on a log-scale axis, autorange over an
+# empty or near-empty trace can produce a degenerate default range before
+# enough data exists, which is what caused the domain/entropy panels to
+# visually look empty/delayed for the first several ticks. Setting the
+# same fixed range we already compute for the x-axis (and a fixed,
+# lattice-appropriate range for each y-axis) means the axes -- and grid,
+# and labels -- are fully drawn from frame 0, even with zero data points.
 
 
 def build_lattice_figure(lattice: np.ndarray) -> go.Figure:
-    """Build a fresh lattice heatmap Plotly figure from the current lattice.
-
-    Called once per st.fragment tick (see live_dashboard()) -- deliberately
-    NOT persisted+mutated in place the way the two matplotlib figures are,
-    since a small go.Figure is cheap to construct (no server-side
-    rasterization happens until st.plotly_chart renders it) and this avoids
-    mutating a stored object's nested attributes from inside a fragment's
-    background-timer tick. Plotly ships the raw z-array as JSON and the
-    browser (canvas/WebGL) rasterizes it client-side -- no server-side PNG
-    encode at all (that was the single biggest cost in the old
-    matplotlib-based render path, since it scaled with L^2 rather than with
-    the number of history points). No axis ticks, labels, or colorbar --
-    nothing decorative is computed here.
-    """
+    """Build the lattice heatmap. No axis ticks, labels, or colorbar."""
     fig = go.Figure(
         data=go.Heatmap(
             z=lattice,
@@ -189,6 +145,82 @@ def build_lattice_figure(lattice: np.ndarray) -> go.Figure:
     fig.update_xaxes(visible=False, fixedrange=True)
     fig.update_yaxes(visible=False, fixedrange=True, scaleanchor="x")
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=480)
+    return fig
+
+
+def _log_range(lo: float, hi: float) -> list[float]:
+    """Convert a linear (lo, hi) axis range into the log10-space values
+    Plotly's `range` expects when an axis has type="log"."""
+    return [np.log10(lo), np.log10(hi)]
+
+
+def build_domain_figure(
+    t_hist: list[float], Lx_hist: list[float], Ly_hist: list[float], x_range: tuple[float, float], L: int,
+) -> go.Figure:
+    """Build the Lx(t)/Ly(t) domain-growth log-log line chart.
+
+    Per len(t_hist) < 2, both traces are given empty x=[]/y=[] rather than
+    the single available point, so the (log-scale) axes don't have to
+    accommodate a degenerate one-point autorange -- the explicit fixed
+    range below already handles that regardless.
+    """
+    has_data = len(t_hist) >= 2
+    x = t_hist if has_data else []
+    fig = go.Figure(
+        data=[
+            go.Scatter(
+                x=x, y=Lx_hist if has_data else [],
+                mode="lines+markers", name="Lx(t)",
+                marker=dict(symbol="circle", size=5), line=dict(color=_DOMAIN_LX_COLOR, width=1.5),
+            ),
+            go.Scatter(
+                x=x, y=Ly_hist if has_data else [],
+                mode="lines+markers", name="Ly(t)",
+                marker=dict(symbol="square", size=5), line=dict(color=_DOMAIN_LY_COLOR, width=1.5),
+            ),
+        ]
+    )
+    fig.update_xaxes(
+        type="log", range=_log_range(*x_range), title_text="Time t (sweeps)",
+        showgrid=True, gridcolor="#eeeeee",
+    )
+    fig.update_yaxes(
+        type="log", range=_log_range(_DOMAIN_Y_MIN, L / 2.0), title_text="Domain size",
+        showgrid=True, gridcolor="#eeeeee",
+    )
+    fig.update_layout(
+        margin=_CHART_MARGIN, height=_CHART_HEIGHT,
+        legend=dict(x=0.02, y=0.98, bgcolor="rgba(255,255,255,0.7)"),
+    )
+    return fig
+
+
+def build_entropy_figure(
+    t_hist: list[float], Sdot_smoothed: list[float], x_range: tuple[float, float],
+) -> go.Figure:
+    """Build the S_dot(t) entropy-production log-log line chart.
+
+    Same len(t_hist) < 2 handling as build_domain_figure().
+    """
+    has_data = len(t_hist) >= 2
+    fig = go.Figure(
+        data=[
+            go.Scatter(
+                x=t_hist if has_data else [], y=Sdot_smoothed if has_data else [],
+                mode="lines+markers", name="S_dot(t)",
+                marker=dict(symbol="circle", size=5), line=dict(color=_ENTROPY_COLOR, width=1.5),
+            ),
+        ]
+    )
+    fig.update_xaxes(
+        type="log", range=_log_range(*x_range), title_text="Time t (sweeps)",
+        showgrid=True, gridcolor="#eeeeee",
+    )
+    fig.update_yaxes(
+        type="log", range=_log_range(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX),
+        title_text="S_dot(t), per spin (kB units)", showgrid=True, gridcolor="#eeeeee",
+    )
+    fig.update_layout(margin=_CHART_MARGIN, height=_CHART_HEIGHT, showlegend=False)
     return fig
 
 
@@ -275,28 +307,10 @@ if reset_clicked or st.session_state.get("sim_key") != sim_key:
     st.session_state.Ly_history = []
     st.session_state.Sdot_history = []
     st.session_state.running = False
-
-    # Build each figure and its artists exactly once per simulation (not per
-    # frame, not per script rerun) and keep them in session_state; every
-    # frame thereafter only mutates these same objects' data in place --
-    # never constructs a new Figure -- which is what lets Streamlit's
-    # frontend patch each chart's existing DOM node instead of tearing it
-    # down and recreating it (the latter is what produces a visible
-    # fade/flicker on rerun).
-    (
-        st.session_state.fig_domain,
-        st.session_state.ax_domain,
-        st.session_state.line_Lx,
-        st.session_state.line_Ly,
-    ) = make_domain_figure()
-    (
-        st.session_state.fig_entropy,
-        st.session_state.ax_entropy,
-        st.session_state.line_S,
-    ) = make_entropy_figure()
-    # The lattice heatmap (Plotly) is deliberately NOT persisted in
-    # session_state the way the two figures above are -- see build_lattice_figure()
-    # and its call site in live_dashboard() below for why.
+    # No figure objects to (re)build here -- all three charts are Plotly,
+    # built fresh each fragment tick from these history arrays; see the
+    # "Plotly figure builders" section above for why that's the right
+    # trade-off (unlike the matplotlib approach this file used previously).
 
 if start_clicked:
     st.session_state.running = True
@@ -362,14 +376,11 @@ def live_dashboard() -> None:
     n_up = int(np.count_nonzero(lattice == 1))
     concentration = n_up / N
     E = total_energy(lattice, Jx, Jy)
-    # st.metric() and st.pyplot() have no `key` parameter in this Streamlit
-    # version (verified -- passing one raises TypeError; st.pyplot's **kwargs
-    # forwards straight to matplotlib's savefig(), not to any Streamlit
-    # identity mechanism). Only st.plotly_chart() below genuinely supports
-    # one. These four calls instead rely on stable script-position inference,
-    # which is already correct here since the same 4 calls happen in the
-    # same order every tick -- Streamlit can match them to their previous
-    # render without ambiguity.
+    # st.metric() has no `key` parameter in this Streamlit version (verified
+    # -- passing one raises TypeError). Only st.plotly_chart() below
+    # genuinely supports one. These four calls instead rely on stable
+    # script-position inference, which is already correct here since the
+    # same 4 calls happen in the same order every tick.
     metric_cols[0].metric("Sweep Count", f"{st.session_state.sweep_count:,}")
     metric_cols[1].metric("Energy E", f"{E:,.0f}")
     metric_cols[2].metric("Concentration", f"{concentration:.4f}")
@@ -379,18 +390,11 @@ def live_dashboard() -> None:
 
     with left_col:
         st.subheader("Live Lattice (Kawasaki Phase Separation)")
-        # Deliberately rebuilt fresh every tick rather than persisted +
-        # mutated in place: unlike the matplotlib plots below (where
-        # rebuilding means redoing real layout/text-measurement work),
-        # constructing a small go.Figure is cheap -- no server-side
-        # rasterization happens until st.plotly_chart renders it -- so
-        # there's no performance case for persisting it. Rebuilding also
-        # sidesteps mutating a stored object's nested attributes from
-        # inside an st.fragment(run_every=...) tick, which runs on
-        # Streamlit's own background timer rather than a normal script
-        # rerun; the stable key= below is what actually keeps the
-        # frontend chart component from flickering, independent of
-        # whether the Python-side Figure object is new or reused.
+        # Rebuilt fresh every tick -- constructing a small go.Figure is cheap
+        # (no server-side rasterization happens until st.plotly_chart renders
+        # it). The stable key= is what keeps the frontend chart component
+        # from flickering across ticks, independent of the Python-side
+        # object's identity.
         st.plotly_chart(
             build_lattice_figure(lattice),
             width="stretch",
@@ -400,25 +404,20 @@ def live_dashboard() -> None:
 
     with right_col:
         st.subheader("Directional Domain Growth")
-        if t_hist:
-            st.session_state.line_Lx.set_data(t_hist, st.session_state.Lx_history)
-            st.session_state.line_Ly.set_data(t_hist, st.session_state.Ly_history)
-        ax_domain = st.session_state.ax_domain
-        ax_domain.set_xlim(*xlim)
-        ax_domain.set_ylim(0.3, L / 2.0)
-        st.pyplot(
-            st.session_state.fig_domain, width="stretch", clear_figure=False,
+        st.plotly_chart(
+            build_domain_figure(t_hist, st.session_state.Lx_history, st.session_state.Ly_history, xlim, L),
+            width="stretch",
+            config={"displayModeBar": False},
+            key="domain_chart",
         )
 
         st.subheader("Entropy Production Rate")
-        if t_hist:
-            Sdot_smoothed = moving_average(st.session_state.Sdot_history, _ENTROPY_SMOOTHING_WINDOW)
-            st.session_state.line_S.set_data(t_hist, Sdot_smoothed)
-        ax_entropy = st.session_state.ax_entropy
-        ax_entropy.set_xlim(*xlim)
-        ax_entropy.set_ylim(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX)
-        st.pyplot(
-            st.session_state.fig_entropy, width="stretch", clear_figure=False,
+        Sdot_smoothed = moving_average(st.session_state.Sdot_history, _ENTROPY_SMOOTHING_WINDOW)
+        st.plotly_chart(
+            build_entropy_figure(t_hist, Sdot_smoothed.tolist(), xlim),
+            width="stretch",
+            config={"displayModeBar": False},
+            key="entropy_chart",
         )
 
     st.caption("Status: **running**" if st.session_state.running else "Status: **paused**")
