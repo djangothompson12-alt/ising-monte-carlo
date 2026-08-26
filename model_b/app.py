@@ -40,8 +40,8 @@ _SPIN_UP_COLOR = "#f2f2f2"
 _DOMAIN_LX_COLOR = "#1f4e79"
 _DOMAIN_LY_COLOR = "#a63603"
 _ENTROPY_COLOR = "#6a1b9a"
-_CHART_MARGIN = dict(l=40, r=20, t=30, b=40)
-_CHART_HEIGHT = 300
+_CHART_MARGIN = dict(l=50, r=20, t=30, b=50)
+_CHART_HEIGHT = 320  # leaves headroom in the 380px-min-height Card for the heading above it
 _DOMAIN_Y_MIN = 0.3  # upper bound is L/2 (r_max), computed per-call since it depends on lattice size
 _ENTROPY_FLOOR = 1e-7
 _ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-5, 1.0
@@ -135,8 +135,12 @@ def build_lattice_figure(lattice: np.ndarray) -> go.Figure:
         )
     )
     fig.update_xaxes(visible=False, fixedrange=True)
-    fig.update_yaxes(visible=False, fixedrange=True, scaleanchor="x")
-    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=480)
+    # scaleanchor="x" (with a 1:1 default scaleratio) is what actually
+    # enforces the square 1:1 aspect ratio -- autosize alone only makes the
+    # figure fill its container's width, it doesn't constrain the height/width
+    # relationship on its own.
+    fig.update_yaxes(visible=False, fixedrange=True, scaleanchor="x", scaleratio=1)
+    fig.update_layout(autosize=True, margin=dict(l=0, r=0, t=0, b=0), height=400)
     return fig
 
 
@@ -181,7 +185,7 @@ def build_domain_figure(
         showgrid=True, gridcolor="#eeeeee",
     )
     fig.update_layout(
-        margin=_CHART_MARGIN, height=_CHART_HEIGHT,
+        autosize=True, margin=_CHART_MARGIN, height=_CHART_HEIGHT,
         legend=dict(x=0.02, y=0.98, bgcolor="rgba(255,255,255,0.7)"),
     )
     return fig
@@ -212,7 +216,7 @@ def build_entropy_figure(
         type="log", range=_log_range(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX),
         title_text="S_dot(t), per spin (kB units)", showgrid=True, gridcolor="#eeeeee",
     )
-    fig.update_layout(margin=_CHART_MARGIN, height=_CHART_HEIGHT, showlegend=False)
+    fig.update_layout(autosize=True, margin=_CHART_MARGIN, height=_CHART_HEIGHT, showlegend=False)
     return fig
 
 
@@ -346,77 +350,105 @@ def Page() -> None:
     solara.use_thread(worker, dependencies=[state])
 
     with solara.Sidebar():
-        solara.Markdown("## Model B Controls")
-        solara.Text(
-            "Kawasaki spin-exchange dynamics (conserved order parameter)",
-            style={"color": "#666", "font-size": "0.85rem"},
-        )
-        solara.SliderFloat(
-            "Anisotropy Ratio Jx / Jy", value=anisotropy_ratio, min=0.1, max=3.0, step=0.1,
-        )
-        solara.Text(
-            "Jx is held fixed at 1.0; this slider sets Jy = Jx / ratio.",
-            style={"color": "#888", "font-size": "0.75rem"},
-        )
-        solara.SliderFloat("Quench Temperature Tf", value=T_final, min=0.1, max=2.5, step=0.1)
-        solara.Select("Lattice Size L", value=L_value, values=[64, 128])
-        solara.SliderInt(
-            "MC Sweeps per Frame Update", value=sweeps_per_frame, min=1, max=200, step=1,
-        )
+        # A single Column wrapping everything gives the sidebar content a
+        # consistent, predictable width and vertical gap between controls.
+        # Without this, each element sizes itself independently, which is
+        # what was causing the sidebar to squish unpredictably against the
+        # main content area instead of reserving stable space for itself.
+        with solara.Column(gap="12px", style={"width": "100%", "padding": "4px"}):
+            solara.Markdown("## Model B Controls")
+            solara.Text(
+                "Kawasaki spin-exchange dynamics (conserved order parameter)",
+                style={"color": "#666", "font-size": "0.85rem"},
+            )
+            solara.SliderFloat(
+                "Anisotropy Ratio Jx / Jy", value=anisotropy_ratio, min=0.1, max=3.0, step=0.1,
+            )
+            solara.Text(
+                "Jx is held fixed at 1.0; this slider sets Jy = Jx / ratio.",
+                style={"color": "#888", "font-size": "0.75rem"},
+            )
+            solara.SliderFloat("Quench Temperature Tf", value=T_final, min=0.1, max=2.5, step=0.1)
+            solara.Select("Lattice Size L", value=L_value, values=[64, 128])
+            solara.SliderInt(
+                "MC Sweeps per Frame Update", value=sweeps_per_frame, min=1, max=200, step=1,
+            )
 
-        with solara.Row(gap="8px"):
-            solara.Button("Start", on_click=lambda: state.running.set(True), color="primary")
-            solara.Button("Pause", on_click=lambda: state.running.set(False))
-            solara.Button("Reset", on_click=lambda: set_reset_counter(reset_counter + 1))
+            with solara.Row(gap="8px", style={"flex-wrap": "wrap"}):
+                solara.Button("Start", on_click=lambda: state.running.set(True), color="primary")
+                solara.Button("Pause", on_click=lambda: state.running.set(False))
+                solara.Button("Reset", on_click=lambda: set_reset_counter(reset_counter + 1))
 
-        solara.Text(
-            f"Jx={Jx:.2f}, Jy={Jy:.3f}  (ratio={anisotropy_ratio.value:.2f})",
-            style={"color": "#666", "font-size": "0.8rem"},
-        )
+            solara.Text(
+                f"Jx={Jx:.2f}, Jy={Jy:.3f}  (ratio={anisotropy_ratio.value:.2f})",
+                style={"color": "#666", "font-size": "0.8rem"},
+            )
 
-        with solara.Details(summary="Materials Science & Engineering Context"):
-            solara.Markdown(_MATERIALS_SCIENCE_MARKDOWN)
+            with solara.Details(summary="Materials Science & Engineering Context"):
+                solara.Markdown(_MATERIALS_SCIENCE_MARKDOWN)
 
     # --- Main area ---
     solara.Title("Model B: Kawasaki Dynamics")
-    solara.Markdown("# Model B: Live Kawasaki Exchange Dashboard")
-    solara.Text(
-        "Conserved-order-parameter (Model B) coarsening -- spin-exchange dynamics "
-        "with independent horizontal/vertical couplings.",
-        style={"color": "#666"},
-    )
+    # The main content column gets its own explicit width: 100% of whatever
+    # space the AppLayout gives it once the sidebar has claimed its own
+    # (fixed-width) space, rather than letting the title/heading elements
+    # size themselves against an ambiguous flex context -- that ambiguity
+    # was what let the sidebar and title fight over width and clip the
+    # title text.
+    with solara.Column(style={"width": "100%", "max-width": "100%", "overflow-x": "hidden"}):
+        solara.Markdown(
+            "# Model B: Live Kawasaki Exchange Dashboard",
+            style={"white-space": "normal", "overflow-wrap": "break-word"},
+        )
+        solara.Text(
+            "Conserved-order-parameter (Model B) coarsening -- spin-exchange dynamics "
+            "with independent horizontal/vertical couplings.",
+            style={"color": "#666"},
+        )
 
-    lattice = state.lattice.value
-    t_hist = state.t_history.value
-    xlim = (1.0, max(10.0, state.sweep_count.value * 1.5))
+        lattice = state.lattice.value
+        t_hist = state.t_history.value
+        xlim = (1.0, max(10.0, state.sweep_count.value * 1.5))
 
-    N = state.L * state.L
-    n_up = int(np.count_nonzero(lattice == 1))
-    concentration = n_up / N
-    E = total_energy(lattice, Jx, Jy)
+        N = state.L * state.L
+        n_up = int(np.count_nonzero(lattice == 1))
+        concentration = n_up / N
+        E = total_energy(lattice, Jx, Jy)
 
-    with solara.Row(justify="space-around", style={"margin": "8px 0 16px 0"}):
-        _metric("Sweep Count", f"{state.sweep_count.value:,}")
-        _metric("Energy E", f"{E:,.0f}")
-        _metric("Concentration", f"{concentration:.4f}")
-        _metric("Jx/Jy", f"{Jx / Jy:.2f}")
+        with solara.Row(justify="space-around", style={"margin": "8px 0 16px 0", "flex-wrap": "wrap"}):
+            _metric("Sweep Count", f"{state.sweep_count.value:,}")
+            _metric("Energy E", f"{E:,.0f}")
+            _metric("Concentration", f"{concentration:.4f}")
+            _metric("Jx/Jy", f"{Jx / Jy:.2f}")
 
-    with solara.Row(justify="space-between", style={"align-items": "flex-start"}):
-        with solara.Column(style={"flex": "1"}):
-            solara.Markdown("### Live Lattice (Kawasaki Phase Separation)")
-            solara.FigurePlotly(build_lattice_figure(lattice))
+        # solara.Columns([1, 1]) is a purpose-built, tested proportional-grid
+        # primitive (used throughout Solara's own docs for exactly this kind
+        # of side-by-side panel layout), rather than a hand-rolled Row +
+        # flex-Column pairing -- the latter is what was squishing the two
+        # panels unpredictably. Each panel is further wrapped in a Card with
+        # an explicit min-height, so neither the heatmap nor the line plots
+        # ever collapse to a sliver while their Plotly figure is still
+        # loading or resizing.
+        with solara.Columns([1, 1]):
+            with solara.Card(style={"min-height": "420px"}):
+                solara.Markdown("### Live Lattice (Kawasaki Phase Separation)")
+                solara.FigurePlotly(build_lattice_figure(lattice))
 
-        with solara.Column(style={"flex": "1"}):
-            solara.Markdown("### Directional Domain Growth")
-            solara.FigurePlotly(
-                build_domain_figure(t_hist, state.Lx_history.value, state.Ly_history.value, xlim, state.L)
-            )
+            with solara.Column(gap="16px"):
+                with solara.Card(style={"min-height": "380px"}):
+                    solara.Markdown("### Directional Domain Growth")
+                    solara.FigurePlotly(
+                        build_domain_figure(
+                            t_hist, state.Lx_history.value, state.Ly_history.value, xlim, state.L
+                        )
+                    )
 
-            solara.Markdown("### Entropy Production Rate")
-            Sdot_smoothed = moving_average(state.Sdot_history.value, _ENTROPY_SMOOTHING_WINDOW)
-            solara.FigurePlotly(build_entropy_figure(t_hist, Sdot_smoothed.tolist(), xlim))
+                with solara.Card(style={"min-height": "380px"}):
+                    solara.Markdown("### Entropy Production Rate")
+                    Sdot_smoothed = moving_average(state.Sdot_history.value, _ENTROPY_SMOOTHING_WINDOW)
+                    solara.FigurePlotly(build_entropy_figure(t_hist, Sdot_smoothed.tolist(), xlim))
 
-    solara.Text(
-        "Status: running" if state.running.value else "Status: paused",
-        style={"font-weight": "600", "margin-top": "8px"},
-    )
+        solara.Text(
+            "Status: running" if state.running.value else "Status: paused",
+            style={"font-weight": "600", "margin-top": "8px"},
+        )
