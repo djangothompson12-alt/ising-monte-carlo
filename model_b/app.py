@@ -122,8 +122,16 @@ def moving_average(values: list[float] | np.ndarray, window: int) -> np.ndarray:
 # -- are fully drawn from frame 0, even with zero data points.
 
 
+_LATTICE_BOX_PX = 380  # fixed square box: both the Plotly figure and its wrapping Card use this
+
+
 def build_lattice_figure(lattice: np.ndarray) -> go.Figure:
-    """Build the lattice heatmap. No axis ticks, labels, or colorbar."""
+    """Build the lattice heatmap. No axis ticks, labels, or colorbar.
+
+    Explicitly sized (not autosize) to a fixed LATTICE_BOX_PX x LATTICE_BOX_PX
+    square -- the wrapping Card in Page() is fixed to the same pixel size, so
+    the two can't drift apart or force horizontal scrolling/clipping.
+    """
     fig = go.Figure(
         data=go.Heatmap(
             z=lattice,
@@ -135,12 +143,11 @@ def build_lattice_figure(lattice: np.ndarray) -> go.Figure:
         )
     )
     fig.update_xaxes(visible=False, fixedrange=True)
-    # scaleanchor="x" (with a 1:1 default scaleratio) is what actually
-    # enforces the square 1:1 aspect ratio -- autosize alone only makes the
-    # figure fill its container's width, it doesn't constrain the height/width
-    # relationship on its own.
     fig.update_yaxes(visible=False, fixedrange=True, scaleanchor="x", scaleratio=1)
-    fig.update_layout(autosize=True, margin=dict(l=0, r=0, t=0, b=0), height=400)
+    fig.update_layout(
+        autosize=False, width=_LATTICE_BOX_PX, height=_LATTICE_BOX_PX,
+        margin=dict(l=0, r=0, t=0, b=0),
+    )
     return fig
 
 
@@ -256,36 +263,9 @@ def _metric(label: str, value: str) -> None:
 
 
 _MATERIALS_SCIENCE_MARKDOWN = """
-Kawasaki exchange dynamics is a *conserved-order-parameter* model, and the
-same coarsening mathematics shows up (with varying degrees of fidelity) in
-several real materials phenomena:
-
-**Binary alloy spinodal decomposition.** This is close to a literal
-correspondence, not just an analogy: this simulation *is* the standard
-lattice-gas realization of a binary A/B alloy (or fluid mixture) quenched
-into an unstable region of its phase diagram. Spin up/down represents
-atomic species A/B, conserved magnetization represents conserved alloy
-composition, and the coarsening exponent measured here, L(t) ~ t^(1/3)
-(Lifshitz-Slyozov), is the same law used to describe Ostwald ripening of
-precipitates in real alloys.
-
-**Directional grain alignment in rolled sheet metals.** Rolling imposes a
-strongly preferred direction on a metal sheet, producing elongated,
-texture-aligned grains along the rolling direction. The mechanism here is
-different (plastic deformation and recrystallization, not diffusive phase
-separation), but the *qualitative* outcome is the same kind of thing
-visualized in the left panel: making one lattice direction "easier" than
-the other (Jx != Jy here; rolling strain there) produces visibly elongated,
-anisotropic domains/grains rather than isotropic ones.
-
-**Single-crystal superalloy microstructures.** Ni-based superalloy turbine
-blades are grown as single crystals along a preferred crystallographic
-direction specifically to exploit anisotropic mechanical properties. Under
-applied stress at high temperature, their gamma-prime precipitates coarsen
-*directionally* ("rafting"), driven by elastic anisotropy -- a genuine,
-well-documented materials phenomenon that is conceptually the closest
-real-world parallel to what Jx != Jy produces here: an external asymmetry
-biasing which direction domains preferentially grow along.
+- **Binary Alloy Spinodal Decomposition:** Lifshitz-Slyozov kinetics L(t) ~ t^(1/3).
+- **Directional Precipitate Rafting:** Anisotropic exchange ratio Jx != Jy introducing spatial bias, mirroring gamma-prime rafting in superalloys.
+- **Thermodynamic Irreversibility:** Trajectory entropy production rate S_dot(t) linking microstructural kinetics to the arrow of time.
 """
 
 
@@ -349,13 +329,18 @@ def Page() -> None:
     # cancels the old thread and starts a fresh one automatically.
     solara.use_thread(worker, dependencies=[state])
 
-    with solara.Sidebar():
-        # A single Column wrapping everything gives the sidebar content a
-        # consistent, predictable width and vertical gap between controls.
-        # Without this, each element sizes itself independently, which is
-        # what was causing the sidebar to squish unpredictably against the
-        # main content area instead of reserving stable space for itself.
-        with solara.Column(gap="12px", style={"width": "100%", "padding": "4px"}):
+    solara.Title("Model B: Kawasaki Dynamics")
+
+    # Explicit two-column flexbox layout, NOT solara.Sidebar(): Sidebar()
+    # renders into AppLayout's navigation-drawer portal, which is a
+    # floating/overlay element by default (Vuetify's v-navigation-drawer) --
+    # exactly the behavior that was letting it sit on top of the main
+    # content instead of pushing it aside. A plain Row of two Columns, one
+    # with flex-shrink:0 at a fixed width and the other with flex-grow:1,
+    # is a completely standard side-by-side (never-overlapping) flexbox
+    # pattern with no dependence on the drawer component at all.
+    with solara.Row(style="align-items: flex-start; width: 100%; flex-wrap: nowrap;"):
+        with solara.Column(style="width: 300px; flex-shrink: 0; padding: 16px;"):
             solara.Markdown("## Model B Controls")
             solara.Text(
                 "Kawasaki spin-exchange dynamics (conserved order parameter)",
@@ -387,55 +372,47 @@ def Page() -> None:
             with solara.Details(summary="Materials Science & Engineering Context"):
                 solara.Markdown(_MATERIALS_SCIENCE_MARKDOWN)
 
-    # --- Main area ---
-    solara.Title("Model B: Kawasaki Dynamics")
-    # The main content column gets its own explicit width: 100% of whatever
-    # space the AppLayout gives it once the sidebar has claimed its own
-    # (fixed-width) space, rather than letting the title/heading elements
-    # size themselves against an ambiguous flex context -- that ambiguity
-    # was what let the sidebar and title fight over width and clip the
-    # title text.
-    with solara.Column(style={"width": "100%", "max-width": "100%", "overflow-x": "hidden"}):
-        solara.Markdown(
-            "# Model B: Live Kawasaki Exchange Dashboard",
-            style={"white-space": "normal", "overflow-wrap": "break-word"},
-        )
-        solara.Text(
-            "Conserved-order-parameter (Model B) coarsening -- spin-exchange dynamics "
-            "with independent horizontal/vertical couplings.",
-            style={"color": "#666"},
-        )
+        with solara.Column(style="flex-grow: 1; min-width: 0; padding: 16px;"):
+            solara.Markdown(
+                "# Model B: Live Kawasaki Exchange Dashboard",
+                style={"white-space": "normal", "overflow-wrap": "break-word"},
+            )
+            solara.Text(
+                "Conserved-order-parameter (Model B) coarsening -- spin-exchange dynamics "
+                "with independent horizontal/vertical couplings.",
+                style={"color": "#666"},
+            )
 
-        lattice = state.lattice.value
-        t_hist = state.t_history.value
-        xlim = (1.0, max(10.0, state.sweep_count.value * 1.5))
+            lattice = state.lattice.value
+            t_hist = state.t_history.value
+            # Fixed, non-degenerate bounds from the very first render (sweep_count
+            # starts at 0, so this is already (1.0, 10.0) before Start is ever
+            # clicked) -- combined with the fixed-size lattice box and min-height
+            # Cards below, nothing about the layout changes shape between the
+            # t=0 state and a running one; only the data inside updates.
+            xlim = (1.0, max(10.0, state.sweep_count.value * 1.5))
 
-        N = state.L * state.L
-        n_up = int(np.count_nonzero(lattice == 1))
-        concentration = n_up / N
-        E = total_energy(lattice, Jx, Jy)
+            N = state.L * state.L
+            n_up = int(np.count_nonzero(lattice == 1))
+            concentration = n_up / N
+            E = total_energy(lattice, Jx, Jy)
 
-        with solara.Row(justify="space-around", style={"margin": "8px 0 16px 0", "flex-wrap": "wrap"}):
-            _metric("Sweep Count", f"{state.sweep_count.value:,}")
-            _metric("Energy E", f"{E:,.0f}")
-            _metric("Concentration", f"{concentration:.4f}")
-            _metric("Jx/Jy", f"{Jx / Jy:.2f}")
+            with solara.Row(justify="space-around", style={"margin": "8px 0 16px 0", "flex-wrap": "wrap"}):
+                _metric("Sweep Count", f"{state.sweep_count.value:,}")
+                _metric("Energy E", f"{E:,.0f}")
+                _metric("Concentration", f"{concentration:.4f}")
+                _metric("Jx/Jy", f"{Jx / Jy:.2f}")
 
-        # solara.Columns([1, 1]) is a purpose-built, tested proportional-grid
-        # primitive (used throughout Solara's own docs for exactly this kind
-        # of side-by-side panel layout), rather than a hand-rolled Row +
-        # flex-Column pairing -- the latter is what was squishing the two
-        # panels unpredictably. Each panel is further wrapped in a Card with
-        # an explicit min-height, so neither the heatmap nor the line plots
-        # ever collapse to a sliver while their Plotly figure is still
-        # loading or resizing.
-        with solara.Columns([1, 1]):
-            with solara.Card(style={"min-height": "420px"}):
-                solara.Markdown("### Live Lattice (Kawasaki Phase Separation)")
-                solara.FigurePlotly(build_lattice_figure(lattice))
+            # Top row: fixed-size square lattice heatmap beside the domain-growth
+            # plot, which flexes to fill the remaining width.
+            with solara.Row(style="align-items: flex-start; gap: 16px; flex-wrap: wrap; width: 100%;"):
+                with solara.Card(
+                    style=f"width: {_LATTICE_BOX_PX}px; height: {_LATTICE_BOX_PX + 50}px; flex-shrink: 0;"
+                ):
+                    solara.Markdown("### Live Lattice")
+                    solara.FigurePlotly(build_lattice_figure(lattice))
 
-            with solara.Column(gap="16px"):
-                with solara.Card(style={"min-height": "380px"}):
+                with solara.Card(style="flex-grow: 1; min-width: 320px; min-height: 380px;"):
                     solara.Markdown("### Directional Domain Growth")
                     solara.FigurePlotly(
                         build_domain_figure(
@@ -443,12 +420,13 @@ def Page() -> None:
                         )
                     )
 
-                with solara.Card(style={"min-height": "380px"}):
-                    solara.Markdown("### Entropy Production Rate")
-                    Sdot_smoothed = moving_average(state.Sdot_history.value, _ENTROPY_SMOOTHING_WINDOW)
-                    solara.FigurePlotly(build_entropy_figure(t_hist, Sdot_smoothed.tolist(), xlim))
+            # Entropy production sits in its own full-width card below the pair above.
+            with solara.Card(style="margin-top: 16px; min-height: 380px; width: 100%;"):
+                solara.Markdown("### Entropy Production Rate")
+                Sdot_smoothed = moving_average(state.Sdot_history.value, _ENTROPY_SMOOTHING_WINDOW)
+                solara.FigurePlotly(build_entropy_figure(t_hist, Sdot_smoothed.tolist(), xlim))
 
-        solara.Text(
-            "Status: running" if state.running.value else "Status: paused",
-            style={"font-weight": "600", "margin-top": "8px"},
-        )
+            solara.Text(
+                "Status: running" if state.running.value else "Status: paused",
+                style={"font-weight": "600", "margin-top": "8px"},
+            )
