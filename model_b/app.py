@@ -90,6 +90,30 @@ def init_lattice_at_concentration(L: int, seed: int, concentration: float) -> np
     return spins.reshape(L, L)
 
 
+def _display_domain_size(raw: float) -> float:
+    """Floor/guard a raw domain_size_from_correlation() value for display.
+
+    kawasaki_engine's domain_size_from_correlation() finds where the raw
+    spin autocorrelation C(r) crosses 0.5 -- correctly, and by design,
+    returns NaN when it never does. At a concentration far from 0.5, the
+    conserved magnetization m = 2*concentration - 1 has m^2 > 0.5 once
+    concentration <~0.15 or >~0.85, so C(r) plateaus at m^2 (its r -> inf
+    limit) without ever decaying below 0.5 -- meaning every tick's Lx/Ly at
+    those concentrations is legitimately NaN, not an occasional edge case.
+    A log-scale Plotly trace silently drops NaN/<=0 points, so an
+    all-NaN series renders as a fully hidden line rather than a visible
+    (if degenerate) one.
+
+    Clamping only here, for the live dashboard's display, rather than
+    inside kawasaki_engine.py itself: that module is the shared, verified
+    physics core also used by run_simulation.py's replica-averaging (which
+    uses np.nanmean/np.nanstd and depends on real NaNs to exclude
+    unresolved replicas from the statistics) -- silently turning its NaNs
+    into a fabricated 1.0 there would quietly corrupt that averaging.
+    """
+    return float(np.maximum(1.0, np.nan_to_num(raw, nan=1.0, posinf=1.0)))
+
+
 def total_energy(lattice: np.ndarray, Jx: float, Jy: float) -> float:
     """Full-lattice anisotropic Hamiltonian, O(L^2) via vectorized NumPy rolls."""
     right = np.roll(lattice, -1, axis=1)
@@ -332,6 +356,33 @@ def _metric(label: str, value: str) -> None:
         solara.Text(value, style={"font-size": "1.3rem", "font-weight": "600"})
 
 
+def _card_header(text: str) -> None:
+    """A card's section heading, rendered as a plain wrapping Text instead
+    of solara.Card's own `title=` prop: Vuetify's `.v-card-title` class
+    hard-codes `white-space: nowrap; overflow: hidden; text-overflow:
+    ellipsis`, which silently truncated "Physics Parameters" to "Physics
+    Paramet..." once the card narrowed below its rendered text width."""
+    solara.Text(
+        text,
+        style={
+            "font-weight": "700", "font-size": "1rem", "white-space": "normal",
+            "display": "block", "margin-bottom": "10px",
+        },
+    )
+
+
+def _slider_label(text: str) -> None:
+    """A slider's live-value label, stacked in its own full-width line
+    above the track instead of passed as the slider's own `label` prop:
+    Vuetify renders that inline to the *left* of the track (sharing width
+    with it), under the same `.v-slider__label` nowrap/ellipsis styling as
+    the card title above -- fine while it happens to fit, silently clipped
+    once the label text or a narrower sidebar pushes past that shared
+    width. A full-width line has no such competing element to clip against.
+    """
+    solara.Text(text, style={"font-size": "0.85rem", "font-weight": "600", "margin-bottom": "-6px"})
+
+
 _MATERIALS_SCIENCE_MARKDOWN = """
 - **Spinodal Phase Separation**: Models how a two-component mixture un-mixes over time while total concentration remains constant. I'm measuring domain growth L(t) to test if it follows Lifshitz-Slyozov scaling L(t) ~ t^(1/3).
 - **Directional Precipitate Rafting**: Unequal horizontal and vertical couplings (Jx != Jy) introduce spatial bias during spin exchange, stretching domains into parallel bands similar to gamma-prime precipitate rafting in nickel superalloys under stress.
@@ -491,8 +542,8 @@ def Page() -> None:
 
             r_max = state.L // 2
             Cx, Cy = _axis_correlation_xy(state.lattice, r_max)
-            Lx = domain_size_from_correlation(Cx)
-            Ly = domain_size_from_correlation(Cy)
+            Lx = _display_domain_size(domain_size_from_correlation(Cx))
+            Ly = _display_domain_size(domain_size_from_correlation(Cy))
 
             dE_per_sweep_per_spin = (total_dE / n_sweeps) / (state.L * state.L)
             Sdot = max(-dE_per_sweep_per_spin / T_final.value, _ENTROPY_FLOOR)
@@ -554,45 +605,33 @@ def Page() -> None:
     # is a completely standard side-by-side (never-overlapping) flexbox
     # pattern with no dependence on the drawer component at all.
     with solara.Row(style="align-items: flex-start; width: 100%; flex-wrap: nowrap;"):
-        with solara.Column(style="width: 280px; flex-shrink: 0; padding: 16px;"):
+        with solara.Column(style="width: 300px; flex-shrink: 0; padding: 16px;"):
             solara.Markdown("## Model B Controls")
             solara.Text(
                 "Kawasaki spin-exchange dynamics (conserved order parameter)",
                 style={"color": "#666", "font-size": "0.85rem"},
             )
 
-            with solara.Card(
-                title="Physics Parameters", elevation=1,
-                style={"margin": "12px 0", "padding": "0 12px 12px 12px"},
-            ):
-                with solara.Column(gap="14px", style={"padding": "4px 2px"}):
-                    solara.SliderFloat(
-                        f"Anisotropy (Jx/Jy): {anisotropy_ratio.value:.2f}",
-                        value=anisotropy_ratio, min=0.1, max=3.0, step=0.1,
-                    )
+            with solara.Card(style={"margin": "12px 0", "padding": "10px 8px"}):
+                _card_header("Physics Parameters")
+                with solara.Column(gap="16px", style={"padding": "4px 2px"}):
+                    _slider_label(f"Anisotropy (Jx/Jy): {anisotropy_ratio.value:.2f}")
+                    solara.SliderFloat("", value=anisotropy_ratio, min=0.1, max=3.0, step=0.1)
                     solara.Text(
                         "Jx is held fixed at 1.0; this slider sets Jy = Jx / ratio.",
-                        style={"color": "#888", "font-size": "0.75rem", "margin-top": "-8px"},
+                        style={"color": "#888", "font-size": "0.75rem", "margin-top": "-10px"},
                     )
-                    solara.SliderFloat(
-                        f"Quench Temperature: {T_final.value:.2f}",
-                        value=T_final, min=0.1, max=2.5, step=0.1,
-                    )
-                    solara.SliderFloat(
-                        f"Concentration: {concentration.value:.2f}",
-                        value=concentration, min=0.10, max=0.90, step=0.05,
-                    )
+                    _slider_label(f"Quench Temperature: {T_final.value:.2f}")
+                    solara.SliderFloat("", value=T_final, min=0.1, max=2.5, step=0.1)
+                    _slider_label(f"Concentration: {concentration.value:.2f}")
+                    solara.SliderFloat("", value=concentration, min=0.10, max=0.90, step=0.05)
 
-            with solara.Card(
-                title="Simulation Engine", elevation=1,
-                style={"margin": "12px 0", "padding": "0 12px 12px 12px"},
-            ):
-                with solara.Column(gap="14px", style={"padding": "4px 2px"}):
+            with solara.Card(style={"margin": "12px 0", "padding": "10px 8px"}):
+                _card_header("Simulation Engine")
+                with solara.Column(gap="16px", style={"padding": "4px 2px"}):
                     solara.Select("Lattice Size L", value=L_value, values=[64, 128])
-                    solara.SliderInt(
-                        f"Sweeps per Frame: {sweeps_per_frame.value}",
-                        value=sweeps_per_frame, min=1, max=200, step=1,
-                    )
+                    _slider_label(f"Sweeps per Frame: {sweeps_per_frame.value}")
+                    solara.SliderInt("", value=sweeps_per_frame, min=1, max=200, step=1)
 
                     with solara.Row(gap="8px", style={"flex-wrap": "wrap"}):
                         solara.Button("Start", on_click=lambda: state.running.set(True), color="primary")
