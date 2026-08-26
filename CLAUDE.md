@@ -22,10 +22,10 @@ Model B is the actively-developed part as of this writing.
 
 | File | Purpose |
 |---|---|
-| `kawasaki_engine.py` | Numba JIT-compiled Kawasaki Monte Carlo core. Anisotropic couplings `Jx`, `Jy`; conserves total magnetization exactly. Physics-only, no UI dependencies. |
+| `kawasaki_engine.py` | Numba JIT-compiled Kawasaki Monte Carlo core. Anisotropic couplings `Jx`, `Jy`; conserves total magnetization exactly. Physics-only, no UI dependencies — retained unchanged through the Streamlit→Solara migration and every subsequent layout revision; the ΔE formula and exact conservation were independently verified against a brute-force Hamiltonian recomputation and haven't needed to change since. |
 | `run_simulation.py` | Batch CLI: runs a quench, saves `results/kawasaki_kinetics.csv` + `figures/fig_anisotropic_kinetics.png`. |
 | `live_visualizer.py` | Native desktop dashboard (matplotlib + Tk, `FuncAnimation`). No Streamlit/Solara dependency. |
-| `app.py` | **Web dashboard, built on [Solara](https://solara.dev/)** (`import solara`). This was migrated off Streamlit; do not reintroduce `streamlit` here. |
+| `app.py` | **Web dashboard, built on [Solara](https://solara.dev/)** (`import solara`). Migrated off Streamlit specifically for zero-flicker reactive rendering (see "Plotly" below) — do not reintroduce `streamlit` here. |
 
 Run the web dashboard with:
 ```bash
@@ -51,13 +51,16 @@ solara run model_b/app.py
   **silently fail to trigger a re-render**. Always publish a fresh
   `.copy()` (arrays) or a new list via concatenation (`old + [new]`), never
   `.append()` followed by reassigning the same list.
-- **Plotly**: `solara.FigurePlotly` holds a persistent ipywidgets
-  `FigureWidget` and patches `.layout`/`.data` in place on every re-render —
-  constructing a fresh `go.Figure` each tick (which this app does) is fine
-  and does not itself cause flicker; the framework handles the in-place
-  patch. Requires the `anywidget` package (a transitive need of Plotly's
-  `FigureWidget`, not obvious from Plotly's own dependency list — surfaced by
-  testing, not by reading docs).
+- **Plotly (the actual zero-flicker mechanism)**: `solara.FigurePlotly` holds
+  a persistent ipywidgets `FigureWidget` and patches `.layout`/`.data` in
+  place on every re-render — constructing a fresh `go.Figure` each tick
+  (which this app does) is fine and does not itself cause flicker; the
+  framework handles the in-place patch via ipywidgets' binary/diff sync
+  protocol rather than replacing a static `<img>` on every update (which is
+  what Streamlit's `st.pyplot`/image-based charts do, and why that approach
+  visibly flickered before the migration). Requires the `anywidget` package
+  (a transitive need of Plotly's `FigureWidget`, not obvious from Plotly's
+  own dependency list — surfaced by testing, not by reading docs).
 
 ### Layout
 
@@ -74,10 +77,15 @@ from `solara.Row`/`solara.Column`:
 Chart grid inside the right column:
 - Top row: lattice heatmap in a **fixed 380×380px** `Card` (Plotly figure
   itself also set to `width=380, height=380, autosize=False` — the figure
-  and its wrapping Card must stay in sync or the box stops being square)
-  next to the directional domain-growth plot, which flexes to fill the
-  remaining row width.
+  and its wrapping Card must stay in sync or the box stops being square,
+  and this is the one panel that's deliberately *not* responsive, since a
+  1:1 aspect ratio has to be pixel-exact) next to the directional
+  domain-growth plot in a `flex-grow: 1` `Card`.
 - Below that row, full-width: the entropy-production plot in its own `Card`.
+- Both line-plot `Card`s (domain-growth, entropy) use `autosize=True` on
+  their Plotly figure and a flexible container width, so they respond to
+  window/column resizing rather than staying a fixed pixel size — the
+  square lattice panel is the one deliberate exception.
 
 All three Plotly figures use explicit (log-space, for the two line plots)
 axis ranges rather than autorange, so the charts render fully-formed —
@@ -86,12 +94,21 @@ Start is ever clicked), not just once enough data points exist.
 
 ### Materials Science & Engineering panel
 
-Intentionally condensed to three direct bullets (not long-form prose):
-Binary Alloy Spinodal Decomposition (`L(t) ~ t^(1/3)`, Lifshitz–Slyozov),
-Directional Precipitate Rafting (`Jx != Jy` mirroring γ′ rafting in
-superalloys), and Thermodynamic Irreversibility (`S_dot(t)` linking
-microstructural kinetics to the arrow of time). See `_MATERIALS_SCIENCE_MARKDOWN`
-in `app.py`.
+Intentionally condensed to three direct, physically-grounded bullets (not
+long-form prose) — each ties a real, named materials phenomenon to the
+specific simulated quantity that demonstrates it, rather than a generic
+analogy:
+- **Binary Alloy Spinodal Decomposition** — `L(t) ~ t^(1/3)` (Lifshitz–Slyozov
+  coarsening); this simulation is essentially the standard lattice-gas model
+  of a quenched A/B alloy, not just an analogy to one.
+- **Directional Precipitate Rafting** — `Jx != Jy` introducing spatial bias,
+  mirroring γ′ rafting under stress in Ni-based superalloys.
+- **Thermodynamic Irreversibility** — the entropy production rate `S_dot(t)`
+  linking microstructural coarsening kinetics to the thermodynamic arrow of
+  time.
+
+See `_MATERIALS_SCIENCE_MARKDOWN` in `app.py` for the exact text rendered in
+the UI's `Details` panel.
 
 ## Testing without a browser
 
