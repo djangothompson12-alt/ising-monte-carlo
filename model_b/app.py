@@ -167,13 +167,13 @@ def _log_range(lo: float, hi: float) -> list[float]:
     return [np.log10(lo), np.log10(hi)]
 
 
-def _next_decade_x_max(current_sweep: float) -> float:
-    """Round the x-axis max up to the next log decade (order of magnitude),
-    floored at 100 -- e.g. sweep=42 -> 100, sweep=250 -> 1000, sweep=1400
-    -> 10000. Used instead of a tight autorange so the trajectory always has
-    a full decade of empty space ahead of it rather than hugging the right
-    edge of the plot."""
-    return max(100.0, 10 ** np.ceil(np.log10(max(current_sweep, 2))))
+def _dynamic_x_max(current_sweep: float) -> float:
+    """Continuous x-axis upper bound, floored at 100, with a constant 25%
+    headroom multiplier ahead of the trajectory. Recomputed every tick
+    (unlike a discrete decade-rounded bound) so the axis expands smoothly
+    frame-by-frame instead of snapping to the next power of ten and
+    visually compressing the already-drawn line."""
+    return max(100.0, current_sweep * 1.25)
 
 
 _REFERENCE_SLOPE_AMPLITUDE = 1.0  # illustrative anchor for the t^(1/3) guide line's SLOPE, not a fit
@@ -307,10 +307,9 @@ class SimState:
         self.tick = 0
 
         # Shared x-axis upper bound for both line charts (see
-        # _next_decade_x_max) -- only re-scoped once the trajectory reaches
-        # 90% of the current bound, not recalculated every tick, so the line
-        # advances across open space instead of the axis constantly rescaling.
-        self.x_max = _next_decade_x_max(0)
+        # _dynamic_x_max) -- recomputed every tick so it expands smoothly
+        # frame-by-frame rather than snapping between discrete steps.
+        self.x_max = _dynamic_x_max(0)
 
         self.lattice_widget: Optional[PlotlyFigureWidget] = None
         self.domain_widget: Optional[PlotlyFigureWidget] = None
@@ -503,13 +502,11 @@ def Page() -> None:
             state.Ly_history.append(Ly)
             state.Sdot_history.append(Sdot)
 
-            # Re-scope the shared x-axis bound only once the trajectory
-            # reaches 90% of the current one, rather than every tick -- the
-            # line then advances across already-open graph space, and only
-            # "scopes out" to the next log decade when it's about to run out
-            # of room.
-            if t >= 0.9 * state.x_max:
-                state.x_max = _next_decade_x_max(t)
+            # Recomputed every tick: a continuous 25%-headroom bound keeps
+            # the axis expanding smoothly frame-by-frame rather than
+            # snapping between discrete decades and visually compressing
+            # the already-drawn line.
+            state.x_max = _dynamic_x_max(t)
             xrange = _log_range(1.0, state.x_max)
 
             # Direct widget-trait mutation -- copies passed in explicitly
