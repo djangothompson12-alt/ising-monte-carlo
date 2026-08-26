@@ -6,34 +6,64 @@ quickly getting a Claude session productive in the code.
 
 ## Repository shape
 
-Two independent Ising-model implementations share this repo:
+Two independent Ising-model implementations share this repo, each fully
+self-contained in its own directory:
 
-- **Root ("Model A")** — non-conserved order parameter (Metropolis single-spin-flip
-  dynamics): `ising_engine.py` (Numba engine), `visualizer.py`, `main.py`,
-  `plot_kinetics.py`, `index.html` (standalone browser demo, no server), and
-  `manuscript/` (a revtex4-2 PRL-format paper, compiled with `pdflatex`).
+- **`model_a/` ("Model A")** — non-conserved order parameter (Metropolis
+  single-spin-flip dynamics): `ising_engine.py` (Numba engine), `visualizer.py`,
+  `main.py`, `plot_kinetics.py`, plus its own `results/`/`figures/` output
+  dirs. `index.html` (standalone browser demo, no server) reimplements the
+  same physics in JavaScript and stays at the repo root since it's a static
+  asset with no Python dependency. `manuscript/` (a revtex4-2 PRL-format
+  paper, compiled with `pdflatex`) also stays at the root, covering both models.
 - **`model_b/` ("Model B")** — conserved order parameter (Kawasaki spin-exchange
-  dynamics). Fully standalone: does not import from or depend on anything in
-  the repo root.
+  dynamics). Fully standalone: does not import from or depend on anything
+  outside `model_b/`.
+- **`comparative_analysis.py`** (repo root) — the one script that
+  legitimately spans both models: reads the CSV each model's own kinetics
+  script already produces and plots their domain-growth scaling side by
+  side. See "`comparative_analysis.py`" below.
+
+Both `model_a/` and `model_b/` were previously flattened into the repo root
+(`model_a/`'s files lived directly at the root) before being split out for
+symmetry with `model_b/`'s already-established self-contained layout --
+if you're looking at history predating that move, `ising_engine.py` etc.
+were at the top level.
 
 Model B is the actively-developed part as of this writing.
+
+## `model_a/` in detail
+
+| File | Purpose |
+|---|---|
+| `ising_engine.py` | Numba JIT-compiled Metropolis single-spin-flip core + observable calculation (magnetization, energy, specific heat, susceptibility) and the domain-size/entropy-production quench-kinetics helpers. |
+| `visualizer.py` | Publication-quality figure generation (matplotlib): `plot_phase_transitions`, `plot_spin_domains`, and the shared `_apply_publication_style` rcParams helper. |
+| `main.py` | CLI entry point: runs a temperature sweep, saves `results/observables.csv` + `figures/fig1_phase_transitions.png` / `fig2_spin_domains.png`. |
+| `plot_kinetics.py` | Runs a quench, saves `results/quench_kinetics.csv` + `figures/fig3_kinetics_entropy.png` (domain growth `L(t) ~ t^(1/2)` fit + entropy production). |
+
+Run with:
+```bash
+python model_a/main.py
+python model_a/plot_kinetics.py
+```
+(or `cd model_a && python main.py` / `python plot_kinetics.py`).
 
 ## `model_b/` in detail
 
 | File | Purpose |
 |---|---|
 | `kawasaki_engine.py` | Numba JIT-compiled Kawasaki Monte Carlo core. Anisotropic couplings `Jx`, `Jy`; conserves total magnetization exactly. Physics-only, no UI dependencies — retained unchanged through the Streamlit→Solara migration and every subsequent layout revision; the ΔE formula and exact conservation were independently verified against a brute-force Hamiltonian recomputation and haven't needed to change since. |
-| `run_simulation.py` | Batch CLI: runs a quench, saves `results/kawasaki_kinetics.csv` + `figures/fig_anisotropic_kinetics.png`. |
+| `plot_kawasaki_kinetics.py` | Batch CLI (renamed from `run_simulation.py` for parity with `model_a/plot_kinetics.py`): runs a quench, saves `results/kawasaki_kinetics.csv` + `figures/fig_anisotropic_kinetics.png`. |
 | `live_visualizer.py` | Native desktop dashboard (matplotlib + Tk, `FuncAnimation`). No Streamlit/Solara dependency. |
-| `app.py` | **Web dashboard, built on [Solara](https://solara.dev/)** (`import solara`). Migrated off Streamlit specifically for zero-flicker reactive rendering (see "Plotly" below) — do not reintroduce `streamlit` here. |
+| `solara_app.py` | **Web dashboard, built on [Solara](https://solara.dev/)** (`import solara`). Renamed from `app.py` during the model_a/model_b directory split. Migrated off Streamlit specifically for zero-flicker reactive rendering (see "Plotly" below) — do not reintroduce `streamlit` here. |
 
 Run the web dashboard with:
 ```bash
-solara run model_b/app.py
+solara run model_b/solara_app.py
 ```
-(Solara apps use the `solara` CLI, not `python app.py`.) Default port `8765`.
+(Solara apps use the `solara` CLI, not `python solara_app.py`.) Default port `8765`.
 
-### `app.py` architecture
+### `solara_app.py` architecture
 
 - **State**: `solara.use_reactive()` for the four sidebar controls (anisotropy
   ratio, quench temperature, lattice size, sweeps/frame). A `SimState` class,
@@ -159,37 +189,39 @@ rather than ever left on autorange.
 
 ### Materials Science & Engineering panel
 
-Intentionally condensed to three direct, physically-grounded bullets (not
-long-form prose) — each ties a real, named materials phenomenon to the
-specific simulated quantity that demonstrates it, rather than a generic
-analogy:
-- **Binary Alloy Spinodal Decomposition** — `L(t) ~ t^(1/3)` (Lifshitz–Slyozov
-  coarsening); this simulation is essentially the standard lattice-gas model
-  of a quenched A/B alloy, not just an analogy to one.
-- **Anisotropic Superalloy Rafting** — `Jx != Jy` introducing spatial bias,
-  mirroring directional γ′ precipitate rafting in Ni-based superalloys.
-- **Non-Equilibrium Entropy Production** — the entropy production rate
-  `S_dot(t)` linking microstructural coarsening kinetics to the thermodynamic
-  arrow of time.
+Condensed to three direct, physically-grounded bullets (not long-form prose)
+— each ties a real, named materials phenomenon to the specific simulated
+quantity that demonstrates it, rather than a generic analogy: Spinodal
+Phase Separation (`L(t) ~ t^(1/3)`), Directional Precipitate Rafting
+(`J_x != J_y`), and Trajectory Entropy Production Rate. Written in plain
+prose (an explicit later request moved it off LaTeX/formal notation), unlike
+the sidebar's slider labels and metric tiles, which do use inline LaTeX.
 
-Written with inline LaTeX (`$L(t) \sim t^{1/3}$`, `$J_x \neq J_y$`); Solara's
-`Markdown` component is not confirmed to run these through MathJax/KaTeX, so
-they may render as literal dollar-sign text rather than typeset math —
-flagged, not fixed, since the wording itself was an explicit request.
+**Confirmed** (contradicts an earlier note in this file that used to sit
+here): `solara.Markdown` genuinely runs inline `$...$` through a real KaTeX
+renderer — verified via a live probe app and by inspecting the rendered
+DOM (`class="katex"`, real `<math>`/MathML output), not literal dollar-sign
+text. This is *not* true of `solara.Text`, which escapes raw HTML instead
+of rendering it (also verified live) — that's why the sidebar's LaTeX
+labels (`_metric`/`_slider_label`, `markdown=True`) go through
+`solara.Markdown`, not `solara.Text`. One correctness gotcha that follows
+from this: a markdown-mode label must never be passed through Python's
+`.upper()` — case-folding LaTeX source is unsafe in general (e.g. `\alpha`
+-> `\ALPHA` is not a valid command and silently breaks the render).
 
-See `_MATERIALS_SCIENCE_MARKDOWN` in `app.py` for the exact text rendered in
+See `_MATERIALS_SCIENCE_MARKDOWN` in `solara_app.py` for the exact text rendered in
 the UI's `Details` panel.
 
 ## Testing without a browser
 
-This environment has no browser access. Verification for `app.py` relies on:
-1. `python -m py_compile model_b/app.py`
+This environment has no browser access. Verification for `solara_app.py` relies on:
+1. `python -m py_compile model_b/solara_app.py`
 2. Headless component render — catches real bugs (e.g. a missing `anywidget`
    dependency surfaced exactly this way) before ever starting a server:
    ```python
    import sys; sys.path.insert(0, "model_b")
-   import app, reacton
-   box, rc = reacton.render(app.Page(), handle_error=False)  # raises on error
+   import solara_app, reacton
+   box, rc = reacton.render(solara_app.Page(), handle_error=False)  # raises on error
    rc.close()
    ```
 3. A real `solara run` server + `curl` for an HTTP/health check and a log scan.

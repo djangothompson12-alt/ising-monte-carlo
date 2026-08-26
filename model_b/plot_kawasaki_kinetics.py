@@ -1,6 +1,6 @@
 """
-run_simulation.py
-==================
+plot_kawasaki_kinetics.py
+==========================
 
 Standalone launcher for the anisotropic Kawasaki (Model B, conserved order
 parameter) quench: runs the simulation, saves the raw kinetics data, and
@@ -12,8 +12,8 @@ This script and `kawasaki_engine.py` are fully self-contained and do not
 import from, modify, or depend on any file outside `model_b/`.
 
 Usage:
-    python model_b/run_simulation.py
-    (or: cd model_b && python run_simulation.py)
+    python model_b/plot_kawasaki_kinetics.py
+    (or: cd model_b && python plot_kawasaki_kinetics.py)
 """
 
 from __future__ import annotations
@@ -92,8 +92,8 @@ def fit_power_law(
     L_max: float | None = None,
 ) -> tuple[float, float, np.ndarray]:
     """Fit log L = alpha * log t + log A by least squares over the genuine
-    scaling regime (see plot_kinetics.py in the repository root for the same
-    methodology applied to Model A).
+    scaling regime (see model_a/plot_kinetics.py for the same methodology
+    applied to Model A).
 
     Returns:
         (alpha, A, mask): fitted growth exponent, prefactor, and the boolean

@@ -1,0 +1,179 @@
+"""
+comparative_analysis.py
+========================
+
+Side-by-side comparison of the domain-growth scaling laws from Model A
+(non-conserved order parameter, Metropolis single-spin-flip dynamics) and
+Model B (conserved order parameter, Kawasaki spin-exchange dynamics):
+Lifshitz-Allen-Cahn L(t) ~ t^(1/2) for Model A vs. Lifshitz-Slyozov
+L(t) ~ t^(1/3) for Model B, plotted on matching log-log axes so the two
+different growth exponents are directly visually comparable.
+
+Reads the CSV output each model's own kinetics script already produces --
+does not re-run either simulation itself:
+    model_a/results/quench_kinetics.csv    (from model_a/plot_kinetics.py)
+    model_b/results/kawasaki_kinetics.csv  (from model_b/plot_kawasaki_kinetics.py)
+
+Run those two scripts first if the CSVs don't exist yet.
+
+Usage:
+    python comparative_analysis.py
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+ROOT = Path(__file__).parent
+MODEL_A_CSV = ROOT / "model_a" / "results" / "quench_kinetics.csv"
+MODEL_B_CSV = ROOT / "model_b" / "results" / "kawasaki_kinetics.csv"
+FIGURES_DIR = ROOT / "figures"
+
+#: Sweeps to discard as pre-domain-formation transient, matching both
+#: models' own kinetics scripts' FIT_T_MIN convention.
+FIT_T_MIN = 2.0
+
+#: Predicted growth exponents (see model_a/plot_kinetics.py and
+#: model_b/plot_kawasaki_kinetics.py for the per-model derivations).
+LIFSHITZ_ALLEN_CAHN_EXPONENT = 0.5      # Model A: non-conserved order parameter
+LIFSHITZ_SLYOZOV_EXPONENT = 1.0 / 3.0   # Model B: conserved order parameter
+
+
+def _apply_publication_style() -> None:
+    """Matplotlib rcParams matching model_a/visualizer.py's and
+    model_b/plot_kawasaki_kinetics.py's own (independently duplicated)
+    style. Kept as its own small copy here too, rather than importing
+    either: this script is the one place that legitimately spans both
+    models, but each model's own style helper is underscore-prefixed
+    (module-private) by convention."""
+    plt.rcParams.update(
+        {
+            "figure.dpi": 100,
+            "savefig.dpi": 300,
+            "font.family": "serif",
+            "font.size": 11,
+            "axes.titlesize": 12,
+            "axes.labelsize": 12,
+            "axes.grid": True,
+            "grid.alpha": 0.3,
+            "grid.linestyle": "--",
+            "legend.frameon": False,
+            "legend.fontsize": 8,
+            "xtick.direction": "in",
+            "ytick.direction": "in",
+            "mathtext.fontset": "cm",
+        }
+    )
+
+
+def _load_csv(path: Path, generating_script: str) -> dict[str, np.ndarray]:
+    """Load a kinetics CSV (as saved by np.savetxt(..., comments="") in
+    both models' scripts, i.e. a plain header row with no leading '#')
+    into a dict of column arrays keyed by column name."""
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} not found.\nRun `python {generating_script}` first to generate it."
+        )
+    data = np.genfromtxt(path, delimiter=",", names=True)
+    return {name: data[name] for name in data.dtype.names}
+
+
+def fit_power_law(
+    t: np.ndarray, L: np.ndarray, t_min: float = FIT_T_MIN
+) -> tuple[float, float, np.ndarray]:
+    """Fit log L = alpha * log t + log A by least squares over t > t_min,
+    excluding the pre-domain-formation transient -- same methodology as
+    both models' own kinetics scripts' fit_power_law()."""
+    mask = np.isfinite(L) & (L > 0) & (t > t_min)
+    if mask.sum() < 2:
+        return float("nan"), float("nan"), mask
+    alpha, log_A = np.polyfit(np.log(t[mask]), np.log(L[mask]), 1)
+    return alpha, float(np.exp(log_A)), mask
+
+
+def _plot_panel(
+    ax,
+    t: np.ndarray,
+    L: np.ndarray,
+    L_err: np.ndarray,
+    fit_alpha: float,
+    fit_A: float,
+    mask: np.ndarray,
+    reference_exponent: float,
+    reference_label: str,
+    data_color: str,
+    title: str,
+) -> None:
+    """Render one log-log domain-growth panel: simulation data, the fitted
+    power law, and the theoretical reference slope -- same visual
+    convention (anchor the reference line through the first fitted point)
+    as model_a/plot_kinetics.py and model_b/plot_kawasaki_kinetics.py."""
+    ax.errorbar(
+        t[mask], L[mask], yerr=L_err[mask],
+        fmt="o", ms=5, capsize=2.5, color=data_color, zorder=3, label="Simulation",
+    )
+    t_fit = np.array([t[mask].min(), t[mask].max()])
+    ax.plot(
+        t_fit, fit_A * t_fit**fit_alpha, "--", color="#a63603", linewidth=1.6, zorder=2,
+        label=rf"Fit: $L(t) \propto t^{{{fit_alpha:.4f}}}$",
+    )
+    reference_A = L[mask][0] / (t[mask][0] ** reference_exponent)
+    ax.plot(
+        t_fit, reference_A * t_fit**reference_exponent, ":", color="#2e7d32", linewidth=1.6, zorder=1,
+        label=reference_label,
+    )
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel(r"Time $t$ (Monte Carlo sweeps)")
+    ax.set_ylabel(r"Domain size $L(t)$ (lattice units)")
+    ax.set_title(title)
+    ax.legend(loc="upper left")
+
+
+def main() -> None:
+    _apply_publication_style()
+
+    a = _load_csv(MODEL_A_CSV, "model_a/plot_kinetics.py")
+    b = _load_csv(MODEL_B_CSV, "model_b/plot_kawasaki_kinetics.py")
+
+    # Model B has independent Lx(t)/Ly(t) (anisotropic conserved dynamics);
+    # averaged into one effective L(t) for a like-for-like comparison
+    # against Model A's single isotropic domain size -- same convention as
+    # model_b/solara_app.py's effective_growth_exponent().
+    b_L = (b["domain_size_x"] + b["domain_size_y"]) / 2.0
+    b_L_err = (b["domain_size_x_err"] + b["domain_size_y_err"]) / 2.0
+
+    a_alpha, a_A, a_mask = fit_power_law(a["t_sweeps"], a["domain_size"])
+    b_alpha, b_A, b_mask = fit_power_law(b["t_sweeps"], b_L)
+
+    fig, (ax_a, ax_b) = plt.subplots(1, 2, figsize=(13, 5.5))
+
+    _plot_panel(
+        ax_a, a["t_sweeps"], a["domain_size"], a["domain_size_err"], a_alpha, a_A, a_mask,
+        LIFSHITZ_ALLEN_CAHN_EXPONENT, r"Lifshitz-Allen-Cahn: $L(t) \propto t^{1/2}$",
+        "#1f4e79", rf"Model A (non-conserved): fitted $\alpha = {a_alpha:.4f}$ (prediction: 0.5)",
+    )
+    _plot_panel(
+        ax_b, b["t_sweeps"], b_L, b_L_err, b_alpha, b_A, b_mask,
+        LIFSHITZ_SLYOZOV_EXPONENT, r"Lifshitz-Slyozov: $L(t) \propto t^{1/3}$",
+        "#6a1b9a", rf"Model B (conserved): fitted $\alpha = {b_alpha:.4f}$ (prediction: 0.3333)",
+    )
+
+    fig.suptitle("Domain-Growth Scaling: Conserved vs. Non-Conserved Order Parameter", fontsize=14)
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+
+    FIGURES_DIR.mkdir(exist_ok=True)
+    output_path = FIGURES_DIR / "fig_comparative_scaling.png"
+    fig.savefig(output_path, bbox_inches="tight")
+    plt.close(fig)
+
+    print(f"Model A fitted growth exponent: alpha = {a_alpha:.4f} (Lifshitz-Allen-Cahn prediction: 0.5)")
+    print(f"Model B fitted growth exponent: alpha = {b_alpha:.4f} (Lifshitz-Slyozov prediction: 0.3333)")
+    print(f"Saved -> {output_path}")
+
+
+if __name__ == "__main__":
+    main()

@@ -7,11 +7,11 @@ A from-scratch, Numba-accelerated Metropolis Monte Carlo simulation of the two-d
 This engine was developed as the computational component of a research paper examining statistical-mechanical entropy and its relationship to philosophical treatments of time (eternalism / the "block universe" view). The code below is self-contained physics and simulation infrastructure; it makes no philosophical claims on its own.
 
 <p align="center">
-  <img src="figures/fig1_phase_transitions.png" width="700" alt="Phase transition observables vs. temperature">
+  <img src="model_a/figures/fig1_phase_transitions.png" width="700" alt="Phase transition observables vs. temperature">
 </p>
 
 <p align="center">
-  <img src="figures/fig2_spin_domains.png" width="700" alt="Spin domain snapshots across the phase transition">
+  <img src="model_a/figures/fig2_spin_domains.png" width="700" alt="Spin domain snapshots across the phase transition">
 </p>
 
 ## Physics background
@@ -71,7 +71,7 @@ which is marked as a vertical reference line in the generated figures.
 ### Non-equilibrium quench kinetics
 
 <p align="center">
-  <img src="figures/fig3_kinetics_entropy.png" width="600" alt="Domain growth and entropy production kinetics after a temperature quench">
+  <img src="model_a/figures/fig3_kinetics_entropy.png" width="600" alt="Domain growth and entropy production kinetics after a temperature quench">
 </p>
 
 Quenching the lattice from a disordered high-temperature state ($T_{\text{initial}} = 5.0 \gg T_c$) to an ordered low-temperature state ($T_{\text{final}} = 1.5 < T_c$) leaves the system far from equilibrium: rather than relaxing instantly, ferromagnetic domains nucleate and then coarsen, growing over time. For this **non-conserved** order parameter (single-spin-flip dynamics, no magnetization conservation), phase-ordering theory predicts curvature-driven interfacial motion obeying the **Lifshitz–Allen–Cahn growth law**
@@ -100,15 +100,19 @@ which is non-negative for a relaxing system and is expected to decay towards zer
 
 ```
 .
-├── index.html          # Standalone live demo (Canvas + Chart.js, no build step)
-├── ising_engine.py     # Numba-jitted Metropolis MC core + observable calculation
-├── visualizer.py       # Publication-quality figure generation (matplotlib)
-├── main.py             # CLI entry point: runs the sweep, saves data + figures
-├── plot_kinetics.py    # Quench simulation + domain-growth/entropy-production plot
+├── index.html                  # Standalone live demo (Canvas + Chart.js, no build step)
+├── comparative_analysis.py     # Reads both models' CSVs, plots L(t) scaling side by side
 ├── requirements.txt
-├── figures/             # Generated PNGs (fig1, fig2, fig3)
-├── results/             # Generated observables.csv, quench_kinetics.csv
-└── manuscript/          # main.tex (revtex4-2 PRL format) + compiled main.pdf
+├── manuscript/                  # main.tex (revtex4-2 PRL format) + compiled main.pdf
+├── figures/                      # fig_comparative_scaling.png (from comparative_analysis.py)
+├── model_a/                    # Model A: non-conserved order parameter (Metropolis)
+│   ├── ising_engine.py           # Numba-jitted Metropolis MC core + observable calculation
+│   ├── visualizer.py              # Publication-quality figure generation (matplotlib)
+│   ├── main.py                    # CLI entry point: runs the sweep, saves data + figures
+│   ├── plot_kinetics.py           # Quench simulation + domain-growth/entropy-production plot
+│   ├── figures/                    # Generated PNGs (fig1, fig2, fig3)
+│   └── results/                    # Generated observables.csv, quench_kinetics.csv
+└── model_b/                    # Model B: conserved order parameter (Kawasaki) -- see below
 ```
 
 ### Live demo (`index.html`)
@@ -139,15 +143,15 @@ pip install -r requirements.txt
 Run the full pipeline with default parameters ($L=24$, $T \in [1.2, 3.6]$, 40 temperature points):
 
 ```bash
-python main.py
+python model_a/main.py
 ```
 
-This prints progress to stdout, writes `results/observables.csv`, and generates both figures in `figures/`. A full run at the defaults completes in well under a minute on a modern laptop (Numba JIT-compiles the Metropolis kernel on first call).
+This prints progress to stdout, writes `model_a/results/observables.csv`, and generates both figures in `model_a/figures/`. A full run at the defaults completes in well under a minute on a modern laptop (Numba JIT-compiles the Metropolis kernel on first call).
 
 Customize the simulation via CLI flags:
 
 ```bash
-python main.py \
+python model_a/main.py \
   --L 32 \
   --t-min 1.0 --t-max 4.0 --n-temperatures 60 \
   --eq-sweeps 5000 --mc-sweeps 6000 --sample-interval 4 \
@@ -169,6 +173,8 @@ python main.py \
 ### Using the engine directly
 
 ```python
+import sys
+sys.path.insert(0, "model_a")
 from ising_engine import SimulationConfig, run_temperature_sweep, sample_snapshot
 
 config = SimulationConfig(L=32, t_min=1.5, t_max=3.0, n_temperatures=30)
@@ -180,12 +186,14 @@ lattice = sample_snapshot(T=2.269, config=config, seed=0)  # (L, L) array of +-1
 ### Quench kinetics
 
 ```bash
-python plot_kinetics.py
+python model_a/plot_kinetics.py
 ```
 
-Runs a $T=5.0 \to T=1.5$ quench (default: $L=128$, 16 independent replicas, 2000 sweeps), writes `results/quench_kinetics.csv` ($t$, $L(t)$ and its standard error, $\dot{S}(t)$ and its standard error), fits the domain-growth power law over the genuine scaling regime, and saves `figures/fig3_kinetics_entropy.png`. On the same hardware as the pipeline above, this takes under a minute; with the default configuration and seed it gives a fitted exponent $\alpha = 0.4841$, within about 3% of the Lifshitz–Allen–Cahn prediction of $0.5$ (reproducible bit-for-bit given the fixed seed, though it will shift slightly with different parameters, replica counts, or seeds).
+Runs a $T=5.0 \to T=1.5$ quench (default: $L=128$, 16 independent replicas, 2000 sweeps), writes `model_a/results/quench_kinetics.csv` ($t$, $L(t)$ and its standard error, $\dot{S}(t)$ and its standard error), fits the domain-growth power law over the genuine scaling regime, and saves `model_a/figures/fig3_kinetics_entropy.png`. On the same hardware as the pipeline above, this takes under a minute; with the default configuration and seed it gives a fitted exponent $\alpha = 0.4841$, within about 3% of the Lifshitz–Allen–Cahn prediction of $0.5$ (reproducible bit-for-bit given the fixed seed, though it will shift slightly with different parameters, replica counts, or seeds).
 
 ```python
+import sys
+sys.path.insert(0, "model_a")
 from ising_engine import QuenchConfig, run_quench_kinetics
 
 config = QuenchConfig(L=64, T_initial=5.0, T_final=1.5, n_replicas=8, max_sweeps=1000)
@@ -213,13 +221,13 @@ MIT
 
 ## Model B: Conserved Kawasaki Dynamics & Anisotropy
 
-> **Live demo:** the previous badge here pointed at a Streamlit Community Cloud deployment (`anisotropic-materials-sim.streamlit.app`). The web dashboard has since been rebuilt on Solara (see below), which that platform can't host — Streamlit Cloud only runs Streamlit apps, and `model_b/app.py` no longer imports `streamlit` at all, so the old deployment will break once this change reaches it. No replacement deployment exists yet; run it locally with the instructions below in the meantime.
+> **Live demo:** the previous badge here pointed at a Streamlit Community Cloud deployment (`anisotropic-materials-sim.streamlit.app`). The web dashboard has since been rebuilt on Solara (see below), which that platform can't host — Streamlit Cloud only runs Streamlit apps, and `model_b/solara_app.py` no longer imports `streamlit` at all, so the old deployment will break once this change reaches it. No replacement deployment exists yet; run it locally with the instructions below in the meantime.
 
 ### Executive summary
 
 This module simulates **anisotropic, conserved-order-parameter phase separation** and connects it to three real materials phenomena. **Binary alloy spinodal decomposition** is close to a literal correspondence: this simulation *is* the standard lattice-gas model of a quenched A/B alloy, with conserved magnetization standing in for conserved alloy composition and the measured $t^{1/3}$ growth law matching the Lifshitz–Slyozov description of precipitate coarsening (Ostwald ripening) used in metallurgy. **Directional grain alignment in rolled sheet metals** is a looser but genuinely useful parallel — rolling imposes a preferred direction via plastic deformation rather than diffusion, but the qualitative outcome (elongated, texture-aligned grains along one axis) is the same *shape* of phenomenon that $J_x \neq J_y$ produces here. **Single-crystal superalloy turbine blade microstructures** are the closest real-world analog to the anisotropy mechanism specifically: Ni-based superalloys grown as single crystals undergo directional $\gamma'$ precipitate coarsening ("rafting") under applied stress, driven by elastic anisotropy — an external asymmetry biasing which direction domains preferentially grow along, exactly like $J_x \neq J_y$ biases $L_x(t)$ vs. $L_y(t)$ in this model.
 
-Everything above (`ising_engine.py`, `visualizer.py`, `main.py`, `plot_kinetics.py`, `index.html`, `manuscript/`) implements **Model A** in the Hohenberg–Halperin classification: single-spin-flip Metropolis dynamics, in which the order parameter is *not* conserved. [`model_b/`](model_b/) is a fully standalone addition implementing the complementary case, **Model B**: Kawasaki spin-exchange dynamics, in which total magnetization $\sum_i \sigma_i$ is exactly conserved. It does not import, modify, or depend on any file outside `model_b/`.
+Everything above (`model_a/ising_engine.py`, `visualizer.py`, `main.py`, `plot_kinetics.py`, plus `index.html` and `manuscript/` at the repo root) implements **Model A** in the Hohenberg–Halperin classification: single-spin-flip Metropolis dynamics, in which the order parameter is *not* conserved. [`model_b/`](model_b/) is a fully standalone addition implementing the complementary case, **Model B**: Kawasaki spin-exchange dynamics, in which total magnetization $\sum_i \sigma_i$ is exactly conserved. It does not import, modify, or depend on any file outside `model_b/`.
 
 ### Physics
 
@@ -239,17 +247,19 @@ The exchange energy-change formula and magnetization conservation were both chec
 
 ```
 model_b/
-├── kawasaki_engine.py   # Numba-jitted Kawasaki MC core, anisotropic couplings,
-│                         #   directional FFT correlations, entropy production
-├── run_simulation.py    # Launcher: runs the quench, saves CSV + figure
-├── figures/               # fig_anisotropic_kinetics.png
-└── results/               # kawasaki_kinetics.csv
+├── kawasaki_engine.py          # Numba-jitted Kawasaki MC core, anisotropic couplings,
+│                                 #   directional FFT correlations, entropy production
+├── plot_kawasaki_kinetics.py   # Launcher: runs the quench, saves CSV + figure
+├── live_visualizer.py          # Native desktop dashboard (matplotlib + Tk)
+├── solara_app.py               # Web dashboard (Solara)
+├── figures/                      # fig_anisotropic_kinetics.png
+└── results/                      # kawasaki_kinetics.csv
 ```
 
 ### Usage
 
 ```bash
-python model_b/run_simulation.py
+python model_b/plot_kawasaki_kinetics.py
 ```
 
 Default configuration: $L=96$, $J_x=1.0$, $J_y=0.5$ (so $T_c(J_x,J_y) \approx 1.641$, giving $T_{\text{initial}} \approx 4.923 \to T_{\text{final}} \approx 1.067$), 16 replicas, 10000 sweeps. This takes roughly a minute and a half on the same hardware as the root pipeline, and writes `results/kawasaki_kinetics.csv` ($t$, $L_x(t)$, $L_y(t)$, $\dot{S}(t)$, all with standard errors) plus `figures/fig_anisotropic_kinetics.png`.
@@ -272,16 +282,26 @@ Fitting $L_x(t)$ and $L_y(t)$ over the same style of trimmed scaling regime used
 
 ### Interactive dashboards
 
-Two live-updating visualizers sit alongside the batch pipeline (`run_simulation.py`) above — both read live simulation state directly (plain Python / reactive variables), not the saved CSV/figure:
+Two live-updating visualizers sit alongside the batch pipeline (`plot_kawasaki_kinetics.py`) above — both read live simulation state directly (plain Python / reactive variables), not the saved CSV/figure:
 
 - **Native desktop dashboard** (`model_b/live_visualizer.py`, matplotlib + Tk): a lattice heatmap, directional domain-growth plot, and entropy-production plot, animated with `FuncAnimation`.
-- **Web dashboard** (`model_b/app.py`, [Solara](https://solara.dev/)): the same three live panels in a browser, with sidebar sliders for the anisotropy ratio $J_x/J_y$, quench temperature $T_f$, lattice size, and sweeps per frame, plus a Start/Pause/Reset control and a "Materials Science & Engineering" expander covering the analogies above in more depth. A background thread advances the simulation and publishes updates to `solara.reactive()` state, which Solara's component tree picks up automatically — no manual page-rerun/polling loop.
+- **Web dashboard** (`model_b/solara_app.py`, [Solara](https://solara.dev/)): the same three live panels in a browser, with sidebar sliders (rendered with inline LaTeX via `solara.Markdown`) for the anisotropy ratio $J_x/J_y$, quench temperature $T_f$, lattice size, and sweeps per frame, plus Start/Pause/Reset controls, live growth-exponent/interfacial-density readouts, and a "Materials Science & Engineering" expander covering the analogies above. A background `asyncio` task advances the simulation and patches the lattice/chart widgets' traits directly, bypassing Solara's own reactive re-render cycle for that hot path (continuously driving a component re-render at animation speed turned out to race Solara 1.61.0's render scheduler); only a throttled numeric-metrics readout still goes through an actual `solara.reactive()` publish.
 
 Run the web dashboard locally with:
 
 ```bash
 pip install -r requirements.txt   # includes solara
-solara run model_b/app.py
+solara run model_b/solara_app.py
 ```
 
-(Solara apps are launched via the `solara` CLI, not `python model_b/app.py`.) This opens the dashboard in your browser at `http://localhost:8765`.
+(Solara apps are launched via the `solara` CLI, not `python model_b/solara_app.py`.) This opens the dashboard in your browser at `http://localhost:8765`.
+
+## Comparative analysis
+
+[`comparative_analysis.py`](comparative_analysis.py) is the one script that spans both models: it reads the CSV each model's own kinetics script already produces (`model_a/results/quench_kinetics.csv`, `model_b/results/kawasaki_kinetics.csv`) and plots their domain-growth scaling side by side on matching log-log axes — Model A's $L(t)$ against the Lifshitz–Allen–Cahn $t^{1/2}$ prediction, Model B's $L(t)$ (averaged from $L_x(t)$ and $L_y(t)$, for a like-for-like comparison against Model A's single isotropic domain size) against the Lifshitz–Slyozov $t^{1/3}$ prediction. It does not re-run either simulation; run `model_a/plot_kinetics.py` and `model_b/plot_kawasaki_kinetics.py` first if the CSVs don't exist yet.
+
+```bash
+python comparative_analysis.py
+```
+
+Saves `figures/fig_comparative_scaling.png` at the repo root (distinct from each model's own `figures/` subdirectory, since this figure isn't specific to either one) and prints both fitted growth exponents to stdout.

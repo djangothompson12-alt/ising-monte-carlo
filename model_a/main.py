@@ -6,8 +6,9 @@ Entry point: runs a full temperature sweep of the 2D Ising model, saves the
 raw observable data, and generates both publication figures.
 
 Usage:
-    python main.py
-    python main.py --L 32 --n-temperatures 50 --eq-sweeps 4000 --mc-sweeps 5000
+    python model_a/main.py
+    python model_a/main.py --L 32 --n-temperatures 50 --eq-sweeps 4000 --mc-sweeps 5000
+    (or: cd model_a && python main.py)
 """
 
 from __future__ import annotations

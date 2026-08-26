@@ -13,7 +13,8 @@ point and produces a two-panel kinetics figure:
              dissipation decay as domain walls annihilate.
 
 Usage:
-    python plot_kinetics.py
+    python model_a/plot_kinetics.py
+    (or: cd model_a && python plot_kinetics.py)
 """
 
 from __future__ import annotations

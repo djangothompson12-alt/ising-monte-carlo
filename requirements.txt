@@ -2,12 +2,12 @@ numpy>=1.24
 numba>=0.58
 matplotlib>=3.7
 scipy>=1.10
-solara>=1.30      # model_b/app.py -- tested on 1.61.0; exact minimum for
+solara>=1.30      # model_b/solara_app.py -- tested on 1.61.0; exact minimum for
                    # use_reactive/use_thread/Details/FigurePlotly as used
                    # here isn't independently confirmed, so treat 1.61.0 as
                    # the known-good version if something looks off on older 1.3x
-plotly>=5.20      # model_b/app.py; client-side (WebGL/canvas) chart rendering
-anywidget>=0.9     # model_b/app.py; required by plotly's FigureWidget, which solara.FigurePlotly uses internally
+plotly>=5.20      # model_b/solara_app.py; client-side (WebGL/canvas) chart rendering
+anywidget>=0.9     # model_b/solara_app.py; required by plotly's FigureWidget, which solara.FigurePlotly uses internally
 
 # Note (Intel macOS only): numba dropped x86_64 macOS wheels after 0.62.1.
 # On an Intel Mac, pin instead with:

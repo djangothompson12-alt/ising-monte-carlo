@@ -1,6 +1,6 @@
 """
-app.py
-======
+solara_app.py
+=============
 
 Solara web dashboard for Model B (Kawasaki spin-exchange dynamics):
 interactive controls for the anisotropy ratio, quench temperature, lattice
@@ -13,7 +13,7 @@ FFT-based correlation/domain-size helpers from `kawasaki_engine.py`
 `manuscript/`.
 
 Usage (Solara apps are launched via the `solara` CLI, not `python`):
-    solara run model_b/app.py
+    solara run model_b/solara_app.py
 """
 
 from __future__ import annotations
@@ -107,8 +107,8 @@ def _display_domain_size(raw: float) -> float:
 
     Clamping only here, for the live dashboard's display, rather than
     inside kawasaki_engine.py itself: that module is the shared, verified
-    physics core also used by run_simulation.py's replica-averaging (which
-    uses np.nanmean/np.nanstd and depends on real NaNs to exclude
+    physics core also used by plot_kawasaki_kinetics.py's replica-averaging
+    (which uses np.nanmean/np.nanstd and depends on real NaNs to exclude
     unresolved replicas from the statistics) -- silently turning its NaNs
     into a fabricated 1.0 there would quietly corrupt that averaging.
     """
