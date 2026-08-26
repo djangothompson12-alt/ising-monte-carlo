@@ -45,11 +45,12 @@ _DOMAIN_LY_COLOR = "#a63603"
 _ENTROPY_COLOR = "#6a1b9a"
 _CHART_MARGIN = dict(l=45, r=15, t=20, b=35)  # tightened for the 200px-tall stacked charts
 _CHART_HEIGHT = 200
-_DOMAIN_Y_MIN = 0.3  # upper bound is L/2 (r_max), computed per-call since it depends on lattice size
+_DOMAIN_Y_MIN = 0.5  # upper bound is L/2 (r_max), computed per-call since it depends on lattice size
 _ENTROPY_FLOOR = 1e-7
-_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-5, 1.0
+_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-7, 1.0  # matches _ENTROPY_FLOOR, so the floored tail sits on-axis, not clipped below it
 _ENTROPY_SMOOTHING_WINDOW = 10
 _SEED = 2026
+_ISING_TC = 2.269  # 2D Ising critical temperature (Onsager), for the T/Tc reduced-temperature readout
 
 # Target refresh interval for the live panel, in seconds (~20 Hz). Also used
 # as the idle poll interval while paused, so the loop notices Start being
@@ -119,6 +120,59 @@ def total_energy(lattice: np.ndarray, Jx: float, Jy: float) -> float:
     right = np.roll(lattice, -1, axis=1)
     down = np.roll(lattice, -1, axis=0)
     return float(-Jx * np.sum(lattice * right) - Jy * np.sum(lattice * down))
+
+
+def interfacial_density(lattice: np.ndarray) -> float:
+    """Fraction of nearest-neighbor spin pairs (periodic, horizontal +
+    vertical) that are antiparallel -- the density of domain-wall bonds.
+    1.0 for a perfect checkerboard, 0.0 for a single uniform domain."""
+    right = np.roll(lattice, -1, axis=1)
+    down = np.roll(lattice, -1, axis=0)
+    antiparallel = np.count_nonzero(lattice * right == -1) + np.count_nonzero(lattice * down == -1)
+    return antiparallel / (2 * lattice.size)
+
+
+_ALPHA_FIT_WINDOW = 20  # recent-history points used for the log-log slope fit
+_ALPHA_MIN_SWEEP_T = 500  # only fit t > this -- early time is dominated by pre-scaling transients
+_ALPHA_MAX_PHYSICAL = 0.5  # clamp ceiling -- LS scaling predicts ~1/3; anything above this is fit noise
+
+
+def effective_growth_exponent(t_hist: list[float], Lx_hist: list[float], Ly_hist: list[float]) -> float:
+    """Local coarsening exponent alpha = d(log L)/d(log t), least-squares
+    fit over the most recent _ALPHA_FIT_WINDOW points with t > _ALPHA_MIN_SWEEP_T,
+    for the combined (Lx+Ly)/2 effective domain size vs. time -- Lifshitz-
+    Slyozov predicts alpha ~ 1/3 for isotropic Model B coarsening.
+
+    Restricted to late-stage (t > _ALPHA_MIN_SWEEP_T) data: early on, a
+    handful of noisy single-batch domain-size estimates dominate the fit
+    and can swing the slope to nonphysical values (negative, or far above
+    the LS prediction) well before power-law growth is actually
+    established. The result is clamped to [0.0, _ALPHA_MAX_PHYSICAL] --
+    a negative or unphysically large fitted slope means the fit caught
+    noise, not real growth, so 0.0 is reported rather than a misleading
+    number. Also returns 0.0 before enough late-stage history exists to
+    fit a slope through, or if the fit is degenerate (e.g. all t equal).
+    """
+    t_arr = np.asarray(t_hist)
+    late = t_arr > _ALPHA_MIN_SWEEP_T
+    if np.count_nonzero(late) < 2:
+        return 0.0
+
+    t = t_arr[late][-_ALPHA_FIT_WINDOW:]
+    L = ((np.asarray(Lx_hist)[late] + np.asarray(Ly_hist)[late]) / 2.0)[-_ALPHA_FIT_WINDOW:]
+
+    valid = (t > 0) & (L > 0)
+    if np.count_nonzero(valid) < 2:
+        return 0.0
+    log_t = np.log(t[valid])
+    log_L = np.log(L[valid])
+    if np.ptp(log_t) == 0.0:
+        return 0.0
+
+    slope, _intercept = np.polyfit(log_t, log_L, 1)
+    if not np.isfinite(slope):
+        return 0.0
+    return float(np.clip(slope, 0.0, _ALPHA_MAX_PHYSICAL))
 
 
 def moving_average(values: list[float] | np.ndarray, window: int) -> np.ndarray:
@@ -219,15 +273,28 @@ def build_domain_figure(
     x = t_hist if has_data else []
     fig = go.Figure(
         data=[
+            # Lx drawn first (lower z-order) as a solid line; Ly drawn
+            # second (on top) dashed and slightly translucent. When thermal
+            # noise or an extreme concentration collapses both onto the
+            # same numerical value -- e.g. both floored to 1.0 by
+            # _display_domain_size -- a plain solid-over-solid overlap
+            # would fully hide Lx under Ly. The dash pattern lets Lx's
+            # solid color show through in the gaps, so both series stay
+            # visibly distinguishable even when perfectly coincident.
             go.Scatter(
+                # Plotly's own text markup (not real HTML/DOM) -- <sub>/<sup>
+                # are supported in trace names, titles, and annotations, so
+                # the legend renders a true subscript "x" instead of the
+                # bare "Lx(t)" a plain string would show.
                 x=x, y=Lx_hist if has_data else [],
-                mode="lines+markers", name="Lx(t)", uid="domain-lx",
-                marker=dict(symbol="circle", size=5), line=dict(color=_DOMAIN_LX_COLOR, width=1.5),
+                mode="lines+markers", name="L<sub>x</sub>(t)", uid="domain-lx",
+                marker=dict(symbol="circle", size=5), line=dict(color=_DOMAIN_LX_COLOR, width=1.8),
             ),
             go.Scatter(
                 x=x, y=Ly_hist if has_data else [],
-                mode="lines+markers", name="Ly(t)", uid="domain-ly",
-                marker=dict(symbol="square", size=5), line=dict(color=_DOMAIN_LY_COLOR, width=1.5),
+                mode="lines+markers", name="L<sub>y</sub>(t)", uid="domain-ly", opacity=0.85,
+                marker=dict(symbol="square", size=5),
+                line=dict(color=_DOMAIN_LY_COLOR, width=1.8, dash="dash"),
             ),
             # Theoretical Lifshitz-Slyozov reference slope, L(t) ~ t^(1/3).
             # Precomputed over a wide, fixed x-domain (well beyond any
@@ -244,11 +311,11 @@ def build_domain_figure(
     )
     fig.update_xaxes(
         type="log", range=_log_range(*x_range), title_text="Time t (sweeps)",
-        showgrid=True, gridcolor="#eeeeee",
+        showgrid=True, gridcolor="#eeeeee", automargin=True,
     )
     fig.update_yaxes(
         type="log", range=_log_range(_DOMAIN_Y_MIN, L / 2.0), title_text="Domain size",
-        showgrid=True, gridcolor="#eeeeee",
+        showgrid=True, gridcolor="#eeeeee", automargin=True,
     )
     fig.update_layout(
         autosize=True, margin=_CHART_MARGIN, height=_CHART_HEIGHT, showlegend=True,
@@ -268,21 +335,39 @@ def build_entropy_figure(
     fig = go.Figure(
         data=[
             go.Scatter(
+                # "Ṡ" (LATIN CAPITAL LETTER S WITH DOT ABOVE, U+1E60) reads
+                # cleanly as plain Unicode text (no markup needed); "k<sub>B</sub>"
+                # relies on Plotly's own text markup, same as the domain
+                # chart's L<sub>x</sub>/L<sub>y</sub> subscripts.
                 x=t_hist if has_data else [], y=Sdot_smoothed if has_data else [],
-                mode="lines+markers", name="S_dot(t)", uid="entropy-sdot",
+                mode="lines+markers", name="Ṡ(t)", uid="entropy-sdot",
                 marker=dict(symbol="circle", size=5), line=dict(color=_ENTROPY_COLOR, width=1.5),
             ),
         ]
     )
     fig.update_xaxes(
         type="log", range=_log_range(*x_range), title_text="Time t (sweeps)",
-        showgrid=True, gridcolor="#eeeeee",
+        showgrid=True, gridcolor="#eeeeee", automargin=True,
     )
     fig.update_yaxes(
         type="log", range=_log_range(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX),
-        title_text="S_dot(t), per spin (kB units)", showgrid=True, gridcolor="#eeeeee",
+        title_text="Ṡ(t) [k<sub>B</sub> / sweep]", showgrid=True, gridcolor="#eeeeee",
+        # automargin: Plotly expands the figure's own margin as needed to
+        # fit the axis title and SI-prefixed tick labels (100μ, 1μ, ...)
+        # rather than clipping them against a fixed-width margin -- the
+        # tick text width varies with the exponent shown, so a single fixed
+        # margin value can't be picked to always fit it.
+        automargin=True,
     )
-    fig.update_layout(autosize=True, margin=_CHART_MARGIN, height=_CHART_HEIGHT, showlegend=False)
+    fig.update_layout(
+        autosize=True,
+        # Wider left margin than the shared _CHART_MARGIN (this chart's
+        # y-axis title plus SI-prefixed tick labels need more room than the
+        # domain-growth chart's shorter "Domain size"), and automargin
+        # above still expands past this if a given label needs even more.
+        margin=dict(l=85, r=20, t=30, b=40),
+        height=_CHART_HEIGHT, showlegend=False,
+    )
     return fig
 
 
@@ -299,6 +384,8 @@ class SimMetrics:
     sweep_count: int
     energy: float
     concentration: float
+    alpha: float
+    interfacial_density: float
 
 
 class SimState:
@@ -341,16 +428,25 @@ class SimState:
 
         initial_energy = total_energy(self.lattice, Jx, Jy)
         initial_concentration = int(np.count_nonzero(self.lattice == 1)) / (L * L)
+        initial_interfacial = interfacial_density(self.lattice)
         self.metrics: solara.Reactive[SimMetrics] = solara.reactive(
-            SimMetrics(0, initial_energy, initial_concentration)
+            SimMetrics(0, initial_energy, initial_concentration, 0.0, initial_interfacial)
         )
 
 
-def _metric(label: str, value: str) -> None:
-    """A small Streamlit-st.metric-like label-over-value display."""
+def _metric(label: str, value: str, upper: bool = True) -> None:
+    """A small Streamlit-st.metric-like label-over-value display.
+
+    `upper=False` opts a label out of Python's str.upper(): Unicode case
+    folding maps lowercase Greek "α" to uppercase "Α" (U+0391), which is
+    visually indistinguishable from Latin "A" in most fonts -- turning
+    "Growth Exponent α" into what reads as "GROWTH EXPONENT A". Callers
+    with a lowercase symbol in the label should pre-format it in the caps
+    style themselves and pass upper=False.
+    """
     with solara.Column(gap="0px", style={"text-align": "center", "min-width": "110px"}):
         solara.Text(
-            label.upper(),
+            label.upper() if upper else label,
             style={"font-size": "0.7rem", "color": "#666", "letter-spacing": "0.03em"},
         )
         solara.Text(value, style={"font-size": "1.3rem", "font-weight": "600"})
@@ -384,9 +480,9 @@ def _slider_label(text: str) -> None:
 
 
 _MATERIALS_SCIENCE_MARKDOWN = """
-- **Spinodal Phase Separation**: Models how a two-component mixture un-mixes over time while total concentration remains constant. I'm measuring domain growth L(t) to test if it follows Lifshitz-Slyozov scaling L(t) ~ t^(1/3).
-- **Directional Precipitate Rafting**: Unequal horizontal and vertical couplings (Jx != Jy) introduce spatial bias during spin exchange, stretching domains into parallel bands similar to gamma-prime precipitate rafting in nickel superalloys under stress.
-- **Trajectory Entropy Rate**: Tracks real-time heat dissipation during spin swaps across Monte Carlo sweeps, providing a quantitative measure of non-equilibrium thermodynamic irreversibility as the system relaxes.
+- **Spinodal Phase Separation**: Models how a two-component mixture un-mixes over time while total concentration stays constant. I'm measuring domain size growth over time L(t) to verify whether it matches theoretical Lifshitz-Slyozov scaling L(t) ~ t^(1/3).
+- **Directional Precipitate Rafting**: Setting unequal horizontal and vertical couplings (J_x != J_y) forces domains to align into parallel bands, mimicking directional gamma-prime precipitate rafting in nickel superalloys under stress.
+- **Trajectory Entropy Production Rate**: Tracks the real-time heat dissipation rate during spin swaps across Monte Carlo sweeps. As the lattice relaxes toward equilibrium, entropy production drops off, quantifying thermodynamic irreversibility.
 """
 
 
@@ -465,7 +561,9 @@ def LiveDashboard(state: SimState, Jx: float, Jy: float) -> None:
         _metric("Sweep Count", f"{metrics.sweep_count:,}")
         _metric("Energy E", f"{metrics.energy:,.0f}")
         _metric("Concentration", f"{metrics.concentration:.4f}")
-        _metric("Jx/Jy", f"{Jx / Jy:.2f}")
+        _metric("J_x / J_y", f"{Jx / Jy:.2f}")
+        _metric("GROWTH EXPONENT α", f"{metrics.alpha:.3f}", upper=False)
+        _metric("Interfacial Density", f"{metrics.interfacial_density:.4f}")
 
     # Bottom dashboard: fixed-size square lattice heatmap in the left
     # column, the two line charts stacked in the right column -- sized
@@ -586,7 +684,9 @@ def Page() -> None:
             if state.tick % _METRICS_UPDATE_EVERY_N_TICKS == 0:
                 E = total_energy(state.lattice, Jx, Jy)
                 concentration = int(np.count_nonzero(state.lattice == 1)) / (state.L * state.L)
-                state.metrics.value = SimMetrics(state.sweep_count, E, concentration)
+                alpha = effective_growth_exponent(state.t_history, state.Lx_history, state.Ly_history)
+                interfacial = interfacial_density(state.lattice)
+                state.metrics.value = SimMetrics(state.sweep_count, E, concentration, alpha, interfacial)
 
             await asyncio.sleep(FRAME_INTERVAL)
 
@@ -615,21 +715,26 @@ def Page() -> None:
             with solara.Card(style={"margin": "12px 0", "padding": "10px 8px"}):
                 _card_header("Physics Parameters")
                 with solara.Column(gap="16px", style={"padding": "4px 2px"}):
-                    _slider_label(f"Anisotropy (Jx/Jy): {anisotropy_ratio.value:.2f}")
-                    solara.SliderFloat("", value=anisotropy_ratio, min=0.1, max=3.0, step=0.1)
+                    _slider_label(f"Anisotropy (J_x/J_y): {anisotropy_ratio.value:.2f}")
+                    solara.SliderFloat("", value=anisotropy_ratio, min=0.1, max=10.0, step=0.1)
                     solara.Text(
-                        "Jx is held fixed at 1.0; this slider sets Jy = Jx / ratio.",
+                        "J_x is held fixed at 1.0; this slider sets J_y = J_x / ratio.",
                         style={"color": "#888", "font-size": "0.75rem", "margin-top": "-10px"},
                     )
                     _slider_label(f"Quench Temperature: {T_final.value:.2f}")
                     solara.SliderFloat("", value=T_final, min=0.1, max=2.5, step=0.1)
+                    solara.Text(
+                        f"T / T_c = {T_final.value / _ISING_TC:.3f}  (T_c = {_ISING_TC}, "
+                        "the 2D Ising critical temperature)",
+                        style={"color": "#888", "font-size": "0.75rem", "margin-top": "-10px"},
+                    )
                     _slider_label(f"Concentration: {concentration.value:.2f}")
                     solara.SliderFloat("", value=concentration, min=0.10, max=0.90, step=0.05)
 
             with solara.Card(style={"margin": "12px 0", "padding": "10px 8px"}):
                 _card_header("Simulation Engine")
                 with solara.Column(gap="16px", style={"padding": "4px 2px"}):
-                    solara.Select("Lattice Size L", value=L_value, values=[64, 128])
+                    solara.Select("Lattice Size L", value=L_value, values=[32, 64, 128])
                     _slider_label(f"Sweeps per Frame: {sweeps_per_frame.value}")
                     solara.SliderInt("", value=sweeps_per_frame, min=1, max=200, step=1)
 
@@ -639,7 +744,7 @@ def Page() -> None:
                         solara.Button("Reset", on_click=lambda: set_reset_counter(reset_counter + 1))
 
                     solara.Text(
-                        f"Jx={Jx:.2f}, Jy={Jy:.3f}  (ratio={anisotropy_ratio.value:.2f})",
+                        f"J_x={Jx:.2f}, J_y={Jy:.3f}  (ratio={anisotropy_ratio.value:.2f})",
                         style={"color": "#666", "font-size": "0.8rem"},
                     )
 
