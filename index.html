@@ -83,7 +83,18 @@
     accent-color: var(--navy);
   }
   .hint { font-size: 0.76rem; color: var(--muted); margin-top: 3px; }
-  .buttons { display: flex; gap: 10px; margin-top: 18px; }
+  .buttons { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .preset-buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .preset-buttons button { flex: none; text-align: left; }
+  .chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: -6px 0 4px 0;
+  }
+  .chart-controls input[type="checkbox"] { accent-color: var(--navy); }
   button {
     flex: 1;
     padding: 9px 12px;
@@ -192,6 +203,14 @@
         <button class="primary" id="playPauseBtn">Pause</button>
         <button id="resetBtn">Reset Lattice</button>
       </div>
+
+      <h2 style="margin-top: 20px;">Presets</h2>
+      <div class="preset-buttons">
+        <button id="presetLowTempBtn">Low-Temp Quench (T=1.5)</button>
+        <button id="presetCriticalBtn">Critical Point (T=2.27)</button>
+        <button id="presetParamagneticBtn">Paramagnetic (T=5.0)</button>
+      </div>
+      <div class="hint">Sets T, resets the lattice, and (re)starts the run.</div>
     </div>
 
     <div class="panel">
@@ -214,6 +233,10 @@
           <div class="value" id="fpsVal">—</div>
         </div>
       </div>
+      <div class="buttons">
+        <button id="downloadCsvBtn">Download Run Data (CSV)</button>
+      </div>
+      <div class="hint" id="logCountHint">0 rows recorded across this session's runs.</div>
     </div>
   </div>
 
@@ -225,6 +248,12 @@
       </div>
     </div>
 
+    <div class="chart-controls">
+      <label style="display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" id="logTimeToggle">
+        Log-scale time axis (sweeps) — matches Matplotlib domain-growth convention
+      </label>
+    </div>
     <div class="charts">
       <div class="panel">
         <h2>Magnetization vs. Time</h2>
@@ -310,6 +339,104 @@
     return { M: sumSpin / N, E: energy / N };
   }
 
+  // ---- Domain-size estimation (for CSV export / Model B comparison) ----
+  // Same method as model_b/kawasaki_engine.py's domain_size_from_correlation:
+  // the lattice constant r at which the horizontal spin autocorrelation
+  // C(r) = <s(i,j) s(i,j+r)> (periodic, averaged over all sites) first
+  // decays through 0.5, linearly interpolated between the bracketing
+  // integer separations. O(L^2 * rMax) via direct summation (no FFT) --
+  // fine at the throttled cadence this is actually called at (see
+  // LOG_INTERVAL_MS below), but too expensive to run every rendered frame.
+  function horizontalAutocorrelation(lattice, L, rMax) {
+    const C = new Float64Array(rMax + 1);
+    const N = L * L;
+    for (let r = 0; r <= rMax; r++) {
+      let sum = 0;
+      for (let i = 0; i < L; i++) {
+        const row = i * L;
+        for (let j = 0; j < L; j++) {
+          sum += lattice[row + j] * lattice[row + ((j + r) % L)];
+        }
+      }
+      C[r] = sum / N;
+    }
+    return C;
+  }
+
+  function domainSizeFromCorrelation(C) {
+    for (let r = 0; r < C.length - 1; r++) {
+      if (C[r] >= 0.5 && C[r + 1] < 0.5) {
+        const span = C[r] - C[r + 1];
+        if (span <= 0) return r;
+        const frac = (C[r] - 0.5) / span;
+        return r + frac;
+      }
+    }
+    return NaN; // hasn't decayed through 0.5 within r in [0, rMax] yet
+  }
+
+  function estimateDomainSize(lattice, L) {
+    const C = horizontalAutocorrelation(lattice, L, L >> 1);
+    const raw = domainSizeFromCorrelation(C);
+    // Floored/NaN-guarded for the same reason as Model B's
+    // _display_domain_size: early on (or at extreme magnetization), C(r)
+    // may never decay through 0.5 within the sampled range, and a bare
+    // NaN would just vanish from a log-scale CSV/plot rather than
+    // recording a visible (if degenerate) minimum domain size.
+    return Number.isFinite(raw) ? Math.max(1.0, raw) : 1.0;
+  }
+
+  // ---- Run data log (for CSV export / direct comparison with Model B) ----
+  // Accumulates across resets and preset changes within the page's lifetime
+  // (not cleared automatically) so a single export can cover multiple runs
+  // -- runId distinguishes which contiguous run each row belongs to. Rows
+  // are appended on a wall-clock throttle (LOG_INTERVAL_MS), independent of
+  // sweepsPerFrame/FPS, since it's the only thing here that also runs the
+  // O(L^2 * rMax) domain-size estimate.
+  const LOG_INTERVAL_MS = 500;
+  let runId = 0;
+  let lastLogTime = 0;
+  const runLog = [];
+
+  const logCountHint = document.getElementById("logCountHint");
+
+  function maybeLogRow(now, lattice, L, T, H, sweepCount, obs) {
+    if (now - lastLogTime < LOG_INTERVAL_MS) return;
+    lastLogTime = now;
+    runLog.push({
+      runId: runId,
+      L: L,
+      T: T,
+      H: H,
+      t: sweepCount,
+      M: obs.M,
+      E: obs.E,
+      domainSize: estimateDomainSize(lattice, L),
+    });
+    logCountHint.textContent = runLog.length + " rows recorded across this session's runs.";
+    // Charts sample on this same throttle -- see the "Charts" section below
+    // for why (a per-frame push would only ever show a few seconds' worth
+    // of sweeps in the on-screen history).
+    pushHistory(sweepCount, obs.M, obs.E);
+  }
+
+  function downloadRunDataCsv() {
+    const header = "run_id,lattice_size_L,temperature_T,field_H,sweep_t,magnetization_M_t,energy_E_t,domain_size_L_t\n";
+    const rows = runLog.map(function (r) {
+      return [r.runId, r.L, r.T, r.H, r.t, r.M, r.E, r.domainSize].join(",");
+    });
+    const csv = header + rows.join("\n") + "\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ising_model_a_run_data.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   // ---- Canvas rendering (offscreen pixel buffer, scaled to display size) ----
   const latticeCanvas = document.getElementById("latticeCanvas");
   const ctx = latticeCanvas.getContext("2d");
@@ -336,17 +463,24 @@
   }
 
   // ---- Charts ----
-  const HISTORY_LEN = 240;
+  // History is recorded on the same wall-clock throttle as the CSV log
+  // (maybeLogRow/LOG_INTERVAL_MS), not once per animation frame: at 60 FPS
+  // a small rolling window (the old behavior) only ever covers a few
+  // seconds of real sweep-count range, which defeats the point of a
+  // log-scale time axis -- you'd never see more than a sliver of a decade.
+  // Sampling every LOG_INTERVAL_MS instead lets HISTORY_LEN points span an
+  // entire quench run. Points are {x, y} objects (Chart.js requires real
+  // numeric data, not the previous category/parallel-array style, for a
+  // logarithmic scale to be possible at all).
+  const HISTORY_LEN = 2000;
   const mHistory = [];
   const eHistory = [];
-  const labels = [];
 
-  function makeChart(canvasId, label, color) {
+  function makeChart(canvasId, label, color, yMin, yMax) {
     const c = document.getElementById(canvasId).getContext("2d");
     return new Chart(c, {
       type: "line",
       data: {
-        labels: labels,
         datasets: [{
           label: label,
           data: [],
@@ -362,24 +496,42 @@
         animation: false,
         responsive: true,
         maintainAspectRatio: false,
+        parsing: false,
         scales: {
-          x: { display: false },
-          y: { grid: { color: "#eeeeee" } },
+          x: {
+            type: "linear",
+            title: { display: true, text: "Sweep t", font: { size: 10 } },
+            grid: { color: "#f2f2f2" },
+          },
+          // Locked (not autoscaled) so runs at different T/H/L stay
+          // directly comparable to each other and to Matplotlib figures
+          // using the same fixed axis convention.
+          y: { min: yMin, max: yMax, grid: { color: "#eeeeee" } },
         },
         plugins: { legend: { display: false } },
       },
     });
   }
 
-  const mChart = makeChart("mChart", "⟨M⟩", "#1f4e79");
-  const eChart = makeChart("eChart", "⟨E⟩", "#a63603");
+  const mChart = makeChart("mChart", "⟨M⟩", "#1f4e79", -1.0, 1.0);
+  const eChart = makeChart("eChart", "⟨E⟩", "#a63603", -2.0, 0.0);
 
-  function pushHistory(m, e) {
-    labels.push(state.sweepCount);
-    mHistory.push(m);
-    eHistory.push(e);
-    if (labels.length > HISTORY_LEN) {
-      labels.shift();
+  const logTimeToggle = document.getElementById("logTimeToggle");
+  logTimeToggle.addEventListener("change", () => {
+    // Logarithmic scales can't represent x=0 (the very first recorded
+    // sweep); Chart.js simply omits non-positive points rather than
+    // erroring, which matches how the Model B dashboard's own log-log
+    // charts handle t=0 (no point plotted until t > 0).
+    const type = logTimeToggle.checked ? "logarithmic" : "linear";
+    mChart.options.scales.x.type = type;
+    eChart.options.scales.x.type = type;
+    mChart.update("none");
+  });
+
+  function pushHistory(sweepCount, m, e) {
+    mHistory.push({ x: sweepCount, y: m });
+    eHistory.push({ x: sweepCount, y: e });
+    if (mHistory.length > HISTORY_LEN) {
       mHistory.shift();
       eHistory.shift();
     }
@@ -404,6 +556,10 @@
   const fpsVal = document.getElementById("fpsVal");
   const playPauseBtn = document.getElementById("playPauseBtn");
   const resetBtn = document.getElementById("resetBtn");
+  const presetLowTempBtn = document.getElementById("presetLowTempBtn");
+  const presetCriticalBtn = document.getElementById("presetCriticalBtn");
+  const presetParamagneticBtn = document.getElementById("presetParamagneticBtn");
+  const downloadCsvBtn = document.getElementById("downloadCsvBtn");
 
   tempSlider.addEventListener("input", () => {
     state.T = parseFloat(tempSlider.value);
@@ -428,15 +584,39 @@
   });
   resetBtn.addEventListener("click", resetLattice);
 
+  // ---- Presets ----
+  // Each sets T (updating the slider + readout to match), resets the
+  // lattice, and ensures the run is (re)started -- "triggers a run" reads
+  // as "don't leave the user staring at a paused lattice after clicking."
+  function applyPreset(T) {
+    state.T = T;
+    tempSlider.value = String(T);
+    tempVal.textContent = T.toFixed(2);
+    resetLattice();
+    if (!state.running) {
+      state.running = true;
+      playPauseBtn.textContent = "Pause";
+    }
+  }
+  presetLowTempBtn.addEventListener("click", () => applyPreset(1.5));
+  presetCriticalBtn.addEventListener("click", () => applyPreset(2.269));
+  presetParamagneticBtn.addEventListener("click", () => applyPreset(5.0));
+
+  downloadCsvBtn.addEventListener("click", downloadRunDataCsv);
+
   let sweepsSinceRender = 0;
 
   function resetLattice() {
     state.lattice = initLattice(state.L);
     state.sweepCount = 0;
     sweepsSinceRender = 0;
+    // A fresh contiguous run -- lets CSV rows from before/after a preset
+    // change or manual reset be told apart without clearing runLog itself
+    // (data "across active runs" accumulates for the whole page session).
+    runId++;
+    lastLogTime = 0;
     setupCanvasBuffer(state.L);
     renderLattice(state.lattice, state.L); // avoid a blank canvas until the next 5-sweep redraw
-    labels.length = 0;
     mHistory.length = 0;
     eHistory.length = 0;
     mChart.data.datasets[0].data = mHistory;
@@ -482,7 +662,10 @@
       mVal.textContent = obs.M.toFixed(4);
       eVal.textContent = obs.E.toFixed(4);
       sweepVal.textContent = state.sweepCount;
-      pushHistory(obs.M, obs.E);
+      // Throttled (LOG_INTERVAL_MS): records a CSV row (incl. the O(L^2 *
+      // rMax) domain-size estimate) and pushes the same sample to both
+      // charts -- see maybeLogRow's and the "Charts" section's comments.
+      maybeLogRow(now, state.lattice, state.L, state.T, state.H, state.sweepCount, obs);
     }
 
     frameCount++;
