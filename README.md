@@ -1,10 +1,12 @@
-# 2D Ising Model Monte Carlo Engine
+# 2D Ising Model Quench Dynamics: Glauber (Model A) vs. Kawasaki (Model B) Kinetics
 
-**🔴 [Live Demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)** — real-time Metropolis dynamics running in-browser via HTML5 Canvas, with live Chart.js plots of magnetization and energy.
+**🔴 [Live Demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)** — real-time Model A dynamics running in-browser via HTML5 Canvas, with live Chart.js plots of magnetization and energy.
 
-A from-scratch, Numba-accelerated Metropolis Monte Carlo simulation of the two-dimensional square-lattice Ising model, built to generate quantitative thermodynamic data (order parameter, energy, specific heat, and susceptibility) across the ferromagnetic phase transition.
+Independent research project, completed during a gap year, on non-equilibrium phase-ordering kinetics in the two-dimensional Ising model. The question driving it: how does the conservation law obeyed by an order parameter's microscopic dynamics change the exponent governing domain growth after a temperature quench?
 
-This engine was developed as the computational component of a research paper examining statistical-mechanical entropy and its relationship to philosophical treatments of time (eternalism / the "block universe" view). The code below is self-contained physics and simulation infrastructure; it makes no philosophical claims on its own.
+Two dynamics answer this differently, and both are implemented here from scratch. **Model A** — single-spin-flip dynamics, in which the order parameter $M = \sum_i \sigma_i$ is *not* conserved — is predicted by phase-ordering theory to coarsen via curvature-driven interfacial motion, the **Lifshitz–Allen–Cahn growth law** $L(t) \propto t^{1/2}$. **Model B** — nearest-neighbor spin-exchange dynamics, in which $M$ is conserved exactly — coarsens by a slower, diffusion-limited process, the **Lifshitz–Slyozov growth law** $L(t) \propto t^{1/3}$. This repository contains two independent Numba-accelerated Monte Carlo engines (plus a pure-JavaScript reimplementation of Model A), extracts the characteristic domain size $L(t)$ from the spin-autocorrelation function of each, and fits the resulting scaling exponents against both predictions.
+
+*A terminology note, since it matters for precision:* the move-acceptance rule implemented for Model A throughout this codebase is **Metropolis** ($P_\text{accept} = \min(1, e^{-\beta\Delta E})$), not the Glauber rate function ($P_\text{accept} = 1/(1+e^{\beta\Delta E})$) in the strict sense. Both are non-conserved single-spin-flip dynamics belonging to the same Hohenberg–Halperin **Model A** universality class, and both produce the same asymptotic growth exponent — "Glauber dynamics" is used in the title in the broad sense common in the phase-ordering-kinetics literature (e.g. Bray, *Adv. Phys.* 1994) for non-conserved single-spin-flip dynamics generally, not as a claim that the specific rate function is Glauber's.
 
 <p align="center">
   <img src="model_a/figures/fig1_phase_transitions.png" width="700" alt="Phase transition observables vs. temperature">
@@ -86,7 +88,7 @@ $$
 C(r, t) = \langle \sigma_i(t)\, \sigma_{i+r}(t) \rangle
 $$
 
-(averaged over lattice sites and the two principal lattice directions) as the lattice distance $r$ at which $C(r, t)$ first decays to $1/2$, linearly interpolated between the bracketing integer separations. `run_quench_kinetics` (in `ising_engine.py`) averages this over many independent quench replicas and samples $C(r,t)$ at logarithmically spaced sweep counts, since the growth is expected to be a power law in time.
+(averaged over lattice sites and the two principal lattice directions) as the lattice distance $r$ at which $C(r, t)$ first decays to $1/2$, linearly interpolated between the bracketing integer separations. `run_quench_kinetics` (in `model_a/ising_engine.py`) averages this over many independent quench replicas and samples $C(r,t)$ at logarithmically spaced sweep counts, since the growth is expected to be a power law in time.
 
 **Entropy production.** The lattice is coupled to a heat bath at fixed $T_{\text{final}}$: every accepted Metropolis flip changes the system's energy by $\Delta E$, and by conservation of energy the bath absorbs heat $-\Delta E$ over that move. Summing accepted $\Delta E$ within each inter-checkpoint interval gives an estimate of the (per-spin) irreversible entropy production rate
 
@@ -100,7 +102,7 @@ which is non-negative for a relaxing system and is expected to decay towards zer
 
 ```
 .
-├── index.html                  # Standalone live demo (Canvas + Chart.js, no build step)
+├── index.html                  # Model A live demo (Canvas + Chart.js, no build step)
 ├── comparative_analysis.py     # Reads both models' CSVs, plots L(t) scaling side by side
 ├── requirements.txt
 ├── manuscript/                  # main.tex (revtex4-2 PRL format) + compiled main.pdf
@@ -113,23 +115,30 @@ which is non-negative for a relaxing system and is expected to decay towards zer
 │   ├── figures/                    # Generated PNGs (fig1, fig2, fig3)
 │   └── results/                    # Generated observables.csv, quench_kinetics.csv
 └── model_b/                    # Model B: conserved order parameter (Kawasaki) -- see below
+    ├── kawasaki_engine.py         # Numba-jitted Kawasaki MC core, anisotropic couplings,
+    │                                #   directional FFT correlations, entropy production
+    ├── plot_kawasaki_kinetics.py  # Launcher: runs the quench, saves CSV + figure
+    ├── live_visualizer.py         # Native desktop dashboard (matplotlib + Tk)
+    ├── solara_app.py              # Web dashboard (Solara)
+    ├── figures/                    # fig_anisotropic_kinetics.png
+    └── results/                    # kawasaki_kinetics.csv
 ```
 
 ### Live demo (`index.html`)
 
-A self-contained, single-file browser simulation — open `index.html` directly (or visit the [live demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)) to run Metropolis dynamics interactively at ~60 FPS. It reimplements the same physics as `ising_engine.py` (including an external field term $H = -J\sum_{\langle i,j\rangle}\sigma_i\sigma_j - H\sum_i \sigma_i$) directly in JavaScript, rendered with an HTML5 Canvas pixel buffer, with live [Chart.js](https://www.chartjs.org/) plots of magnetization and energy. Sliders control temperature, external field, lattice size, and sweeps per frame — no build step or server required.
+A self-contained, single-file browser simulation — open `index.html` directly (or visit the [live demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)) to run Model A dynamics interactively at ~60 FPS. It reimplements the same physics as `model_a/ising_engine.py` (including an external field term $H = -J\sum_{\langle i,j\rangle}\sigma_i\sigma_j - H\sum_i \sigma_i$) directly in JavaScript, rendered with an HTML5 Canvas pixel buffer, with live [Chart.js](https://www.chartjs.org/) plots of magnetization and energy on locked axes matching the Matplotlib figures below. Sliders control temperature, external field, lattice size, and sweeps per frame; three preset buttons jump directly to a low-temperature quench, the critical point, and the high-temperature paramagnetic phase. A "Download Run Data (CSV)" button exports lattice size, sweep count, $M(t)$, $E(t)$, and an estimated domain size $L(t)$ for direct comparison against the Python pipeline's output. No build step or server required.
 
-- **`ising_engine.py`** — `SimulationConfig` (lattice size, temperature range, equilibration/sampling sweeps), the JIT-compiled Metropolis sweep and energy/magnetization kernels, and `run_temperature_sweep` / `sample_snapshot` for producing sweep-level and single-temperature results.
-- **`visualizer.py`** — `plot_phase_transitions` (4-panel $|M|$, $E$, $C_v$, $\chi$ vs. $T$) and `plot_spin_domains` (lattice snapshots at representative temperatures).
-- **`main.py`** — orchestrates a full run: temperature sweep → `results/observables.csv` → `figures/fig1_phase_transitions.png` and `figures/fig2_spin_domains.png`.
-- **`plot_kinetics.py`** — runs a $T_{\text{initial}} \to T_{\text{final}}$ quench via `ising_engine.run_quench_kinetics`, saves `results/quench_kinetics.csv`, fits a power law to the domain-growth scaling regime, and renders the two-panel `figures/fig3_kinetics_entropy.png` ($L(t)$ scaling fit on top, entropy production rate $\dot{S}(t)$ below).
+- **`model_a/ising_engine.py`** — `SimulationConfig` (lattice size, temperature range, equilibration/sampling sweeps), the JIT-compiled Metropolis sweep and energy/magnetization kernels, and `run_temperature_sweep` / `sample_snapshot` for producing sweep-level and single-temperature results.
+- **`model_a/visualizer.py`** — `plot_phase_transitions` (4-panel $|M|$, $E$, $C_v$, $\chi$ vs. $T$) and `plot_spin_domains` (lattice snapshots at representative temperatures).
+- **`model_a/main.py`** — orchestrates a full run: temperature sweep → `results/observables.csv` → `figures/fig1_phase_transitions.png` and `figures/fig2_spin_domains.png`.
+- **`model_a/plot_kinetics.py`** — runs a $T_{\text{initial}} \to T_{\text{final}}$ quench via `ising_engine.run_quench_kinetics`, saves `results/quench_kinetics.csv`, fits a power law to the domain-growth scaling regime, and renders the two-panel `figures/fig3_kinetics_entropy.png` ($L(t)$ scaling fit on top, entropy production rate $\dot{S}(t)$ below).
 
 ## Installation
 
 Requires Python 3.10–3.13.
 
 ```bash
-git clone https://github.com/<your-username>/ising-monte-carlo.git
+git clone https://github.com/djangothompson12-alt/ising-monte-carlo.git
 cd ising-monte-carlo
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
@@ -215,10 +224,6 @@ cd manuscript && pdflatex main.tex && pdflatex main.tex
 
 The generated `fig1_phase_transitions.png` shows the expected signatures of a second-order phase transition: $\langle |M| \rangle$ drops from near 1 to near 0 across $T_c$, $\langle E \rangle$ rises smoothly, and both $C_v$ and $\chi$ peak sharply near $T_c \approx 2.269$ — consistent with Onsager's exact solution. `fig2_spin_domains.png` shows a single dominant magnetic domain at $T = 1.5$, scale-spanning clusters at $T \approx T_c$, and fine-grained disorder at $T = 3.5$. `fig3_kinetics_entropy.png`'s top panel shows $L(t)$ tracking the predicted $t^{1/2}$ line closely across roughly two decades of Monte Carlo time (fitted exponent $\alpha = 0.4841$); points from the earliest post-quench sweeps (lattice-discreteness transient) and the latest sweeps (where $L(t)$ approaches the periodic lattice's finite-size limit) are shown but excluded from the power-law fit, and are visibly where the data departs from the scaling line. Its bottom panel shows $\dot{S}(t)$ falling from $\approx 0.295$ to $\approx 1.2\times 10^{-5}$ (per spin, $k_B$ units) — over four orders of magnitude — over the same window, consistent with dissipation being concentrated at domain-wall annihilation events that become rarer as coarsening proceeds.
 
-## License
-
-MIT
-
 ## Model B: Conserved Kawasaki Dynamics & Anisotropy
 
 > **Live demo:** the previous badge here pointed at a Streamlit Community Cloud deployment (`anisotropic-materials-sim.streamlit.app`). The web dashboard has since been rebuilt on Solara (see below), which that platform can't host — Streamlit Cloud only runs Streamlit apps, and `model_b/solara_app.py` no longer imports `streamlit` at all, so the old deployment will break once this change reaches it. No replacement deployment exists yet; run it locally with the instructions below in the meantime.
@@ -227,7 +232,7 @@ MIT
 
 This module simulates **anisotropic, conserved-order-parameter phase separation** and connects it to three real materials phenomena. **Binary alloy spinodal decomposition** is close to a literal correspondence: this simulation *is* the standard lattice-gas model of a quenched A/B alloy, with conserved magnetization standing in for conserved alloy composition and the measured $t^{1/3}$ growth law matching the Lifshitz–Slyozov description of precipitate coarsening (Ostwald ripening) used in metallurgy. **Directional grain alignment in rolled sheet metals** is a looser but genuinely useful parallel — rolling imposes a preferred direction via plastic deformation rather than diffusion, but the qualitative outcome (elongated, texture-aligned grains along one axis) is the same *shape* of phenomenon that $J_x \neq J_y$ produces here. **Single-crystal superalloy turbine blade microstructures** are the closest real-world analog to the anisotropy mechanism specifically: Ni-based superalloys grown as single crystals undergo directional $\gamma'$ precipitate coarsening ("rafting") under applied stress, driven by elastic anisotropy — an external asymmetry biasing which direction domains preferentially grow along, exactly like $J_x \neq J_y$ biases $L_x(t)$ vs. $L_y(t)$ in this model.
 
-Everything above (`model_a/ising_engine.py`, `visualizer.py`, `main.py`, `plot_kinetics.py`, plus `index.html` and `manuscript/` at the repo root) implements **Model A** in the Hohenberg–Halperin classification: single-spin-flip Metropolis dynamics, in which the order parameter is *not* conserved. [`model_b/`](model_b/) is a fully standalone addition implementing the complementary case, **Model B**: Kawasaki spin-exchange dynamics, in which total magnetization $\sum_i \sigma_i$ is exactly conserved. It does not import, modify, or depend on any file outside `model_b/`.
+Model A (above: `model_a/`, plus `index.html` and `manuscript/` at the repo root) is the Hohenberg–Halperin classification's non-conserved case: single-spin-flip dynamics, in which the order parameter is *not* conserved. [`model_b/`](model_b/) is a fully standalone implementation of the complementary case, **Model B**: Kawasaki spin-exchange dynamics, in which total magnetization $\sum_i \sigma_i$ is exactly conserved. It does not import, modify, or depend on any file outside `model_b/`.
 
 ### Physics
 
@@ -239,22 +244,9 @@ $$
 
 so the two coarsening directions can be compared directly. The critical temperature generalizes Onsager's exact result to the anisotropic case as the root of $\sinh(2J_x/T_c)\sinh(2J_y/T_c) = 1$ (`anisotropic_critical_temperature`, solved numerically; reduces to $T_c = 2J/\ln(1+\sqrt2)$ when $J_x = J_y = J$), and is used to set the quench temperatures automatically ($T_{\text{initial}} = 3\,T_c$, $T_{\text{final}} = 0.65\,T_c$) whenever they aren't given explicitly.
 
-Because the order parameter is conserved, phase separation here is diffusion-limited rather than curvature-driven, and Hohenberg–Halperin theory predicts the slower **Lifshitz–Slyozov growth law** $L(t) \sim t^{1/3}$, in contrast to Model A's $t^{1/2}$. The directional domain sizes $L_x(t)$ and $L_y(t)$ are extracted independently (rather than axis-averaged) from $C_x(r,t)$ and $C_y(r,t)$, each computed via the same 2D-FFT / Wiener–Khinchin approach used in the root engine. Entropy production $\dot{S}(t) = -\frac{1}{T}\langle \Delta E \rangle / dt$ is tracked identically to the Model A quench, from the energy change of *accepted exchanges*.
+Because the order parameter is conserved, phase separation here is diffusion-limited rather than curvature-driven, and Hohenberg–Halperin theory predicts the slower **Lifshitz–Slyozov growth law** $L(t) \sim t^{1/3}$, in contrast to Model A's $t^{1/2}$. The directional domain sizes $L_x(t)$ and $L_y(t)$ are extracted independently (rather than axis-averaged) from $C_x(r,t)$ and $C_y(r,t)$, each computed via the same 2D-FFT / Wiener–Khinchin approach used in the Model A engine. Entropy production $\dot{S}(t) = -\frac{1}{T}\langle \Delta E \rangle / dt$ is tracked identically to the Model A quench, from the energy change of *accepted exchanges*.
 
 The exchange energy-change formula and magnetization conservation were both checked directly against an independent brute-force recomputation of the full lattice Hamiltonian before any production run (exact match, not just "close").
-
-### Directory structure
-
-```
-model_b/
-├── kawasaki_engine.py          # Numba-jitted Kawasaki MC core, anisotropic couplings,
-│                                 #   directional FFT correlations, entropy production
-├── plot_kawasaki_kinetics.py   # Launcher: runs the quench, saves CSV + figure
-├── live_visualizer.py          # Native desktop dashboard (matplotlib + Tk)
-├── solara_app.py               # Web dashboard (Solara)
-├── figures/                      # fig_anisotropic_kinetics.png
-└── results/                      # kawasaki_kinetics.csv
-```
 
 ### Usage
 
@@ -262,7 +254,7 @@ model_b/
 python model_b/plot_kawasaki_kinetics.py
 ```
 
-Default configuration: $L=96$, $J_x=1.0$, $J_y=0.5$ (so $T_c(J_x,J_y) \approx 1.641$, giving $T_{\text{initial}} \approx 4.923 \to T_{\text{final}} \approx 1.067$), 16 replicas, 10000 sweeps. This takes roughly a minute and a half on the same hardware as the root pipeline, and writes `results/kawasaki_kinetics.csv` ($t$, $L_x(t)$, $L_y(t)$, $\dot{S}(t)$, all with standard errors) plus `figures/fig_anisotropic_kinetics.png`.
+Default configuration: $L=96$, $J_x=1.0$, $J_y=0.5$ (so $T_c(J_x,J_y) \approx 1.641$, giving $T_{\text{initial}} \approx 4.923 \to T_{\text{final}} \approx 1.067$), 16 replicas, 10000 sweeps. This takes roughly a minute and a half on the same hardware as the Model A pipeline, and writes `results/kawasaki_kinetics.csv` ($t$, $L_x(t)$, $L_y(t)$, $\dot{S}(t)$, all with standard errors) plus `figures/fig_anisotropic_kinetics.png`.
 
 ```python
 import sys
@@ -304,4 +296,8 @@ solara run model_b/solara_app.py
 python comparative_analysis.py
 ```
 
-Saves `figures/fig_comparative_scaling.png` at the repo root (distinct from each model's own `figures/` subdirectory, since this figure isn't specific to either one) and prints both fitted growth exponents to stdout.
+Saves `figures/fig_comparative_scaling.png` at the repo root (distinct from each model's own `figures/` subdirectory, since this figure isn't specific to either one) and prints both fitted growth exponents to stdout. This is the figure that most directly answers the question the project set out to ask: the two panels, plotted on identical log-log axes, make the different growth exponents of conserved vs. non-conserved order-parameter kinetics a direct visual comparison rather than a claim to take on faith.
+
+## License
+
+MIT
