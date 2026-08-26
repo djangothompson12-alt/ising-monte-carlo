@@ -434,7 +434,7 @@ class SimState:
         )
 
 
-def _metric(label: str, value: str, upper: bool = True) -> None:
+def _metric(label: str, value: str, upper: bool = True, markdown: bool = False) -> None:
     """A small Streamlit-st.metric-like label-over-value display.
 
     `upper=False` opts a label out of Python's str.upper(): Unicode case
@@ -443,12 +443,23 @@ def _metric(label: str, value: str, upper: bool = True) -> None:
     "Growth Exponent α" into what reads as "GROWTH EXPONENT A". Callers
     with a lowercase symbol in the label should pre-format it in the caps
     style themselves and pass upper=False.
+
+    `markdown=True` renders `label` through solara.Markdown instead of
+    solara.Text, so inline LaTeX like "$J_x / J_y$" is typeset via KaTeX
+    (confirmed working: solara.Markdown runs $...$ through a real math
+    renderer, unlike solara.Text, which escapes raw HTML tags rather than
+    rendering them). Always skips the uppercase transform in this mode
+    regardless of `upper` -- case-folding LaTeX source is unsafe in
+    general (e.g. "\\alpha" -> "\\ALPHA" is not a valid command and
+    silently breaks the render), so callers should pre-capitalize any
+    plain-text portion of the label themselves.
     """
     with solara.Column(gap="0px", style={"text-align": "center", "min-width": "110px"}):
-        solara.Text(
-            label.upper() if upper else label,
-            style={"font-size": "0.7rem", "color": "#666", "letter-spacing": "0.03em"},
-        )
+        label_style = {"font-size": "0.7rem", "color": "#666", "letter-spacing": "0.03em", "margin": "0"}
+        if markdown:
+            solara.Markdown(label, style=label_style)
+        else:
+            solara.Text(label.upper() if upper else label, style=label_style)
         solara.Text(value, style={"font-size": "1.3rem", "font-weight": "600"})
 
 
@@ -467,7 +478,7 @@ def _card_header(text: str) -> None:
     )
 
 
-def _slider_label(text: str) -> None:
+def _slider_label(text: str, markdown: bool = False) -> None:
     """A slider's live-value label, stacked in its own full-width line
     above the track instead of passed as the slider's own `label` prop:
     Vuetify renders that inline to the *left* of the track (sharing width
@@ -475,8 +486,17 @@ def _slider_label(text: str) -> None:
     the card title above -- fine while it happens to fit, silently clipped
     once the label text or a narrower sidebar pushes past that shared
     width. A full-width line has no such competing element to clip against.
+
+    `markdown=True` renders via solara.Markdown for inline LaTeX (e.g.
+    "Anisotropy ($J_x/J_y$): 2.00") -- see _metric's docstring for the
+    same mechanism and its uppercase-transform caveat (not applicable
+    here since this function never uppercases its text either way).
     """
-    solara.Text(text, style={"font-size": "0.85rem", "font-weight": "600", "margin-bottom": "-6px"})
+    style = {"font-size": "0.85rem", "font-weight": "600", "margin": "0", "margin-bottom": "-6px"}
+    if markdown:
+        solara.Markdown(text, style=style)
+    else:
+        solara.Text(text, style=style)
 
 
 _MATERIALS_SCIENCE_MARKDOWN = """
@@ -561,8 +581,8 @@ def LiveDashboard(state: SimState, Jx: float, Jy: float) -> None:
         _metric("Sweep Count", f"{metrics.sweep_count:,}")
         _metric("Energy E", f"{metrics.energy:,.0f}")
         _metric("Concentration", f"{metrics.concentration:.4f}")
-        _metric("J_x / J_y", f"{Jx / Jy:.2f}")
-        _metric("GROWTH EXPONENT α", f"{metrics.alpha:.3f}", upper=False)
+        _metric("$J_x / J_y$", f"{Jx / Jy:.2f}", markdown=True)
+        _metric("Growth Exponent $\\alpha$", f"{metrics.alpha:.3f}", markdown=True)
         _metric("Interfacial Density", f"{metrics.interfacial_density:.4f}")
 
     # Bottom dashboard: fixed-size square lattice heatmap in the left
@@ -715,18 +735,18 @@ def Page() -> None:
             with solara.Card(style={"margin": "12px 0", "padding": "10px 8px"}):
                 _card_header("Physics Parameters")
                 with solara.Column(gap="16px", style={"padding": "4px 2px"}):
-                    _slider_label(f"Anisotropy (J_x/J_y): {anisotropy_ratio.value:.2f}")
+                    _slider_label(f"Anisotropy ($J_x/J_y$): {anisotropy_ratio.value:.2f}", markdown=True)
                     solara.SliderFloat("", value=anisotropy_ratio, min=0.1, max=10.0, step=0.1)
-                    solara.Text(
-                        "J_x is held fixed at 1.0; this slider sets J_y = J_x / ratio.",
-                        style={"color": "#888", "font-size": "0.75rem", "margin-top": "-10px"},
+                    solara.Markdown(
+                        "$J_x$ is held fixed at 1.0; this slider sets $J_y$ = $J_x$ / ratio.",
+                        style={"color": "#888", "font-size": "0.75rem", "margin": "0", "margin-top": "-10px"},
                     )
                     _slider_label(f"Quench Temperature: {T_final.value:.2f}")
                     solara.SliderFloat("", value=T_final, min=0.1, max=2.5, step=0.1)
-                    solara.Text(
-                        f"T / T_c = {T_final.value / _ISING_TC:.3f}  (T_c = {_ISING_TC}, "
+                    solara.Markdown(
+                        f"$T / T_c$ = {T_final.value / _ISING_TC:.3f}  ($T_c$ = {_ISING_TC}, "
                         "the 2D Ising critical temperature)",
-                        style={"color": "#888", "font-size": "0.75rem", "margin-top": "-10px"},
+                        style={"color": "#888", "font-size": "0.75rem", "margin": "0", "margin-top": "-10px"},
                     )
                     _slider_label(f"Concentration: {concentration.value:.2f}")
                     solara.SliderFloat("", value=concentration, min=0.10, max=0.90, step=0.05)
@@ -743,9 +763,9 @@ def Page() -> None:
                         solara.Button("Pause", on_click=lambda: state.running.set(False))
                         solara.Button("Reset", on_click=lambda: set_reset_counter(reset_counter + 1))
 
-                    solara.Text(
-                        f"J_x={Jx:.2f}, J_y={Jy:.3f}  (ratio={anisotropy_ratio.value:.2f})",
-                        style={"color": "#666", "font-size": "0.8rem"},
+                    solara.Markdown(
+                        f"$J_x$={Jx:.2f}, $J_y$={Jy:.3f}  (ratio={anisotropy_ratio.value:.2f})",
+                        style={"color": "#666", "font-size": "0.8rem", "margin": "0"},
                     )
 
             with solara.Details(summary="Materials Science & Engineering Context"):
@@ -753,12 +773,12 @@ def Page() -> None:
 
         with solara.Column(style="flex-grow: 1; min-width: 0; padding: 16px;"):
             solara.Markdown(
-                "# Model B: Live Kawasaki Exchange Dashboard",
+                "# Anisotropic Model B Kinetics & Non-Equilibrium Thermodynamics",
                 style={"white-space": "normal", "overflow-wrap": "break-word"},
             )
             solara.Text(
-                "Conserved-order-parameter (Model B) coarsening -- spin-exchange dynamics "
-                "with independent horizontal/vertical couplings.",
+                "Conserved order-parameter phase separation with independent horizontal "
+                "and vertical spin exchange.",
                 style={"color": "#666"},
             )
 
