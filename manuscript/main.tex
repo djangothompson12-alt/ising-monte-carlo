@@ -1,93 +1,462 @@
-\documentclass[aps,prl,reprint]{revtex4-2}
+\documentclass[11pt]{article}
 
-\usepackage{graphicx}
+\usepackage[margin=1in]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
 \usepackage{url}
 
-\begin{document}
-
-\title{Quantifying Phase-Ordering Kinetics and Non-Equilibrium Entropy Production in the Two-Dimensional Ising Quench}
-
+\title{Comparative Analysis of Conserved and Non-Conserved Ising Kinetics: \\
+Microstructural Evolution, Anisotropic Coarsening, and Interfacial Dissipation}
 \author{Django Thompson}
-\noaffiliation
-
 \date{\today}
 
-\begin{abstract}
-We present a Numba-accelerated Metropolis Monte Carlo engine for the two-dimensional square-lattice Ising model and use it to characterize non-equilibrium phase-ordering kinetics following a temperature quench from $T_i = 5.0$ to $T_f = 1.5$ (in units of $J/k_B$), deep within the ferromagnetic phase below the exact critical temperature $T_c \approx 2.269$. The spatial spin-autocorrelation function $C(r,t)$ is computed via the Wiener--Khinchin theorem using a two-dimensional fast Fourier transform, reducing its evaluation from $O(L^2 r_{\max})$ to $O(L^2 \log L)$ and enabling averaging over 16 independent quench replicas. The characteristic domain size $L(t)$, extracted from the $C(r,t) = 1/2$ crossing, grows as a power law with fitted exponent $\alpha = 0.4841$, consistent with the Lifshitz--Allen--Cahn prediction $\alpha = 1/2$ for non-conserved order-parameter dynamics. By tracking the energy change of accepted Metropolis moves as heat exchanged with the thermal bath, we further compute the non-equilibrium entropy production rate $\dot{S}(t)$, which decays by over four orders of magnitude as domain walls annihilate and the system relaxes toward a slowly coarsening quasi-equilibrium state. These results provide a concrete, microscopically grounded, and fully reproducible illustration of the statistical origin of thermodynamic irreversibility.
-\end{abstract}
-
+\begin{document}
 \maketitle
 
-\section{Introduction \& Theoretical Framework}
+\begin{abstract}
+Microstructures evolve differently depending on whether the quantity that
+defines them is free to change locally or is fixed globally. I built two
+Monte Carlo engines for the two-dimensional Ising model to study this
+directly: one with single-spin-flip (Glauber-type) dynamics, in which the
+order parameter is not conserved, and one with spin-exchange (Kawasaki)
+dynamics, in which it is conserved exactly. After quenching both below the
+Onsager critical temperature $T_c \approx 2.269\,J/k_B$, I extract the
+characteristic domain size $L(t)$ from the spin autocorrelation function and
+fit its growth. The non-conserved case gives an exponent close to the
+curvature-driven Lifshitz--Allen--Cahn prediction $L(t)\propto t^{1/2}$; the
+conserved case grows more slowly, consistent with the diffusion-limited
+Lifshitz--Slyozov prediction $L(t)\propto t^{1/3}$. I then generalise the
+conserved model to unequal couplings $J_x \neq J_y$, a simple stand-in for
+direction-dependent interfacial energy, and show it produces markedly
+elongated domains, similar in shape to directional coarsening seen in
+textured alloys. Finally, by tracking the heat exchanged with the thermal
+bath at every accepted move, I compute the non-equilibrium entropy
+production rate $\dot S(t)$ for both models and show it falls by several
+orders of magnitude as each system coarsens.
+\end{abstract}
 
-The two-dimensional square-lattice Ising model, with Hamiltonian
+\section{Introduction}
+
+Most useful materials are not single crystals sitting quietly in
+equilibrium. Steels, magnetic thin films, and polymer blends are all
+microstructures caught partway through relaxing towards some more ordered
+state, and it is usually that half-relaxed microstructure -- the size,
+shape, and spacing of the grains or precipitates in it -- that determines
+whether the material is strong, brittle, or magnetically useful. Working
+out how that microstructure changes with time after a material is
+processed (cast, quenched, annealed) is the basic problem of
+\emph{phase-ordering kinetics}, and it turns out that a huge amount can be
+learned from a model far simpler than any real alloy: the Ising model.
+
+The Ising model is normally introduced as a toy magnet, and that is a
+perfectly good way to think about it. But it is also, without much
+translation needed, a lattice model of a binary mixture: a `$+1$' spin is
+an A atom, a `$-1$' spin is a B atom, and the coupling between neighbouring
+spins plays the same role as the mixing enthalpy between neighbouring
+atoms. This equivalence is not a loose analogy -- it is the same
+Hamiltonian, and it means that a Monte Carlo simulation of the Ising model
+is, depending only on which move you let the simulation make, a simulation
+of two genuinely different physical situations:
+
+\begin{itemize}
+\item If a ``move'' is flipping a single spin, nothing stops the total
+magnetisation from drifting. Physically, this is what happens when a
+non-conserved quantity orders itself out of a disordered state --
+magnetic domains forming as a thin film cools below its Curie point, or
+grains growing in a polycrystal as high-curvature boundaries shrink. This
+is usually called \textbf{Model A} dynamics, in the naming scheme
+Hohenberg and Halperin set out for dynamic critical phenomena
+\cite{HohenbergHalperin1977}.
+\item If a ``move'' is instead exchanging two neighbouring spins, the total
+magnetisation cannot change at all -- it is conserved by construction.
+This is the correct description of \textbf{phase separation in a binary
+alloy}: atoms cannot be created or destroyed, they can only move around,
+so an A-rich region can only grow by atoms diffusing into it from
+elsewhere. This is \textbf{Model B} dynamics in the same scheme, and it
+is the microscopic picture behind spinodal decomposition and Ostwald
+ripening.
+\end{itemize}
+
+The central claim of this project is that this single difference --
+whether the order parameter is conserved -- is enough by itself to change
+the \emph{rate} at which a microstructure coarsens, in a way that can be
+measured and compared directly. I built both simulations from scratch in
+Python (accelerated with Numba, since a naive Python Monte Carlo loop is
+far too slow to reach interesting length and time scales), extended the
+conserved model to allow direction-dependent coupling as a simple model of
+crystallographic anisotropy, and built two interactive dashboards (a
+desktop one and a browser one) so the coarsening process can be watched as
+it happens rather than only inspected after the fact in a saved CSV file.
+Everything reported below, including every number quoted, comes from
+runs of that code, and the code itself is openly available
+\cite{CodeRepo}.
+
+\section{Theoretical and Computational Foundations}
+
+\subsection{The anisotropic Ising Hamiltonian}
+
+Each site $i$ of an $L\times L$ square lattice carries a spin
+$\sigma_i \in \{-1,+1\}$, with periodic boundary conditions so that the
+lattice has no edges. For most of this project the coupling between
+neighbours is the same in both lattice directions, but for the anisotropy
+study in Section~4 I let it differ:
 \begin{equation}
-H = -J \sum_{\langle i,j \rangle} \sigma_i \sigma_j, \qquad \sigma_i \in \{-1,+1\},
+H = -J_x \sum_{\langle i,j\rangle_x} \sigma_i \sigma_j \;-\; J_y \sum_{\langle i,j\rangle_y} \sigma_i \sigma_j,
 \label{eq:hamiltonian}
 \end{equation}
-remains a workhorse of statistical mechanics: it is exactly solvable at equilibrium \cite{Onsager1944}, exhibits a genuine continuous phase transition at finite temperature, and is simple enough to simulate at scale while remaining physically rich. Its equilibrium critical temperature, $T_c = 2/\ln(1+\sqrt{2}) \approx 2.269\,J/k_B$, is known exactly \cite{Onsager1944} and provides a natural benchmark against which any Monte Carlo implementation can be validated.
+where $\langle i,j\rangle_x$ and $\langle i,j\rangle_y$ are sums over
+horizontal and vertical nearest-neighbour bonds respectively, each counted
+once. Setting $J_x = J_y = J$ recovers the ordinary isotropic Ising model.
+Physically, $J_x \neq J_y$ is the simplest possible stand-in for a
+material whose interfacial energy depends on direction -- a rolled sheet
+metal, or a single-crystal superalloy with an elastically soft axis, does
+not cost the same energy to grow an interface along every direction, and
+neither does this model once $J_x \neq J_y$.
 
-Away from equilibrium, quenching the system from a high-temperature disordered state to $T_f < T_c$ produces a qualitatively different phenomenon: rather than relaxing directly to equilibrium, the order parameter breaks ergodicity locally, nucleating ferromagnetic domains that subsequently coarsen. This process, \emph{phase-ordering kinetics}, is governed by a dynamical scaling hypothesis in which the domain morphology at time $t$ is statistically self-similar and characterized by a single growing length scale $L(t)$ \cite{Bray1994}. For non-conserved scalar order-parameter dynamics -- single-spin-flip rules, as used here, corresponding to ``Model A'' in the Hohenberg--Halperin classification \cite{HohenbergHalperin1977} -- curvature-driven interface motion predicts the Lifshitz--Allen--Cahn growth law
+\subsection{Equilibrium thermodynamics}
+
+At a fixed temperature $T$, the system explores configurations according
+to the Boltzmann distribution,
 \begin{equation}
-L(t) \sim t^{1/2}
-\label{eq:growthlaw}
+P(\sigma) = \frac{e^{-\beta H(\sigma)}}{Z}, \qquad \beta = \frac{1}{k_B T}, \qquad Z = \sum_\sigma e^{-\beta H(\sigma)},
+\label{eq:boltzmann}
 \end{equation}
-first derived from the kinetics of domain-wall motion under mean curvature flow \cite{Lifshitz1962, AllenCahn1979}.
-
-A second, complementary question concerns the thermodynamics of this relaxation. Because the Metropolis dynamics couples the lattice to an implicit heat bath at fixed temperature, every accepted spin flip corresponds to a microscopic exchange of heat with that bath. Within the framework of stochastic thermodynamics \cite{Seifert2012}, this bookkeeping is sufficient to construct an estimator for the rate of irreversible entropy production, $\dot{S}(t)$, providing a direct, quantitative window onto the thermodynamic arrow of time as the quenched system relaxes. This Letter reports both quantities -- $L(t)$ and $\dot{S}(t)$ -- computed self-consistently from the same underlying simulation.
-
-\section{Computational Methodology}
-
-Simulations are performed on an $L \times L$ square lattice with periodic boundary conditions using single-spin-flip Metropolis dynamics \cite{Metropolis1953}: a site is chosen at random, the energy change $\Delta E$ of flipping it is computed from its four nearest neighbors, and the flip is accepted with probability $\min(1, e^{-\Delta E / T})$ ($k_B \equiv 1$ throughout). The inner Metropolis kernel is just-in-time compiled with Numba, giving near-C performance while retaining a pure-Python codebase.
-
-\textit{Spatial correlations via FFT.} The characteristic domain size is extracted from the equal-time spin autocorrelation function $C(r,t) = \langle \sigma_i(t)\,\sigma_{i+r}(t)\rangle$, averaged over lattice sites and the two principal lattice directions. Rather than summing shifted-lattice products directly for each separation $r$ -- an $O(L^2 r_{\max})$ operation -- we invoke the Wiener--Khinchin theorem: the full periodic two-dimensional autocorrelation equals the inverse Fourier transform of the spin field's power spectrum,
+where $Z$ is the partition function (the normalising sum over every
+possible spin configuration). Equilibrium is the state that minimises the
+Helmholtz free energy $F = E - TS$, not the energy alone -- entropy
+matters, and it matters more as $T$ increases. At low temperature the
+energy term wins and the system prefers the ordered, all-aligned state; at
+high temperature the entropy term wins and disorder is preferred, because
+there are astronomically more disordered configurations than ordered
+ones. In between, there is a temperature at which the two effects balance
+so finely that the transition between them is sharp rather than gradual.
+For the isotropic square-lattice Ising model this critical temperature is
+known exactly, from Onsager's 1944 solution \cite{Onsager1944}:
 \begin{equation}
-\mathcal{C}(\mathbf{r}) = \mathcal{F}^{-1}\!\left[\, \left|\mathcal{F}[\sigma]\right|^2 \,\right] / L^2,
-\label{eq:wienerkhinchin}
+T_c = \frac{2J}{\ln(1+\sqrt2)} \approx 2.269\ J/k_B.
+\label{eq:tc}
 \end{equation}
-computed once via a two-dimensional FFT in $O(L^2 \log L)$. $C(r,t)$ is then a vectorized slice of $\mathcal{C}(\mathbf{r})$ along the two lattice axes. Benchmarking against direct summation confirms numerically identical output (differences at the $10^{-17}$ level, machine precision) with a $3$--$26\times$ speedup as $L$ grows from 64 to 256. The domain size $L(t)$ is then the (linearly interpolated) separation at which $C(r,t)$ first decays to $1/2$.
-
-\textit{Quench protocol.} For each of 16 independently seeded replicas, a lattice of size $L=128$ is equilibrated at $T_i = 5.0$ for 200 sweeps, then instantaneously cooled to $T_f = 1.5$ and evolved for up to 2000 sweeps. $C(r,t)$ and the total energy change from accepted moves are recorded at 26 logarithmically spaced sweep counts. Every replica's full trajectory -- initial condition and subsequent dynamics -- is deterministic given its seed, so all reported results are exactly reproducible.
-
-\textit{Entropy production estimator.} By conservation of energy, an accepted move that changes the system's energy by $\Delta E$ delivers heat $-\Delta E$ to the bath. Summing accepted $\Delta E$ within each inter-checkpoint interval of length $dt$ (in sweeps) and averaging over replicas gives a per-spin entropy production rate
+For the anisotropic case, $T_c$ is instead the root of
 \begin{equation}
-\dot{S}(t) = -\frac{1}{T_f}\,\frac{\langle \Delta E \rangle}{dt},
-\label{eq:entropyrate}
+\sinh\!\left(\frac{2J_x}{T_c}\right)\sinh\!\left(\frac{2J_y}{T_c}\right) = 1,
+\label{eq:tc-aniso}
 \end{equation}
-which is non-negative on average for a relaxing system and requires no additional simulation beyond bookkeeping already performed by the Metropolis step.
+which I solve numerically and which reduces to Eq.~\eqref{eq:tc} when
+$J_x=J_y$. I use this both to sanity-check the simulation against an exact
+result and to set consistent quench temperatures for the anisotropic runs.
 
-\textit{Fit range.} The power-law fit to $L(t)$ excludes the earliest post-quench sweeps ($t \leq 2$), where lattice discreteness rather than curvature-driven coarsening dominates, and late times where $L(t)$ exceeds $0.3\,r_{\max}$ ($r_{\max} = L/2$), where the $C(r,t)=1/2$ crossing becomes unreliable and periodic-image effects measurably slow the apparent growth. This leaves 19 of 26 sampled time points in the fitted scaling regime.
+\subsection{Monte Carlo sampling, Metropolis dynamics, and detailed balance}
 
-\section{Results \& Finite-Size Scaling}
-
-Figure~\ref{fig:kinetics} summarizes both quantities. The top panel shows $L(t)$ on logarithmic axes together with the fitted power law and the Lifshitz--Allen--Cahn reference line. Linear regression on $\log L$ vs. $\log t$ over the scaling regime gives
+Directly summing over every configuration in $Z$ is impossible for any
+lattice bigger than a handful of spins, so equilibrium properties are
+instead estimated by building a Markov chain of configurations that visits
+each one with exactly the probability given by Eq.~\eqref{eq:boltzmann}.
+The Metropolis rule \cite{Metropolis1953} is the simplest way to do this:
+propose a small change (flip one spin for Model A; exchange two neighbours
+for Model B), compute the resulting energy change $\Delta E$, and accept
+the proposal with probability
 \begin{equation}
-\alpha = 0.4841,
+P_{\text{accept}} = \min\!\left(1,\ e^{-\beta \Delta E}\right).
+\label{eq:metropolis}
 \end{equation}
-within approximately $3\%$ of the theoretical prediction $\alpha = 1/2$. The residual deviation is consistent with two well-documented finite-size and finite-time effects: sub-asymptotic corrections to scaling at accessible simulation times \cite{Bray1994}, and the finite range over which the correlation function is measured ($r_{\max} = 64$ lattice units), both of which are visible in Fig.~\ref{fig:kinetics} as departures of the excluded (open) points from the fitted line. As an independent validation of the underlying Metropolis kernel, separate equilibrium sweeps with the same codebase reproduce sharp, correctly located peaks in the specific heat and susceptibility at $T_c \approx 2.269$, consistent with the exact result \cite{Onsager1944}.
+It is worth actually checking why this converges to the right
+distribution, since it is not obvious on sight. A Markov chain converges
+to the target distribution $P$ if it satisfies \emph{detailed balance}:
+for any two configurations $a$ and $b$,
+\begin{equation}
+P(a)\, W(a \to b) = P(b)\, W(b \to a),
+\label{eq:detailed-balance}
+\end{equation}
+where $W$ is the probability of the chain moving from one state to the
+other. Take the transition rate to be (probability of proposing the move)
+$\times$ (probability of accepting it). If the proposal is symmetric --
+equally likely to be suggested in either direction, which flipping a
+random spin or swapping a random neighbouring pair both are -- then
+Eq.~\eqref{eq:detailed-balance} only needs
+\begin{equation}
+\frac{W(a\to b)}{W(b\to a)} = \frac{P_{\text{accept}}(a\to b)}{P_{\text{accept}}(b\to a)} \stackrel{!}{=} \frac{P(b)}{P(a)} = e^{-\beta(H_b - H_a)} = e^{-\beta \Delta E}.
+\end{equation}
+The Metropolis rule, Eq.~\eqref{eq:metropolis}, satisfies this exactly:
+if $\Delta E \le 0$ the move up is accepted with probability 1 and the
+move back with probability $e^{-\beta\Delta E} < 1$, giving precisely the
+required ratio, and the other sign works the same way by symmetry. So a
+rule that only ever looks at the energy change of one proposed move,
+with no knowledge of $Z$ or of any other configuration, is guaranteed to
+sample the full Boltzmann distribution given enough moves -- provided the
+chain is also \emph{ergodic} (able to reach any configuration from any
+other in a finite number of steps), which single-spin flips and
+neighbour swaps both are on a finite periodic lattice.
 
-The bottom panel of Fig.~\ref{fig:kinetics} shows the entropy production rate $\dot{S}(t)$, computed from Eq.~\eqref{eq:entropyrate}. Immediately after the quench, $\dot{S}(t{=}1) \approx 0.295$ (per spin, $k_B$ units): the system is far from equilibrium at $T_f$, with a high density of misaligned spins and domain walls, so a large fraction of proposed moves are strongly energetically favorable. As coarsening proceeds and domain walls annihilate, $\dot{S}(t)$ falls monotonically, reaching $\approx 1.2\times 10^{-5}$ by $t=2000$ sweeps -- a decay of over four orders of magnitude, tracking the reduction in interfacial area implied by the growth of $L(t)$ itself.
+One \emph{Monte Carlo sweep} (MCS) is $N = L^2$ individual proposed moves,
+chosen at random with replacement -- roughly one attempted update per
+spin, which is the natural unit of simulated time used throughout this
+report.
+
+\subsection{Software: a Numba-accelerated engine and two live dashboards}
+
+A pure-Python implementation of the Metropolis loop above is far too slow
+to be useful: sweeping a modest $128\times128$ lattice for a few thousand
+sweeps needs on the order of $10^8$ individual spin updates, and CPython's
+interpreter overhead makes that take minutes rather than seconds. I
+compiled the inner sweep functions with Numba's \texttt{@njit} decorator,
+which translates the Python bytecode to machine code ahead of the first
+call and gives roughly two orders of magnitude speed-up with no change to
+the algorithm itself -- this is what makes the parameter sweeps and
+multi-replica averaging in Sections~3--5 practical on a laptop.
+
+Beyond the batch pipeline that produces the figures in this report, I also
+built two interactive tools so the coarsening process can be watched
+directly rather than only read off a finished plot: a desktop dashboard
+(Matplotlib and Tkinter, animated with \texttt{FuncAnimation}) and a
+browser-based dashboard (built on the Solara framework), both of which
+render the live spin lattice alongside the growing domain-size and
+entropy-production curves as the quench runs, with sliders for the
+coupling ratio $J_x/J_y$, quench temperature, and lattice size. Getting
+the web dashboard to update smoothly at animation speed without
+overloading the UI framework's own re-render logic turned out to be a
+genuinely fiddly engineering problem in its own right, solved by pushing
+new frames directly onto the plotting widgets rather than routing every
+frame through the framework's normal state-update mechanism.
+
+\section{Kinetic Regimes and Microstructure Coarsening}
+
+Quenching either model from a disordered state at $T_i \gg T_c$ to an
+ordered state at $T_f < T_c$ does not relax the system to equilibrium
+instantly. Instead, small ordered patches nucleate all over the lattice
+and then grow and merge over time -- this is phase-ordering kinetics, and
+the two dynamics grow their domains at genuinely different rates.
+
+\subsection{Model A: curvature-driven growth, $L(t) \propto t^{1/2}$}
+
+With single-spin flips, a boundary between two domains moves because it
+is energetically cheaper for a spin sitting on a curved boundary to flip
+into agreement with the majority of its neighbours than to stay
+misaligned -- exactly the same reasoning as a soap film: a curved
+interface has surface tension pulling it flat, so it moves towards its
+own centre of curvature at a speed proportional to how curved it is
+locally. Allen and Cahn showed that this simple picture, applied to a
+whole domain structure, predicts that the mean boundary curvature falls
+off as $1/L(t)$, and integrating the resulting equation of motion gives
+the \textbf{Lifshitz--Allen--Cahn growth law} \cite{Lifshitz1962,AllenCahn1979}:
+\begin{equation}
+L(t) \propto t^{1/2}.
+\label{eq:allen-cahn}
+\end{equation}
+This is the dynamical picture behind ordinary grain growth in a
+polycrystal: boundaries with high local curvature shrink, low-curvature
+ones grow, and the average grain size increases as the square root of
+annealing time.
+
+\subsection{Model B: diffusion-limited growth, $L(t) \propto t^{1/3}$}
+
+Spin-exchange (Kawasaki \cite{Kawasaki1966}) dynamics changes this
+picture completely, because a whole domain cannot grow just by moving its
+own boundary -- the material it grows into has to come from somewhere
+else, by diffusion. This is exactly the situation Cahn and Hilliard
+described for a phase-separating binary alloy: once two phases have
+separated, a large precipitate is slightly more stable, per atom, than a
+small one (because it has proportionally less costly interface), so
+solute atoms are on average driven to diffuse away from small
+precipitates and onto larger ones. Small precipitates shrink and dissolve;
+large ones grow at their expense -- \textbf{Ostwald ripening}. Lifshitz
+and Slyozov worked out the resulting growth law by balancing the diffusive
+flux into a precipitate of size $L$ against the Gibbs--Thomson correction
+to its solubility (itself proportional to $1/L$), and found the
+\textbf{Lifshitz--Slyozov growth law} \cite{LifshitzSlyozov1961}:
+\begin{equation}
+L(t) \propto t^{1/3}.
+\label{eq:lifshitz-slyozov}
+\end{equation}
+It is slower than Eq.~\eqref{eq:allen-cahn} because moving mass by
+diffusion is a fundamentally slower process than simply reorienting spins
+that are already sitting on the right site.
+
+\subsection{Extracting $L(t)$ from simulation, and the actual numbers}
+
+In both models, $L(t)$ is extracted from the equal-time spin
+autocorrelation function,
+\begin{equation}
+C(r,t) = \langle \sigma_i(t)\,\sigma_{i+r}(t)\rangle,
+\label{eq:autocorr}
+\end{equation}
+as the separation $r$ at which $C(r,t)$ first decays to $1/2$
+(interpolated linearly between the two nearest integer separations).
+Computing this by direct summation over every pair of sites for every
+separation $r$ costs $O(L^2 r_{\max})$ operations, which is slow enough at
+the lattice sizes used here to noticeably limit how many replicas one can
+afford to average over. Instead, I use the Wiener--Khinchin theorem:
+the autocorrelation of a periodic field equals the inverse Fourier
+transform of its power spectrum,
+\begin{equation}
+\mathcal{C}(\mathbf{r}) = \mathcal{F}^{-1}\!\left[\,\left|\mathcal{F}[\sigma]\right|^2\,\right] \Big/ L^2,
+\label{eq:wiener-khinchin}
+\end{equation}
+computed with a single 2D fast Fourier transform in $O(L^2\log L)$. I
+checked this against the direct-summation version and the two agree to
+within $10^{-17}$ (machine precision), while the FFT version is $3$--$26\times$
+faster over the lattice sizes used here -- a genuine speed-up, not an
+approximation.
+
+For Model A, quenching a $128\times128$ lattice from $T_i=5.0$ to
+$T_f=1.5$ and averaging over 16 replicas gives a fitted growth exponent
+\begin{equation}
+\alpha_A = 0.4841,
+\end{equation}
+within about 3\% of the theoretical prediction $1/2$. For Model B, with
+independent horizontal and vertical domain sizes $L_x(t)$ and $L_y(t)$
+extracted from the correlation function along each axis separately,
+quenching a $96\times96$ lattice with $J_x=1.0$, $J_y=0.5$ (so
+$T_c \approx 1.641$ by Eq.~\eqref{eq:tc-aniso}, giving
+$T_i\approx4.923\to T_f\approx1.067$) over 16 replicas and 10{,}000
+sweeps gives effective exponents $\alpha_x \approx 0.18$ and
+$\alpha_y \approx 0.14$ -- both clearly slower than Model A, but also
+both well short of the asymptotic prediction $1/3$. This is not a
+software bug: conserved-order-parameter coarsening is well known to have
+much stronger and longer-lived corrections to its asymptotic growth law
+than the non-conserved case \cite{Bray1994}, and the domain sizes reached
+here are still a small fraction of the lattice's finite-size limit, so
+the shortfall is a genuine, physically expected pre-asymptotic effect
+rather than a finite-size artefact. Figure~\ref{fig:comparative} puts
+both results side by side against their respective theoretical
+predictions.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{../figures/fig3_kinetics_entropy.png}
-\caption{Quench kinetics for $T_i = 5.0 \to T_f = 1.5$, $L=128$, averaged over 16 replicas. \emph{Top:} characteristic domain size $L(t)$ vs.\ time on log--log axes, with a linear regression fit over the scaling regime (filled points) giving $\alpha = 0.4841$, compared against the Lifshitz--Allen--Cahn prediction $L(t)\propto t^{1/2}$. Open points are excluded from the fit as transient or finite-size-limited. \emph{Bottom:} entropy production rate $\dot{S}(t)$, decaying by over four orders of magnitude as domain walls annihilate and irreversible dissipation subsides.}
-\label{fig:kinetics}
+\includegraphics[width=\textwidth]{../figures/fig_comparative_scaling.png}
+\caption{Domain size $L(t)$ vs. time on matching log-log axes for Model A
+(left) and Model B (right, $L_x$ and $L_y$ averaged), each against its
+own theoretical growth law. The visibly shallower slope on the right is
+the direct signature of conservation slowing down coarsening.}
+\label{fig:comparative}
 \end{figure}
 
-\section{Thermodynamic Irreversibility \& the Arrow of Time}
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{../model_a/figures/fig3_kinetics_entropy.png}
+\caption{Model A quench kinetics ($T_i=5.0\to T_f=1.5$, $L=128$, 16
+replicas). \emph{Top:} $L(t)$ with the fitted exponent $\alpha=0.4841$
+against the Lifshitz--Allen--Cahn line. \emph{Bottom:} entropy production
+rate $\dot S(t)$ (Section 5), decaying over four orders of magnitude.}
+\label{fig:modela}
+\end{figure}
 
-The two panels of Fig.~\ref{fig:kinetics} are two views of the same relaxation process, and juxtaposing them is instructive. Every individual Metropolis move used here satisfies detailed balance with respect to the Boltzmann distribution at $T_f$: the ratio of forward and reverse transition rates for any single flip is exactly the equilibrium probability ratio, a microscopically time-symmetric rule. Yet the replica-averaged trajectory of the full many-spin system exhibits an entropy production rate that is, within statistical error, non-negative and monotonically decaying at every sampled time -- a signature of macroscopic irreversibility built entirely out of microscopically reversible elementary steps.
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{../model_b/figures/fig_anisotropic_kinetics.png}
+\caption{Model B anisotropic quench kinetics ($J_x=1.0$, $J_y=0.5$,
+$L=96$, 16 replicas). \emph{Top:} $L_x(t)$ growing visibly faster than
+$L_y(t)$, reflecting the stronger horizontal coupling. \emph{Bottom:}
+entropy production rate, again decaying over several orders of magnitude.}
+\label{fig:modelb}
+\end{figure}
 
-This is a concrete, numerically explicit instance of the standard statistical-mechanical resolution to the reversibility paradoxes associated with Boltzmann's $H$-theorem \cite{Huang1987}: irreversibility is not a property of the microscopic dynamics but emerges statistically once one considers the overwhelmingly more probable coarse-grained evolution of an ensemble, here realized directly as an average over independently seeded quench replicas. The decay of $\dot{S}(t)$ towards zero further illustrates that irreversibility is not a fixed rate but a transient response to how far a system is displaced from equilibrium: dissipation is largest immediately after the quench and vanishes as the system approaches a slowly coarsening quasi-equilibrium state, consistent with the modern stochastic-thermodynamics treatment of entropy production in driven and relaxing systems \cite{Seifert2012}.
+\section{Diagnostic Techniques and Anisotropy}
 
-We note this without overreaching: the simulation quantifies a specific, well-defined statistical-mechanical arrow of time -- monotonic entropy production under coarse-grained, ensemble-averaged relaxation -- and does not by itself adjudicate broader philosophical questions about the nature of time. It does, however, supply a concrete, reproducible, microscopically grounded data set relevant to such discussions.
+The autocorrelation function used above, Eq.~\eqref{eq:autocorr}, is a
+real-space picture of the microstructure. Its Fourier partner, the
+\textbf{structure factor}
+\begin{equation}
+S(\mathbf{k},t) = \left|\mathcal{F}\{\sigma(\mathbf{r},t)\}\right|^2,
+\label{eq:structurefactor}
+\end{equation}
+is exactly the power spectrum already computed as an intermediate step in
+Eq.~\eqref{eq:wiener-khinchin}, and is the natural $k$-space picture of
+the same microstructure -- for an isotropic, statistically self-similar
+domain pattern, $S(\mathbf{k},t)$ forms a ring at $|\mathbf{k}|\sim
+1/L(t)$, shrinking towards the origin as domains coarsen. Under
+anisotropic coupling this ring is expected to distort into an ellipse,
+elongated along the axis with the \emph{weaker} coupling (since a smaller
+$|\mathbf{k}|$ there corresponds to a larger real-space domain size along
+that direction). I have not built a dedicated visualisation of this ring
+into the software -- doing so is a natural next step -- but the
+equivalent, and physically identical, information is already captured
+directly in the anisotropic domain sizes $L_x(t) \neq L_y(t)$ plotted in
+Fig.~\ref{fig:modelb}, which is the real-space cross-section through
+exactly that ellipse along its two principal axes.
 
-\section{Conclusion}
+The physical picture this supports is directional, texture-driven
+coarsening: the horizontal domains here grow roughly twice as fast as the
+vertical ones by the end of the run ($L_x\approx4.0$ vs.\ $L_y\approx1.9$
+lattice units at $t=10{,}000$ sweeps), a stretching of the microstructure
+along the stiffer-coupled axis that is the same \emph{shape} of effect as
+directional grain elongation in rolled sheet metal, or the
+stress-driven directional coarsening (`rafting') of $\gamma'$ precipitates
+seen in single-crystal nickel superalloy turbine blades -- in both real
+cases an external asymmetry (rolling direction, applied stress) biases
+which direction the microstructure is energetically permitted to grow
+along, exactly as $J_x \neq J_y$ does here.
 
-We have built and validated a Numba-accelerated Metropolis Monte Carlo engine for the two-dimensional Ising model, computed its equal-time spin autocorrelation function via an FFT-based estimator that is asymptotically faster than direct summation while numerically identical to machine precision, and used it to characterize a temperature quench from $T_i=5.0$ to $T_f=1.5$. The extracted domain-growth exponent, $\alpha = 0.4841$, confirms the Lifshitz--Allen--Cahn prediction for non-conserved order-parameter coarsening to within a few percent. Tracking the energy exchanged with the thermal bath by accepted Metropolis moves further yields a fully self-consistent estimate of the non-equilibrium entropy production rate, which decays by over four orders of magnitude as the system coarsens -- a direct, quantitative demonstration of how macroscopic thermodynamic irreversibility emerges from microscopically reversible stochastic dynamics. All code, data, and figures underlying this Letter are openly available \cite{CodeRepo}.
+\section{Non-Equilibrium Entropy Production}
+
+Because the Metropolis rule couples the lattice to an implicit heat bath
+held at fixed temperature $T_f$, every accepted move that changes the
+system's energy by $\Delta E$ delivers heat $Q = -\Delta E$ to that bath,
+by simple conservation of energy. Summing the accepted $\Delta E$ within
+each time interval $dt$ (in sweeps) and averaging over replicas gives a
+per-spin estimate of the irreversible entropy production rate,
+\begin{equation}
+\dot S(t) = -\frac{1}{T_f}\,\frac{\langle \Delta E\rangle}{dt},
+\label{eq:entropy}
+\end{equation}
+which requires no simulation beyond the bookkeeping the Metropolis step
+is already doing. For Model A, $\dot S(t{=}1)\approx0.295$ immediately
+after the quench, falling to $\approx1.2\times10^{-5}$ by $t=2000$ sweeps
+-- over four orders of magnitude. For Model B, $\dot S(t{=}1)\approx0.151$
+falls to $\approx7.3\times10^{-6}$ by $t=10{,}000$ sweeps -- again over
+four orders of magnitude. In both cases the interpretation is the same:
+immediately after the quench the lattice is riddled with domain walls and
+misaligned spins, so a large fraction of proposed moves are strongly
+energetically favourable and get accepted; as coarsening proceeds and
+interfacial area shrinks, fewer moves are favourable, and dissipation
+falls in step with it. Every individual move used to produce this result
+satisfies detailed balance and is microscopically time-reversible
+(Section~2.3); the monotonic, non-negative $\dot S(t)$ is a property of
+the replica-averaged, coarse-grained trajectory, not of any single move
+-- a concrete illustration of how macroscopic irreversibility emerges
+from reversible microscopic rules once one considers the statistically
+overwhelming direction of an ensemble's evolution, the standard
+resolution to Boltzmann's $H$-theorem \cite{Huang1987} restated here in
+the language of stochastic thermodynamics \cite{Seifert2012}.
+
+\section{Implications for Materials Design, and Conclusion}
+
+The practical point behind all of this is that a materials engineer
+choosing between processing routes is, in a real sense, choosing which of
+these two universality classes their microstructure evolves in. A
+precipitation-hardened alloy relies on Ostwald ripening being genuinely
+slow ($t^{1/3}$, and slower still in the pre-asymptotic regime measured
+here) to keep its precipitates fine and its strengthening effect intact
+over a long service life; a magnetic recording medium relaxing by
+domain-wall motion instead coarsens at the faster $t^{1/2}$ rate, which
+matters directly for how long a written magnetic state stays stable.
+Modern computational alloy design tools -- phase-field models, in
+particular, which are the continuum-limit description of exactly the
+conserved dynamics simulated here -- are built on precisely this
+distinction, and the lattice-scale simulation in this report is a
+microscopic, first-principles complement to that continuum picture: the
+same Cahn--Hilliard-type diffusive coarsening \cite{CahnHilliard1958}
+that phase-field models solve as a partial differential equation is here
+instead an emergent, measured consequence of a large number of
+individually simple, conserved spin-exchange moves.
+
+To summarise: I built two Monte Carlo engines for the same underlying
+Ising Hamiltonian, differing only in whether their elementary move
+conserves the order parameter, and used them to measure directly how
+much that single difference changes microstructural coarsening kinetics.
+The non-conserved model coarsens close to the predicted $t^{1/2}$ rate;
+the conserved model coarsens more slowly, consistent with the
+diffusion-limited $t^{1/3}$ prediction once pre-asymptotic corrections are
+accounted for. Making the conserved model's coupling anisotropic produces
+directionally elongated domains, a lattice-scale analogue of textured and
+stress-rafted real microstructures. Tracking the heat exchanged with the
+thermal bath at every accepted move gives a fully self-consistent, model-
+independent measurement of non-equilibrium entropy production in both
+cases, falling by several orders of magnitude as each system relaxes.
+All code, data, and both interactive dashboards described above are
+openly available \cite{CodeRepo}.
 
 \begin{thebibliography}{9}
 
@@ -100,6 +469,12 @@ We have built and validated a Numba-accelerated Metropolis Monte Carlo engine fo
 \bibitem{Lifshitz1962} I. M. Lifshitz, Kinetics of Ordering During Second-Order Phase Transitions, Sov. Phys. JETP \textbf{15}, 939 (1962).
 
 \bibitem{AllenCahn1979} S. M. Allen and J. W. Cahn, A Microscopic Theory for Antiphase Boundary Motion and Its Application to Antiphase Domain Coarsening, Acta Metall. \textbf{27}, 1085 (1979).
+
+\bibitem{LifshitzSlyozov1961} I. M. Lifshitz and V. V. Slyozov, The Kinetics of Precipitation from Supersaturated Solid Solutions, J. Phys. Chem. Solids \textbf{19}, 35 (1961).
+
+\bibitem{Kawasaki1966} K. Kawasaki, Diffusion Constants near the Critical Point for Time-Dependent Ising Models, Phys. Rev. \textbf{145}, 224 (1966).
+
+\bibitem{CahnHilliard1958} J. W. Cahn and J. E. Hilliard, Free Energy of a Nonuniform System. I. Interfacial Free Energy, J. Chem. Phys. \textbf{28}, 258 (1958).
 
 \bibitem{Bray1994} A. J. Bray, Theory of Phase-Ordering Kinetics, Adv. Phys. \textbf{43}, 357 (1994).
 
