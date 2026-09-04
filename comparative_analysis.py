@@ -14,7 +14,17 @@ does not re-run either simulation itself:
     model_a/results/quench_kinetics.csv    (from model_a/plot_kinetics.py)
     model_b/results/kawasaki_kinetics.csv  (from model_b/plot_kawasaki_kinetics.py)
 
-Run those two scripts first if the CSVs don't exist yet.
+If both models' concentration-sweep CSVs are also present --
+    model_a/results/concentration_exponent_sweep.csv (from model_a/concentration_sweep.py)
+    model_b/results/concentration_exponent_sweep.csv (from model_b/concentration_sweep.py)
+-- this also produces the paper's unifying "phase diagram" figure: fitted
+growth exponent vs. concentration for both dynamics side by side, testing
+whether the exponent is set by the conservation law alone (Hohenberg-
+Halperin Model A/B classification) rather than by composition/morphology.
+That comparison is skipped (with a note, not an error) if those CSVs don't
+exist yet, since it's an optional addition to the core comparison above.
+
+Run the relevant scripts first if the CSVs don't exist yet.
 
 Usage:
     python comparative_analysis.py
@@ -30,6 +40,8 @@ import numpy as np
 ROOT = Path(__file__).parent
 MODEL_A_CSV = ROOT / "model_a" / "results" / "quench_kinetics.csv"
 MODEL_B_CSV = ROOT / "model_b" / "results" / "kawasaki_kinetics.csv"
+MODEL_A_CONCENTRATION_CSV = ROOT / "model_a" / "results" / "concentration_exponent_sweep.csv"
+MODEL_B_CONCENTRATION_CSV = ROOT / "model_b" / "results" / "concentration_exponent_sweep.csv"
 FIGURES_DIR = ROOT / "figures"
 
 #: Sweeps to discard as pre-domain-formation transient, matching both
@@ -133,6 +145,64 @@ def _plot_panel(
     ax.legend(loc="upper left")
 
 
+def plot_concentration_universality(output_path: Path) -> Path | None:
+    """Fitted growth exponent vs. concentration, Model A and Model B
+    overlaid on one axis: the paper's unifying result that the exponent is
+    pinned by the conservation law (Hohenberg-Halperin Model A/B class), not
+    by concentration or morphology, in either dynamics.
+
+    Returns None (and prints a note instead of raising) if either sweep's
+    CSV doesn't exist yet, since this figure is an optional addition on top
+    of the core single-concentration comparison in `main()`.
+    """
+    if not (MODEL_A_CONCENTRATION_CSV.exists() and MODEL_B_CONCENTRATION_CSV.exists()):
+        print(
+            "Skipping concentration-universality figure: run "
+            "model_a/concentration_sweep.py and model_b/concentration_sweep.py first."
+        )
+        return None
+
+    a = np.genfromtxt(MODEL_A_CONCENTRATION_CSV, delimiter=",", names=True)
+    b = np.genfromtxt(MODEL_B_CONCENTRATION_CSV, delimiter=",", names=True)
+
+    _apply_publication_style()
+    fig, ax = plt.subplots(figsize=(7.5, 5.5))
+
+    ax.errorbar(
+        a["concentration"], a["fitted_exponent"], yerr=a["fitted_exponent_stderr"],
+        fmt="o-", ms=7, capsize=3, color="#1f4e79",
+        label="Model A (non-conserved)",
+    )
+    ax.errorbar(
+        b["concentration"], b["fitted_exponent"], yerr=b["fitted_exponent_stderr"],
+        fmt="s-", ms=7, capsize=3, color="#6a1b9a",
+        label="Model B (conserved)",
+    )
+    ax.axhline(
+        LIFSHITZ_ALLEN_CAHN_EXPONENT, color="#1f4e79", linestyle=":", linewidth=1.4, alpha=0.7,
+        label=r"Lifshitz-Allen-Cahn: $1/2$",
+    )
+    ax.axhline(
+        LIFSHITZ_SLYOZOV_EXPONENT, color="#6a1b9a", linestyle=":", linewidth=1.4, alpha=0.7,
+        label=r"Lifshitz-Slyozov: $1/3$",
+    )
+    ax.axvline(0.15, color="#999999", linestyle="--", linewidth=1.0)
+
+    ax.set_xlabel("Initial concentration $c$ (fraction of $+1$ spins)")
+    ax.set_ylabel(r"Fitted growth exponent $\alpha$")
+    ax.set_title(
+        "Growth exponent vs. concentration: set by the conservation law,\n"
+        "not by composition or morphology"
+    )
+    ax.legend(loc="lower left", fontsize=8)
+    ax.set_ylim(0.0, 0.7)
+
+    fig.tight_layout()
+    fig.savefig(output_path, bbox_inches="tight")
+    plt.close(fig)
+    return output_path
+
+
 def main() -> None:
     _apply_publication_style()
 
@@ -173,6 +243,10 @@ def main() -> None:
     print(f"Model A fitted growth exponent: alpha = {a_alpha:.4f} (Lifshitz-Allen-Cahn prediction: 0.5)")
     print(f"Model B fitted growth exponent: alpha = {b_alpha:.4f} (Lifshitz-Slyozov prediction: 0.3333)")
     print(f"Saved -> {output_path}")
+
+    concentration_fig_path = FIGURES_DIR / "fig_concentration_universality.png"
+    if plot_concentration_universality(concentration_fig_path):
+        print(f"Saved -> {concentration_fig_path}")
 
 
 if __name__ == "__main__":

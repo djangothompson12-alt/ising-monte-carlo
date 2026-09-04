@@ -40,13 +40,23 @@ Model B is the actively-developed part as of this writing.
 | `visualizer.py` | Publication-quality figure generation (matplotlib): `plot_phase_transitions`, `plot_spin_domains`, and the shared `_apply_publication_style` rcParams helper. |
 | `main.py` | CLI entry point: runs a temperature sweep, saves `results/observables.csv` + `figures/fig1_phase_transitions.png` / `fig2_spin_domains.png`. |
 | `plot_kinetics.py` | Runs a quench, saves `results/quench_kinetics.csv` + `figures/fig3_kinetics_entropy.png` (domain growth `L(t) ~ t^(1/2)` fit + entropy production). |
+| `concentration_sweep.py` | Control/contrast for `model_b/concentration_sweep.py`: fits the growth exponent across the same concentrations under non-conserved dynamics. Saves `results/concentration_exponent_sweep.csv` + `figures/fig_concentration_exponent.png`. |
 
 Run with:
 ```bash
 python model_a/main.py
 python model_a/plot_kinetics.py
+python model_a/concentration_sweep.py
 ```
-(or `cd model_a && python main.py` / `python plot_kinetics.py`).
+(or `cd model_a && python main.py` / etc).
+
+`QuenchConfig.concentration` (default 0.5) sets the initial up-spin
+fraction. Because single-spin-flip dynamics doesn't conserve magnetization,
+an off-critical initial bias here is transient — the minority phase
+eventually gets absorbed rather than surviving as a stable droplet
+population (contrast with Model B below). It's still a meaningful control:
+curvature-driven wall motion coarsens at the same `t^(1/2)` rate regardless
+of which phase started as the minority, for as long as that phase survives.
 
 ## `model_b/` in detail
 

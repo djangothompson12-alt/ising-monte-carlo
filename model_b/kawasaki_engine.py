@@ -62,6 +62,7 @@ from dataclasses import dataclass, field
 import numpy as np
 from numba import njit
 from scipy.fft import fft2, ifft2
+from scipy.ndimage import label as _ndimage_label
 from scipy.optimize import brentq
 
 
@@ -81,6 +82,12 @@ class KawasakiConfig:
         Jy: Vertical (column-direction) nearest-neighbor coupling.
         T_initial: Temperature the lattice is equilibrated at before the quench.
         T_final: Post-quench temperature the system evolves at.
+        concentration: Fraction of up (+1) spins in the initial condition.
+            0.5 is the critical, symmetric quench (bicontinuous spinodal
+            decomposition); values away from 0.5 are off-critical quenches
+            into the minority-droplet/nucleation regime. Because Kawasaki
+            dynamics conserves total magnetization exactly, this initial
+            fraction is also the fraction throughout the entire run.
         n_replicas: Number of independent quench realizations to average over.
         max_sweeps: Number of post-quench sweeps to evolve.
         n_time_samples: Number of logarithmically spaced sweep counts to sample.
@@ -93,6 +100,7 @@ class KawasakiConfig:
     Jy: float = 0.5
     T_initial: float | None = None
     T_final: float | None = None
+    concentration: float = 0.5
     n_replicas: int = 16
     max_sweeps: int = 10000
     n_time_samples: int = 30
@@ -162,18 +170,35 @@ def anisotropic_critical_temperature(Jx: float, Jy: float) -> float:
         return brentq(_condition, t_lo, t_hi)
 
 
-def init_lattice(L: int, seed: int) -> np.ndarray:
-    """Initialize an L x L lattice of random +-1 spins ("hot start").
+def init_lattice(L: int, seed: int, concentration: float = 0.5) -> np.ndarray:
+    """Initialize an L x L lattice of shuffled +-1 spins ("hot start") with
+    an *exact* `concentration` fraction of +1 sites (rounded to the nearest
+    integer count), rather than an independent per-site coin flip.
+
+    Kawasaki dynamics conserves total magnetization exactly, so fixing the
+    exact count (not merely its expectation) keeps every replica at
+    precisely the same concentration for its entire run -- important when
+    comparing domain-growth statistics across replicas at low concentration,
+    where per-site sampling noise in the realized count would otherwise
+    vary the effective minority volume fraction replica to replica.
 
     Args:
         L: Linear lattice dimension.
         seed: Seed for the NumPy random generator.
+        concentration: Fraction of up (+1) spins. 0.5 gives the usual
+            unbiased critical quench; off-critical quenches use a value
+            elsewhere in (0, 1).
 
     Returns:
         An (L, L) array of dtype int8 with entries in {-1, +1}.
     """
+    N = L * L
+    n_up = round(concentration * N)
+    spins = np.full(N, -1, dtype=np.int8)
+    spins[:n_up] = 1
     rng = np.random.default_rng(seed)
-    return rng.choice(np.array([-1, 1], dtype=np.int8), size=(L, L))
+    rng.shuffle(spins)
+    return spins.reshape(L, L)
 
 
 @njit(cache=True)
@@ -236,17 +261,22 @@ def _kawasaki_sweep(lattice: np.ndarray, beta: float, Jx: float, Jy: float) -> f
 
 
 @njit(cache=True)
-def _init_lattice_jit(L: int) -> np.ndarray:
-    """Random +-1 lattice drawn from Numba's own RNG (seedable with np.random.seed inside jit)."""
-    lattice = np.empty((L, L), dtype=np.int8)
-    for i in range(L):
-        for j in range(L):
-            lattice[i, j] = 1 if np.random.random() < 0.5 else -1
-    return lattice
+def _init_lattice_jit(L: int, concentration: float) -> np.ndarray:
+    """Random +-1 lattice, with an *exact* `concentration` fraction of +1
+    sites, drawn from Numba's own RNG (seedable with np.random.seed inside
+    jit). See `init_lattice`'s docstring for why the count is exact rather
+    than a per-site Bernoulli draw.
+    """
+    N = L * L
+    n_up = int(round(concentration * N))
+    flat = np.full(N, -1, dtype=np.int8)
+    flat[:n_up] = 1
+    np.random.shuffle(flat)
+    return flat.reshape(L, L)
 
 
 @njit(cache=True)
-def _seed_and_init_lattice(L: int, seed: int) -> np.ndarray:
+def _seed_and_init_lattice(L: int, seed: int, concentration: float) -> np.ndarray:
     """Seed Numba's RNG and return a fresh random +-1 lattice.
 
     Seeding Numba's RNG (rather than only seeding the initial lattice via
@@ -254,7 +284,7 @@ def _seed_and_init_lattice(L: int, seed: int) -> np.ndarray:
     not just the initial condition -- deterministic given `seed`.
     """
     np.random.seed(seed)
-    return _init_lattice_jit(L)
+    return _init_lattice_jit(L, concentration)
 
 
 @njit(cache=True)
@@ -280,30 +310,45 @@ def _run_n_sweeps_with_heat(
 
 
 def _axis_correlation_xy(lattice: np.ndarray, r_max: int) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the horizontal and vertical spin autocorrelations C_x(r), C_y(r)
-    for r = 0..r_max via 2D FFT (Wiener-Khinchin theorem), O(L^2 log L).
+    """Compute the horizontal and vertical *connected* spin autocorrelations
+    C_x(r), C_y(r) for r = 0..r_max via 2D FFT (Wiener-Khinchin theorem),
+    O(L^2 log L).
 
     Unlike the isotropic engine's axis-averaged correlation, the two
     directions are kept separate here so that anisotropic coarsening
     (Jx != Jy) can be resolved independently along each axis.
 
+    At a critical (concentration=0.5) quench the mean magnetization m is
+    zero and this reduces to the raw correlation <sigma_i sigma_{i+r}>. Away
+    from criticality m != 0, so the raw correlation asymptotes to m^2 > 0 at
+    large r instead of decaying through the 0.5 threshold that
+    `domain_size_from_correlation` looks for -- the standard fix is the
+    *normalized connected* correlation function
+        g(r) = (<sigma_i sigma_{i+r}> - m^2) / (1 - m^2),
+    which isolates the fluctuation/domain-structure part of the correlation
+    and is renormalized so that g(0) = 1 exactly, matching the convention
+    the raw correlation already used at criticality.
+
     Returns:
-        (C_x, C_y): each of shape (r_max + 1,). C_x is the autocorrelation
-        along the horizontal (column) direction; C_y along the vertical
-        (row) direction.
+        (C_x, C_y): each of shape (r_max + 1,), the normalized connected
+        correlation along the horizontal (column) and vertical (row)
+        directions respectively.
     """
     L = lattice.shape[0]
     spins = lattice.astype(np.float64)
     power_spectrum = np.abs(fft2(spins)) ** 2
     autocorr = ifft2(power_spectrum).real / (L * L)  # autocorr[dy, dx], periodic
 
+    m2 = float(np.mean(spins)) ** 2
+    denom = max(1.0 - m2, 1e-12)
+
     C_x = np.empty(r_max + 1)
     C_y = np.empty(r_max + 1)
     C_x[0] = 1.0
     C_y[0] = 1.0
     if r_max > 0:
-        C_x[1:] = autocorr[0, 1 : r_max + 1]
-        C_y[1:] = autocorr[1 : r_max + 1, 0]
+        C_x[1:] = (autocorr[0, 1 : r_max + 1] - m2) / denom
+        C_y[1:] = (autocorr[1 : r_max + 1, 0] - m2) / denom
     return C_x, C_y
 
 
@@ -337,6 +382,7 @@ def _run_quench_replica(
     beta_final: float,
     Jx: float,
     Jy: float,
+    concentration: float,
     eq_sweeps_initial: int,
     checkpoints: np.ndarray,
     r_max: int,
@@ -356,7 +402,7 @@ def _run_quench_replica(
         (len(checkpoints),): total accepted-exchange energy change per
         inter-checkpoint interval.
     """
-    lattice = _seed_and_init_lattice(L, seed)
+    lattice = _seed_and_init_lattice(L, seed, concentration)
     _run_n_sweeps(lattice, beta_initial, Jx, Jy, eq_sweeps_initial)
 
     n_checkpoints = len(checkpoints)
@@ -414,6 +460,7 @@ def run_quench_kinetics(config: KawasakiConfig) -> KawasakiResult:
             beta_final,
             config.Jx,
             config.Jy,
+            config.concentration,
             config.eq_sweeps_initial,
             checkpoints,
             r_max,
@@ -442,3 +489,141 @@ def run_quench_kinetics(config: KawasakiConfig) -> KawasakiResult:
         entropy_production=entropy_production,
         entropy_production_err=entropy_production_err,
     )
+
+
+# ---------------------------------------------------------------------------
+# Off-critical morphology: droplet-size distribution vs. Lifshitz-Slyozov-
+# Wagner (LSW) theory
+# ---------------------------------------------------------------------------
+#
+# Bray's review (Adv. Phys. 43, 357 (1994), sec. 9 "Summary"; see also the
+# general-d Model B growth-law argument in sec. 2.5, attributed to Huse)
+# states that for conserved-order-parameter (Model B / Kawasaki) coarsening,
+# "the growth law is independent of the volume fraction of the phases, but
+# the scaling functions are not" -- i.e. L(t) ~ t^(1/3) is predicted to hold
+# at any concentration, from the bicontinuous (c=0.5) regime to the dilute
+# minority-droplet (off-critical) regime, but the *morphology* and the
+# *droplet-size distribution* are expected to change qualitatively. In the
+# dilute limit this distribution has an exact closed form from the original
+# Lifshitz-Slyozov theory [Lifshitz & Slyozov, J. Phys. Chem. Solids 19, 35
+# (1961); Wagner, Z. Elektrochem. 65, 581 (1961)]. This section extracts the
+# simulated droplet-size distribution via periodic connected-component
+# labelling and provides the closed-form LSW prediction to compare it to.
+
+
+def _periodic_label(mask: np.ndarray) -> tuple[np.ndarray, int]:
+    """Connected-component labelling of a boolean mask under periodic
+    boundary conditions (plain `scipy.ndimage.label` only handles an open
+    boundary, which would spuriously split or duplicate droplets that
+    straddle the lattice edge).
+
+    Labels the array normally, then merges any pair of labels that touch
+    across the top/bottom or left/right periodic seam via union-find.
+
+    Returns:
+        (labels, n_components): `labels` is an (L, L) int array with 0 for
+        background and 1..n_components for each merged droplet;
+        `n_components` is the number of droplets found.
+    """
+    labels, n = _ndimage_label(mask)
+    if n == 0:
+        return labels, 0
+
+    parent = np.arange(n + 1)
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    for a, b in zip(labels[0, :], labels[-1, :]):
+        if a != 0 and b != 0:
+            union(int(a), int(b))
+    for a, b in zip(labels[:, 0], labels[:, -1]):
+        if a != 0 and b != 0:
+            union(int(a), int(b))
+
+    roots = np.array([find(lbl) for lbl in range(n + 1)])
+    unique_roots, new_ids = np.unique(roots, return_inverse=True)
+    remap = new_ids  # remap[old_label] -> compact new label (0 stays background-adjacent)
+    new_labels = remap[labels]
+    # Ensure background (old label 0) maps to new label 0.
+    new_labels[labels == 0] = 0
+    return new_labels, int(new_labels.max())
+
+
+def droplet_size_distribution(lattice: np.ndarray, minority_value: int | None = None) -> np.ndarray:
+    """Sizes (in lattice sites) of every minority-phase domain ("droplet"),
+    found via periodic connected-component labelling.
+
+    Args:
+        lattice: An (L, L) array of +-1 spins.
+        minority_value: Which spin value (+1 or -1) counts as the minority
+            phase. If None, inferred as whichever value has fewer sites.
+
+    Returns:
+        1D array of droplet sizes (number of sites each occupies), one entry
+        per connected droplet, unsorted.
+    """
+    if minority_value is None:
+        minority_value = -1 if lattice.sum() >= 0 else 1
+    mask = lattice == minority_value
+    labels, n = _periodic_label(mask)
+    if n == 0:
+        return np.array([])
+    sizes = np.bincount(labels.ravel())[1:]
+    return sizes.astype(np.float64)
+
+
+def lsw_scaling_function(u: np.ndarray) -> np.ndarray:
+    """The closed-form Lifshitz-Slyozov-Wagner scaled droplet-radius
+    distribution g(u), u = R / R_c (droplet radius scaled by the
+    time-dependent critical radius), in the dilute (small minority volume
+    fraction) limit.
+
+    .. math::
+        g(u) = \\frac{3^4 e}{2^{5/3}} \\, u^2 \\,
+               \\frac{\\exp\\!\\big[-1/(1 - 2u/3)\\big]}
+                    {(u + 3)^{7/3} (3/2 - u)^{11/3}}, \\quad 0 \\le u < 3/2,
+
+    and g(u) = 0 for u >= 3/2 (droplets larger than 1.5 R_c are forbidden in
+    the asymptotic LSW scaling state). Verified numerically to integrate to
+    1 over [0, 3/2) (i.e. a properly normalized probability density).
+
+    Reference: Lifshitz & Slyozov, J. Phys. Chem. Solids 19, 35 (1961);
+    Wagner, Z. Elektrochem. 65, 581 (1961).
+    """
+    u = np.asarray(u, dtype=np.float64)
+    g = np.zeros_like(u)
+    mask = u < 1.5
+    x = u[mask]
+    prefactor = (3.0**4) * np.e / (2.0 ** (5.0 / 3.0))
+    g[mask] = (
+        prefactor
+        * x**2
+        * np.exp(-1.0 / (1.0 - 2.0 * x / 3.0))
+        / ((x + 3.0) ** (7.0 / 3.0) * (1.5 - x) ** (11.0 / 3.0))
+    )
+    return g
+
+
+def run_quench_to_snapshot(config: KawasakiConfig, seed: int, target_sweep: int) -> np.ndarray:
+    """Run one Kawasaki quench replica up to `target_sweep` post-quench
+    sweeps and return the raw lattice snapshot.
+
+    Used for morphology analysis (e.g. `droplet_size_distribution`) rather
+    than the correlation-function-based domain-size pipeline in
+    `run_quench_kinetics`.
+    """
+    beta_initial = 1.0 / config.T_initial
+    beta_final = 1.0 / config.T_final
+    lattice = _seed_and_init_lattice(config.L, seed, config.concentration)
+    _run_n_sweeps(lattice, beta_initial, config.Jx, config.Jy, config.eq_sweeps_initial)
+    _run_n_sweeps(lattice, beta_final, config.Jx, config.Jy, target_sweep)
+    return lattice

@@ -117,6 +117,10 @@ class QuenchConfig:
         J: Nearest-neighbor coupling constant.
         T_initial: Temperature the lattice is equilibrated at before the quench.
         T_final: Post-quench temperature the system evolves at.
+        concentration: Fraction of up (+1) spins in the initial condition.
+            0.5 is the usual symmetric quench; off-critical values bias the
+            initial condition, though (unlike Model B) single-spin-flip
+            dynamics does not conserve this fraction once the quench starts.
         n_replicas: Number of independent quench realizations to average over.
         max_sweeps: Number of post-quench sweeps to evolve.
         n_time_samples: Number of logarithmically spaced sweep counts to sample.
@@ -128,6 +132,7 @@ class QuenchConfig:
     J: float = 1.0
     T_initial: float = 5.0
     T_final: float = 1.5
+    concentration: float = 0.5
     n_replicas: int = 16
     max_sweeps: int = 2000
     n_time_samples: int = 28
@@ -410,6 +415,17 @@ def _axis_correlation(lattice: np.ndarray, r_max: int) -> np.ndarray:
 
     Averaged over all lattice sites and both principal (x, y) directions,
     under periodic boundary conditions.
+
+    Deliberately *not* the connected correlation (contrast
+    `model_b/kawasaki_engine.py`'s `_axis_correlation_xy`, which subtracts
+    m^2): that fix is only valid when m is pinned by an exact conservation
+    law, so subtracting it removes a genuinely trivial offset. Under
+    Metropolis single-spin-flip dynamics magnetization is *not* conserved --
+    below T_c the system spontaneously orders and m(t) itself grows towards
+    the equilibrium spontaneous magnetization (close to 1 well below T_c) as
+    domains coarsen. That growing m(t) *is* the ordering signal L(t) is
+    measuring, not a nuisance concentration offset; subtracting m(t)^2 here
+    would erase the very physics under study rather than isolate it.
     """
     L = lattice.shape[0]
     spins = lattice.astype(np.float64)
@@ -424,17 +440,22 @@ def _axis_correlation(lattice: np.ndarray, r_max: int) -> np.ndarray:
 
 
 @njit(cache=True)
-def _init_lattice_jit(L: int) -> np.ndarray:
-    """Random +-1 lattice drawn from Numba's own RNG (seedable with np.random.seed inside jit)."""
-    lattice = np.empty((L, L), dtype=np.int8)
-    for i in range(L):
-        for j in range(L):
-            lattice[i, j] = 1 if np.random.random() < 0.5 else -1
-    return lattice
+def _init_lattice_jit(L: int, concentration: float) -> np.ndarray:
+    """Random +-1 lattice, with an exact `concentration` fraction of +1
+    sites, drawn from Numba's own RNG (seedable with np.random.seed inside
+    jit). See `model_b/kawasaki_engine.py`'s `_init_lattice_jit` for why an
+    exact count (rather than a per-site Bernoulli draw) is used.
+    """
+    N = L * L
+    n_up = int(round(concentration * N))
+    flat = np.full(N, -1, dtype=np.int8)
+    flat[:n_up] = 1
+    np.random.shuffle(flat)
+    return flat.reshape(L, L)
 
 
 @njit(cache=True)
-def _seed_and_init_lattice(L: int, seed: int) -> np.ndarray:
+def _seed_and_init_lattice(L: int, seed: int, concentration: float) -> np.ndarray:
     """Seed Numba's RNG and return a fresh random +-1 lattice.
 
     Seeding Numba's RNG (rather than only seeding the initial lattice via
@@ -442,7 +463,7 @@ def _seed_and_init_lattice(L: int, seed: int) -> np.ndarray:
     follows -- not just the initial condition -- deterministic given `seed`.
     """
     np.random.seed(seed)
-    return _init_lattice_jit(L)
+    return _init_lattice_jit(L, concentration)
 
 
 @njit(cache=True)
@@ -471,6 +492,7 @@ def _run_quench_replica(
     beta_initial: float,
     beta_final: float,
     J: float,
+    concentration: float,
     eq_sweeps_initial: int,
     checkpoints: np.ndarray,
     r_max: int,
@@ -491,7 +513,7 @@ def _run_quench_replica(
         change from accepted flips accrued during each inter-checkpoint
         interval (from the previous checkpoint, or sweep 0 for the first).
     """
-    lattice = _seed_and_init_lattice(L, seed)
+    lattice = _seed_and_init_lattice(L, seed, concentration)
     _run_n_sweeps(lattice, beta_initial, J, eq_sweeps_initial)
 
     n_checkpoints = len(checkpoints)
@@ -577,6 +599,7 @@ def run_quench_kinetics(config: QuenchConfig) -> QuenchResult:
             beta_initial,
             beta_final,
             config.J,
+            config.concentration,
             config.eq_sweeps_initial,
             checkpoints,
             r_max,

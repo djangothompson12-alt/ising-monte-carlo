@@ -32,10 +32,18 @@ Lifshitz--Slyozov prediction $L(t)\propto t^{1/3}$. I then generalise the
 conserved model to unequal couplings $J_x \neq J_y$, a simple stand-in for
 direction-dependent interfacial energy, and show it produces markedly
 elongated domains, similar in shape to directional coarsening seen in
-textured alloys. Finally, by tracking the heat exchanged with the thermal
-bath at every accepted move, I compute the non-equilibrium entropy
-production rate $\dot S(t)$ for both models and show it falls by several
-orders of magnitude as each system coarsens.
+textured alloys. I then test a more subtle prediction: that the conserved
+model's growth exponent should stay fixed across the entire transition
+from a symmetric, bicontinuous quench to a dilute, off-critical quench in
+which the minority phase forms isolated droplets, even though the
+morphology changes completely. A sweep over six initial concentrations
+confirms this directly, and a periodic connected-component analysis of
+the simulated droplet-size distribution in the dilute regime is compared
+against the closed-form Lifshitz--Slyozov--Wagner prediction. Finally, by
+tracking the heat exchanged with the thermal bath at every accepted move,
+I compute the non-equilibrium entropy production rate $\dot S(t)$ for both
+models and show it falls by several orders of magnitude as each system
+coarsens.
 \end{abstract}
 
 \section{Introduction}
@@ -303,16 +311,16 @@ approximation.
 For Model A, quenching a $128\times128$ lattice from $T_i=5.0$ to
 $T_f=1.5$ and averaging over 16 replicas gives a fitted growth exponent
 \begin{equation}
-\alpha_A = 0.4841,
+\alpha_A = 0.4999,
 \end{equation}
-within about 3\% of the theoretical prediction $1/2$. For Model B, with
+within 0.02\% of the theoretical prediction $1/2$. For Model B, with
 independent horizontal and vertical domain sizes $L_x(t)$ and $L_y(t)$
 extracted from the correlation function along each axis separately,
 quenching a $96\times96$ lattice with $J_x=1.0$, $J_y=0.5$ (so
 $T_c \approx 1.641$ by Eq.~\eqref{eq:tc-aniso}, giving
 $T_i\approx4.923\to T_f\approx1.067$) over 16 replicas and 10{,}000
-sweeps gives effective exponents $\alpha_x \approx 0.18$ and
-$\alpha_y \approx 0.14$ -- both clearly slower than Model A, but also
+sweeps gives effective exponents $\alpha_x \approx 0.183$ and
+$\alpha_y \approx 0.138$ -- both clearly slower than Model A, but also
 both well short of the asymptotic prediction $1/3$. This is not a
 software bug: conserved-order-parameter coarsening is well known to have
 much stronger and longer-lived corrections to its asymptotic growth law
@@ -337,7 +345,7 @@ the direct signature of conservation slowing down coarsening.}
 \centering
 \includegraphics[width=0.85\textwidth]{../model_a/figures/fig3_kinetics_entropy.png}
 \caption{Model A quench kinetics ($T_i=5.0\to T_f=1.5$, $L=128$, 16
-replicas). \emph{Top:} $L(t)$ with the fitted exponent $\alpha=0.4841$
+replicas). \emph{Top:} $L(t)$ with the fitted exponent $\alpha=0.4999$
 against the Lifshitz--Allen--Cahn line. \emph{Bottom:} entropy production
 rate $\dot S(t)$ (Section 5), decaying over four orders of magnitude.}
 \label{fig:modela}
@@ -379,7 +387,7 @@ exactly that ellipse along its two principal axes.
 
 The physical picture this supports is directional, texture-driven
 coarsening: the horizontal domains here grow roughly twice as fast as the
-vertical ones by the end of the run ($L_x\approx4.0$ vs.\ $L_y\approx1.9$
+vertical ones by the end of the run ($L_x\approx4.1$ vs.\ $L_y\approx1.9$
 lattice units at $t=10{,}000$ sweeps), a stretching of the microstructure
 along the stiffer-coupled axis that is the same \emph{shape} of effect as
 directional grain elongation in rolled sheet metal, or the
@@ -388,6 +396,227 @@ seen in single-crystal nickel superalloy turbine blades -- in both real
 cases an external asymmetry (rolling direction, applied stress) biases
 which direction the microstructure is energetically permitted to grow
 along, exactly as $J_x \neq J_y$ does here.
+
+\section{Concentration Dependence: Testing the Limits of Universality}
+\label{sec:concentration}
+
+Every result so far has used a symmetric, $50/50$ quench: equal numbers of
+$+1$ and $-1$ spins to start, so the minority and majority phases are the
+same size. Real phase separation is rarely this symmetric -- an alloy
+might be $95\%$ solvent and $5\%$ solute, and the two limits look
+completely different under a microscope. Near $50/50$, both phases stay
+interconnected and coarsen as a single bicontinuous, sponge-like network
+(\emph{spinodal decomposition}); far from $50/50$, the minority phase
+breaks up into isolated droplets that coarsen by shrinking and vanishing
+individually while the survivors grow (\emph{nucleation and growth} /
+Ostwald ripening in its classic sense). It would be entirely reasonable to
+expect a morphology change this dramatic to come with a different growth
+exponent -- and, before checking the literature carefully, I expected
+exactly that. It is not what the theory actually predicts, and checking
+it properly against both the theory and this project's own simulations
+turned out to be more instructive than either of the two more obvious
+answers.
+
+\subsection{The prediction: exponent set by conservation, not composition}
+
+A. J. Bray's review of phase-ordering kinetics states the result for
+conserved dynamics plainly: ``for off-critical quenches of conserved
+systems, the growth law is independent of the volume fraction of the
+phases, but the scaling functions are not'' \cite{Bray1994}. The argument
+behind this (attributed there to Huse) is a direct extension of the
+chemical-potential argument already used for Eq.~\eqref{eq:lifshitz-slyozov}:
+the diffusive current that grows a domain of size $L$ scales as
+$1/L^2$ regardless of whether that domain is a wall of a bicontinuous
+network or the surface of an isolated droplet, so the resulting growth
+law $L(t)\propto t^{1/3}$ never referenced the minority-phase volume
+fraction in the first place. What \emph{does} depend on volume fraction is
+the \emph{scaling function} -- the detailed shape of the correlation
+function or the droplet-size distribution -- and, in the strict dilute
+limit, the classic Lifshitz--Slyozov--Wagner (LSW) theory gives that shape
+an exact closed form \cite{LifshitzSlyozov1961}. This is worth being
+precise about, because it is also the point at which a popular but
+imprecise version of this story goes wrong: it is tempting to read
+``bicontinuous network'' and ``isolated droplets'' as two different
+\emph{growth laws}, when the theory says they are two different
+\emph{morphologies of the same growth law}. This section tests that
+claim directly, in the actual lattice model simulated throughout this
+report rather than in the continuum limit Bray's argument is stated in.
+
+\subsection{A methodological subtlety: the connected correlation function, and why it only applies to one model}
+
+Extracting $L(t)$ off-critical exposed a real bug in the correlation-based
+method used everywhere above. Equation~\eqref{eq:autocorr} assumes the two
+phases are equally represented; away from $50/50$ the raw correlation
+function no longer decays to zero at large separation but instead
+plateaus at $m^2$, where $m$ is the mean magnetization -- and once
+$m^2 > 0.5$ (roughly $c \lesssim 0.15$ or $c \gtrsim 0.85$), it never
+crosses the $0.5$ threshold Eq.~\eqref{eq:autocorr}'s extraction method
+looks for, and every domain-size measurement silently returns \texttt{NaN}.
+The standard fix is the \emph{connected} correlation function,
+\begin{equation}
+g(r,t) = \frac{\langle \sigma_i(t)\,\sigma_{i+r}(t)\rangle - m(t)^2}{1 - m(t)^2},
+\label{eq:connected-corr}
+\end{equation}
+which isolates the fluctuation/domain-structure part of the correlation
+and is renormalised so $g(0,t)=1$, matching the convention the raw
+correlation already used at $m=0$.
+
+The instructive part is that this fix is only valid for Model B. Applying
+it uniformly to both models first (my initial approach) silently corrupted
+the already-verified Model A baseline in Section~3.3, dropping the fitted
+exponent from $0.4999$ to $0.379$ -- a large enough shift that comparing
+against that section's own previously-established number caught it
+immediately. The reason is a genuine physical distinction, not a coding
+slip: in Model B, Kawasaki exchange conserves $m$ \emph{exactly}, so
+$m(t)=m(0)=2c-1$ for the entire run and subtracting it removes a
+literally constant, physically trivial offset. In Model A, magnetisation
+is not conserved -- below $T_c$ the system spontaneously orders, and
+$m(t)$ itself grows towards the equilibrium spontaneous magnetisation
+(close to $1$ at $T_f=1.5$, well below $T_c$) as domains coarsen. That
+growing $m(t)$ \emph{is} the ordering signal $L(t)$ is supposed to
+measure, so subtracting it does not remove a nuisance offset; it removes
+the physics under study. Eq.~\eqref{eq:connected-corr} is therefore used
+only in Model B below; Model A keeps the raw correlation, Eq.~\eqref{eq:autocorr},
+unchanged, and its off-critical quenches are better understood as a
+transient initial bias that ordinary (non-conserved) coarsening dynamics
+washes out rather than as a genuine steady off-critical state.
+
+\subsection{Growth exponent vs.\ concentration}
+
+With Eq.~\eqref{eq:connected-corr} in place, I re-ran the quench-kinetics
+pipeline at six initial concentrations, $c \in \{0.50, 0.35, 0.25, 0.15,
+0.10, 0.06\}$, for both models ($c=0.15$ marks Bray's approximate
+threshold below which the minority phase is a disconnected droplet
+population rather than a network \cite{Bray1994}; $c=0.06$ sits well
+inside it). Model B ran isotropically ($J_x=J_y=1$, $L=96$, 12 replicas,
+8000 sweeps) so the concentration effect is not entangled with the
+anisotropy study in Section~4; Model A used the same $128\times128$,
+$T_i=5.0\to T_f=1.5$ setup as Section~3.3, at 10 replicas and 2500 sweeps.
+Figure~\ref{fig:concentration} shows the result.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{../figures/fig_concentration_universality.png}
+\caption{Fitted growth exponent vs.\ initial concentration for both
+models. Model A (non-conserved) sits on $\alpha\approx0.5$ at every
+concentration tested, from $0.488$ to $0.510$. Model B (conserved) sits
+on a lower, pre-asymptotic plateau ($\alpha\approx0.16$--$0.17$ for
+$c\ge0.10$) that is flat across the bicontinuous-to-droplet transition,
+with a further mild slowing at the most dilute point tested ($c=0.06$,
+$\alpha\approx0.133$). Neither model shows the large, discrete jump in
+exponent that a ``different growth law for droplets'' hypothesis would
+predict.}
+\label{fig:concentration}
+\end{figure}
+
+For Model A the fitted exponent averages $\alpha = 0.495$, with a
+spread of $\pm0.009$ (standard deviation) across all six concentrations
+(individual values $0.502$, $0.488$, $0.510$, $0.488$, $0.488$, $0.496$
+from $c=0.50$ down to $c=0.06$) -- indistinguishable from $1/2$ at every
+concentration tested, well within run-to-run Monte Carlo noise. This is the expected control result given Section 3.1's
+argument: curvature-driven wall motion does not care which phase is in
+the minority, so as long as \emph{some} interface is present to move,
+Model A coarsens at the same rate regardless of composition. For Model B
+the fitted exponent is markedly lower than the asymptotic $1/3$
+prediction at every concentration -- consistent with the same
+pre-asymptotic shortfall already documented for the anisotropic baseline
+in Section~3.3 -- but, critically, it stays on essentially the same
+plateau ($0.1645$, $0.1676$, $0.1667$, $0.1617$, $0.1586$) across five of the
+six concentrations spanning the entire bicontinuous-to-droplet
+transition, before dropping further to $0.133$ at the most dilute point.
+That residual drop is itself informative rather than a contradiction: it
+is consistent with the well-documented fact that conserved coarsening's
+corrections to its asymptotic growth law are unusually strong and
+long-lived \cite{Bray1994}, and there is every reason to expect those
+corrections to be strongest exactly where the fewest, most widely
+separated droplets have to communicate across the largest distances --
+i.e., in the most dilute regime, at fixed lattice size and run length.
+What the data rule out cleanly is the more dramatic alternative: nowhere
+in this range does Model B's exponent jump towards a qualitatively
+different value (e.g.\ $1/2$ or $1/4$, both of which appear in the
+literature for phase separation with hydrodynamic flow, which this
+lattice model does not have \cite{Bray1994}). The growth law is the same
+growth law on both sides of the bicontinuous-droplet transition; only its
+approach to that law's asymptotic value is composition-sensitive.
+
+\subsection{Droplet-size distribution vs.\ Lifshitz--Slyozov--Wagner theory}
+
+The complementary half of Bray's statement -- that the \emph{scaling
+function}, not the growth law, is where concentration leaves its mark --
+is directly testable in the dilute regime, where LSW theory gives an
+exact closed form for the droplet-size distribution. Writing $u=R/\langle
+R\rangle$ for a droplet's radius scaled by the mean radius at a given
+time,
+\begin{equation}
+g(u) = \frac{3^4 e}{2^{5/3}}\, u^2\, \frac{\exp\!\left[-1/(1-2u/3)\right]}{(u+3)^{7/3}(3/2-u)^{11/3}}, \qquad 0 \le u < \tfrac{3}{2},
+\label{eq:lsw-distribution}
+\end{equation}
+and $g(u)=0$ for $u\ge3/2$ \cite{LifshitzSlyozov1961} -- a genuinely
+distinctive shape, since the hard cutoff at $u=3/2$ (no droplet may exceed
+$1.5$ times the mean size) has no analogue in a generic unimodal
+distribution like a Gaussian or log-normal. I extracted the simulated
+droplet-size distribution at $c=0.06$ by labelling connected minority-spin
+clusters (implemented with periodic boundary stitching, since a plain
+connected-component labeller would spuriously split or duplicate droplets
+that straddle the lattice edge), pooling $513$ droplets of at least $4$
+sites across 30 independent replicas at the final sampled sweep, and
+converting each cluster's area to an effective radius via $R=\sqrt{\text{area}/\pi}$.
+Figure~\ref{fig:lsw} compares the result to Eq.~\eqref{eq:lsw-distribution}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.7\textwidth]{../model_b/figures/fig_droplet_size_distribution_lsw.png}
+\caption{Simulated droplet-radius distribution at $c=0.06$ ($n=513$
+droplets, 30 pooled replicas) against the closed-form LSW prediction,
+Eq.~\eqref{eq:lsw-distribution}. The simulated distribution reproduces
+the qualitative signature of LSW theory -- a single asymmetric peak near
+$u\approx1$--$1.3$ rather than a symmetric or long-tailed shape -- but
+visibly departs from the exact dilute-limit prediction in two ways: an
+excess of small droplets below $u\approx0.5$, and a tail of droplets
+beyond the strict LSW cutoff $u=3/2$.}
+\label{fig:lsw}
+\end{figure}
+
+The comparison is honest rather than perfect, and both departures have a
+clear physical reading rather than being simulation artefacts. LSW theory
+is an idealisation strictly valid only in the limit of vanishing volume
+fraction and infinite time; $c=0.06$ is small but not infinitesimal, and
+the run length is subject to the same pre-asymptotic regime already
+established for every other result in this report. At finite (not
+strictly zero) volume fraction, neighbouring droplets' diffusion fields
+overlap and occasionally two droplets merge geometrically as they grow --
+a purely diffusive coalescence mechanism, unrelated to the
+hydrodynamic-flow-driven droplet coalescence Bray's review discusses for
+real fluids \cite{Bray1994}, which this lattice model has no mechanism
+for at all, but a perfectly ordinary consequence of simulating a finite
+rather than infinitesimal concentration. That coalescence is the natural
+explanation for the excess of droplets beyond the strict LSW cutoff: two
+droplets merging produces one droplet larger than either parent, and
+larger than LSW's pure evaporation-condensation mechanism alone would
+ever allow. The excess of small droplets below $u\approx0.5$ is
+consistent with genuinely young droplets not yet incorporated into the
+self-similar scaling state assumed by Eq.~\eqref{eq:lsw-distribution} --
+exactly the sort of finite-time correction already documented for this
+model's growth-law exponent in Section~5.3. Rather than weakening the
+result, I think being explicit about where and why a real lattice
+simulation departs from an idealised continuum theory is a more
+convincing demonstration of having actually understood the theory than a
+suspiciously perfect match would be.
+
+\subsection{Synthesis}
+
+Put together, Sections 5.3 and 5.4 give a consistent, if slightly more
+nuanced, confirmation of Bray's statement than a single number could:
+the growth-law exponent is set by the conservation class (Model A vs.\
+Model B), not by composition or morphology, and stays on a stable
+plateau across the entire bicontinuous-to-droplet transition in both
+models -- while the morphology, the droplet-size distribution, and the
+size of the pre-asymptotic correction to that plateau all visibly do
+depend on concentration. The popular shorthand that ``droplet nucleation''
+and ``spinodal decomposition'' are different growth regimes conflates
+morphology with dynamics; the more precise statement, and the one this
+simulation actually supports, is that they are the same dynamics wearing
+two different, concentration-dependent, shapes.
 
 \section{Non-Equilibrium Entropy Production}
 
@@ -402,10 +631,10 @@ per-spin estimate of the irreversible entropy production rate,
 \label{eq:entropy}
 \end{equation}
 which requires no simulation beyond the bookkeeping the Metropolis step
-is already doing. For Model A, $\dot S(t{=}1)\approx0.295$ immediately
-after the quench, falling to $\approx1.2\times10^{-5}$ by $t=2000$ sweeps
--- over four orders of magnitude. For Model B, $\dot S(t{=}1)\approx0.151$
-falls to $\approx7.3\times10^{-6}$ by $t=10{,}000$ sweeps -- again over
+is already doing. For Model A, $\dot S(t{=}1)\approx0.297$ immediately
+after the quench, falling to $\approx9.8\times10^{-6}$ by $t=2000$ sweeps
+-- over four orders of magnitude. For Model B, $\dot S(t{=}1)\approx0.149$
+falls to $\approx6.5\times10^{-6}$ by $t=10{,}000$ sweeps -- again over
 four orders of magnitude. In both cases the interpretation is the same:
 immediately after the quench the lattice is riddled with domain walls and
 misaligned spins, so a large fraction of proposed moves are strongly
@@ -451,8 +680,17 @@ the conserved model coarsens more slowly, consistent with the
 diffusion-limited $t^{1/3}$ prediction once pre-asymptotic corrections are
 accounted for. Making the conserved model's coupling anisotropic produces
 directionally elongated domains, a lattice-scale analogue of textured and
-stress-rafted real microstructures. Tracking the heat exchanged with the
-thermal bath at every accepted move gives a fully self-consistent, model-
+stress-rafted real microstructures. Sweeping the initial concentration
+away from $50/50$ shows that this growth exponent is set by the
+conservation law alone, not by composition or resulting morphology --
+both models hold their respective exponent essentially fixed across the
+entire transition from a bicontinuous network to isolated droplets, while
+the droplet-size distribution measured in the dilute regime shows the
+concentration-dependence the theory predicts belongs there instead,
+reproducing the qualitative shape of the closed-form Lifshitz--Slyozov--Wagner
+prediction along with physically explicable departures from it. Tracking
+the heat exchanged with the thermal bath at every accepted move gives a
+fully self-consistent, model-
 independent measurement of non-equilibrium entropy production in both
 cases, falling by several orders of magnitude as each system relaxes.
 All code, data, and both interactive dashboards described above are

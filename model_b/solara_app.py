@@ -94,16 +94,17 @@ def init_lattice_at_concentration(L: int, seed: int, concentration: float) -> np
 def _display_domain_size(raw: float) -> float:
     """Floor/guard a raw domain_size_from_correlation() value for display.
 
-    kawasaki_engine's domain_size_from_correlation() finds where the raw
-    spin autocorrelation C(r) crosses 0.5 -- correctly, and by design,
-    returns NaN when it never does. At a concentration far from 0.5, the
-    conserved magnetization m = 2*concentration - 1 has m^2 > 0.5 once
-    concentration <~0.15 or >~0.85, so C(r) plateaus at m^2 (its r -> inf
-    limit) without ever decaying below 0.5 -- meaning every tick's Lx/Ly at
-    those concentrations is legitimately NaN, not an occasional edge case.
-    A log-scale Plotly trace silently drops NaN/<=0 points, so an
-    all-NaN series renders as a fully hidden line rather than a visible
-    (if degenerate) one.
+    kawasaki_engine's domain_size_from_correlation() finds where C(r)
+    crosses 0.5 and returns NaN when it never does within the sampled
+    range. `_axis_correlation_xy` now returns the *normalized connected*
+    correlation (<sigma_i sigma_{i+r}> - m^2) / (1 - m^2) rather than the
+    raw correlation, which always decays from 1 at r=0 towards 0 regardless
+    of concentration -- so this is no longer a systematic per-concentration
+    failure, only the ordinary transient case common to any concentration:
+    immediately post-quench, before any domain structure has formed yet,
+    C(r) can still fail to reach 0.5 within the sampled r range. A log-scale
+    Plotly trace silently drops NaN/<=0 points, so an all-NaN series renders
+    as a fully hidden line rather than a visible (if degenerate) one.
 
     Clamping only here, for the live dashboard's display, rather than
     inside kawasaki_engine.py itself: that module is the shared, verified
