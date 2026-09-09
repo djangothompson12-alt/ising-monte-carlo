@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2D Ising Model — Live Monte Carlo Simulation</title>
+<title>Model A: Metropolis Dynamics — Live Monte Carlo Simulation</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root {
@@ -163,11 +163,14 @@
 <body>
 
 <header>
-  <h1>2D Ising Model — Live Monte Carlo Simulation</h1>
+  <h1>Model A: Metropolis (Non-Conserved) Dynamics</h1>
   <p>
-    Real-time Metropolis dynamics on a periodic square lattice, running entirely in the browser.
-    See the <a href="https://github.com/djangothompson12-alt/ising-monte-carlo">repository</a>
-    for the offline research pipeline (Numba-accelerated sweeps, publication figures).
+    Real-time single-spin-flip Metropolis dynamics on a periodic square lattice
+    (Hohenberg-Halperin "Model A" &mdash; non-conserved order parameter), running
+    entirely in the browser. See the
+    <a href="https://github.com/djangothompson12-alt/ising-monte-carlo">repository</a>
+    for the offline research pipeline (Numba-accelerated sweeps, publication figures)
+    and the conserved-order-parameter counterpart, Model B (Kawasaki dynamics).
   </p>
 </header>
 
