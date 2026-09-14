@@ -1,0 +1,15 @@
+{
+  "sizes": [32, 64, 96, 128],
+  "concentrations": [0.5, 0.15],
+  "replicas": 16,
+  "max_sweeps": 1000000,
+  "time_samples": 80,
+  "equilibration": 200,
+  "Jx": 1.0,
+  "Jy": 1.0,
+  "T_initial_over_tc": 3.0,
+  "T_final_over_tc": 0.65,
+  "seed": 20260914,
+  "purpose": "Independent, prospective main-study extension: compare finite-time and finite-size behaviour at symmetric and off-critical compositions under the original 0.65 Tc quench.",
+  "stop_rule": "Complete the declared 16 replicas for every condition, or record a compute/storage failure. Keep every completed and unresolved trajectory. Do not extend runs or select a fitting window because a slope approaches or avoids 1/3. Compare sizes at matched times and report resolved-time attrition."
+}

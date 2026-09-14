@@ -142,14 +142,16 @@ class QuenchConfig:
 
 @dataclass
 class QuenchResult:
-    """Domain-growth and entropy-production kinetics extracted from a quench.
+    """Domain-growth and bath-entropy-flow kinetics extracted from a quench.
 
     Attributes:
         t: Post-quench sweep counts (Monte Carlo time) at which C(r, t) was sampled.
         domain_size: Characteristic domain size L(t), averaged over replicas.
         domain_size_err: Standard error of L(t) across replicas.
-        entropy_production: Per-spin entropy production rate S_dot(t), averaged
-            over replicas, estimated over each inter-checkpoint interval.
+        entropy_production: Historical field name for the per-spin bath
+            entropy-flow proxy -<dE>/T/dt, averaged over replicas and estimated
+            over each inter-checkpoint interval. Total stochastic entropy
+            production would additionally require the system-entropy change.
         entropy_production_err: Standard error of S_dot(t) across replicas.
     """
 
@@ -374,8 +376,8 @@ def sample_snapshot(T: float, config: SimulationConfig, seed: int) -> np.ndarray
 # ---------------------------------------------------------------------------
 #
 # Quenching the system from a high-temperature disordered state to T_final < T_c
-# breaks ergodicity: ferromagnetic domains nucleate and coarsen over time rather
-# than the lattice reaching global equilibrium. Phase-ordering ("Allen-Cahn" /
+# produces a long non-equilibrium coarsening transient before finite-lattice
+# equilibrium is sampled. Phase-ordering ("Allen-Cahn" /
 # Lifshitz-Allen-Cahn) theory predicts that for a non-conserved scalar order
 # parameter (single-spin-flip dynamics, as here), domains grow as a power law
 #
@@ -391,16 +393,16 @@ def sample_snapshot(T: float, config: SimulationConfig, seed: int) -> np.ndarray
 #
 # The lattice is coupled to a heat bath at fixed T_final: every accepted spin
 # flip changes the system's energy by dE, and by conservation of energy the
-# bath absorbs heat dQ = -dE over that move. This lets us estimate the rate
-# of irreversible entropy production in the bath from purely mechanical
-# bookkeeping already being done by the Metropolis step:
+# bath absorbs heat dQ = -dE over that move. This lets us estimate entropy flow
+# into the bath from the bookkeeping already done by the Metropolis step. It is
+# not total stochastic entropy production, which also includes the system's
+# entropy change:
 #
 #     S_dot(t) = -(1/T) * <dE/dt>
 #
 # averaged over sweeps within an inter-checkpoint interval and over replicas.
-# S_dot(t) is expected to be positive and to decay towards zero as domain
-# walls annihilate and accepted moves become rarer -- i.e. as the quenched
-# system relaxes and irreversible dissipation subsides.
+# The reported replica average is positive and decays towards zero as domain
+# walls annihilate and energetically favourable moves become rarer.
 
 
 def _axis_correlation(lattice: np.ndarray, r_max: int) -> np.ndarray:
@@ -554,21 +556,21 @@ def domain_size_from_correlation(C: np.ndarray) -> float:
 
 
 def run_quench_kinetics(config: QuenchConfig) -> QuenchResult:
-    """Simulate a T_initial -> T_final quench and extract domain-growth and
-    entropy-production kinetics, L(t) and S_dot(t).
+    """Simulate a T_initial -> T_final quench and extract domain growth and
+    the bath entropy-flow proxy, L(t) and S_dot,bath(t).
 
     For each of `config.n_replicas` independent runs, a lattice is equilibrated
     at `T_initial`, instantaneously cooled to `T_final`, and evolved while
     sampling C(r, t) and the accepted-move energy change at logarithmically
-    spaced sweep counts; L(t) and S_dot(t) are then extracted per replica and
-    averaged.
+    spaced sweep counts; L(t) and S_dot,bath(t) are then extracted per replica
+    and averaged.
 
-    S_dot(t) is estimated per inter-checkpoint interval as
+    The historically named S_dot(t) field is estimated per interval as
     -(1/T_final) * <dE>/dt (per spin), where dE is the total system energy
     change from accepted flips over the interval and dt is the interval's
     sweep count; the minus sign converts the system's energy change into heat
-    delivered to the bath, so a relaxing (energy-losing) system gives a
-    non-negative S_dot.
+    delivered to the bath. It is bath entropy flow, not total stochastic
+    entropy production because the latter also includes system entropy.
 
     Args:
         config: Quench simulation parameters.

@@ -8,9 +8,9 @@ point and produces a two-panel kinetics figure:
     (top)    Characteristic domain size L(t), extracted from the spatial spin
              autocorrelation function C(r, t), verifying the Lifshitz-Allen-Cahn
              domain-growth law L(t) ~ t^(1/2) with a log-log power-law fit.
-    (bottom) Entropy production rate S_dot(t) = -(1/T) * <dE>/dt, from the
-             energy change of accepted Metropolis moves, showing irreversible
-             dissipation decay as domain walls annihilate.
+    (bottom) Bath entropy-flow rate S_dot,bath(t) = -(1/T) * <dE>/dt, from
+             the energy change of accepted Metropolis moves, showing the
+             dissipation proxy decay as domain walls annihilate.
 
 Usage:
     python model_a/plot_kinetics.py
@@ -20,6 +20,12 @@ Usage:
 from __future__ import annotations
 
 from pathlib import Path
+
+import matplotlib
+
+# This is a batch figure generator, so use a non-interactive backend. It then
+# behaves the same in CI, headless shells, and desktop sessions.
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -42,8 +48,8 @@ FIT_L_MAX_FRACTION_OF_R_MAX = 0.3
 
 
 def save_quench_csv(result: QuenchResult, path: Path) -> None:
-    """Write post-quench time, domain size, and entropy production rate (with
-    standard errors) to CSV."""
+    """Write post-quench time, domain size, and the historical
+    entropy_production-named bath-flow proxy (with errors) to CSV."""
     header = (
         "t_sweeps,domain_size,domain_size_err,"
         "entropy_production_rate,entropy_production_rate_err"
@@ -98,7 +104,7 @@ def plot_kinetics_and_entropy(
     A: float,
     mask: np.ndarray,
 ) -> Path:
-    """Render the two-panel domain-growth + entropy-production kinetics figure.
+    """Render the two-panel domain-growth + bath-entropy-flow figure.
 
     Args:
         result: Output of `ising_engine.run_quench_kinetics`.
@@ -151,7 +157,7 @@ def plot_kinetics_and_entropy(
     ax_top.set_title(rf"Domain Growth: fitted exponent $\alpha = {alpha:.4f}$ (prediction: $0.5$)")
     ax_top.legend(loc="upper left", fontsize=9)
 
-    # --- Bottom panel: entropy production rate S_dot(t) ---
+    # --- Bottom panel: bath entropy-flow proxy ---
     Sdot, Sdot_err = result.entropy_production, result.entropy_production_err
     finite = np.isfinite(Sdot)
 
@@ -162,9 +168,9 @@ def plot_kinetics_and_entropy(
     ax_bottom.axhline(0, color="black", linewidth=0.8, alpha=0.5)
     ax_bottom.set_xscale("log")
     ax_bottom.set_xlabel(r"Time $t$ (Monte Carlo sweeps)")
-    ax_bottom.set_ylabel(r"Entropy production rate $\dot{S}(t)$ (per spin, $k_B$ units)")
+    ax_bottom.set_ylabel(r"Bath entropy-flow rate $\dot{S}_{\rm bath}(t)$ (per spin, $k_B$ units)")
     ax_bottom.set_title(
-        r"Irreversible Entropy Production: $\dot{S}(t) = -\dfrac{1}{T}\dfrac{\langle \Delta E \rangle}{dt}$"
+        r"Interfacial Dissipation: $\dot{S}_{\rm bath}(t) = -\dfrac{1}{T}\dfrac{\langle \Delta E \rangle}{dt}$"
     )
 
     fig.suptitle(

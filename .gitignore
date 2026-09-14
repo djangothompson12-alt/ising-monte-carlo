@@ -1,8 +1,16 @@
 .venv/
+.venv311/
+.venv312/
+.mplconfig/
+.numba_cache*/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .DS_Store
+research/runs/
+experiments/results/
+experiments/measurements.json
+experiments/recordings/
 
 # LaTeX build artifacts (manuscript/main.tex -> manuscript/main.pdf is tracked)
 manuscript/*.aux

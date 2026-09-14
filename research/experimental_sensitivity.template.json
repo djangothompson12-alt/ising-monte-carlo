@@ -1,0 +1,18 @@
+{
+  "source": "Author, dataset title, DOI or stable URL",
+  "license": "Licence or written permission",
+  "phase_definition": "Which phase is foreground and why this threshold range was selected",
+  "records": [
+    {
+      "id": "sample_001",
+      "specimen": "same named specimen or explicitly independent specimen",
+      "path": "relative/path/to/one_2d_image.tif",
+      "time": 0.0,
+      "time_unit": "min",
+      "pixel_size": 0.1,
+      "length_unit": "um",
+      "foreground": "above",
+      "thresholds": [100.0, 110.0, 120.0]
+    }
+  ]
+}

@@ -16,19 +16,26 @@ Microstructural Evolution, Anisotropic Coarsening, and Interfacial Dissipation}
 \begin{document}
 \maketitle
 
+\noindent\textit{Working draft, 14 September 2026. This manuscript has not
+been peer reviewed or independently checked in full by the student. Code,
+analysis, figures and draft prose received substantial generative-AI
+assistance; the contribution record is in the repository. The tracked PDF is
+older than this source.}
+
 \begin{abstract}
 Microstructures evolve differently depending on whether the quantity that
 defines them is free to change locally or is fixed globally. I built two
 Monte Carlo engines for the two-dimensional Ising model to study this
-directly: one with single-spin-flip (Glauber-type) dynamics, in which the
+directly: one with Metropolis single-spin-flip dynamics, in which the
 order parameter is not conserved, and one with spin-exchange (Kawasaki)
-dynamics, in which it is conserved exactly. After quenching both below the
-Onsager critical temperature $T_c \approx 2.269\,J/k_B$, I extract the
+dynamics, in which it is conserved exactly. After quenching each below its
+respective critical temperature, I extract the
 characteristic domain size $L(t)$ from the spin autocorrelation function and
-fit its growth. The non-conserved case gives an exponent close to the
+fit its growth. The non-conserved case gives a finite-window exponent close to the
 curvature-driven Lifshitz--Allen--Cahn prediction $L(t)\propto t^{1/2}$; the
-conserved case grows more slowly, consistent with the diffusion-limited
-Lifshitz--Slyozov prediction $L(t)\propto t^{1/3}$. I then generalise the
+conserved case grows more slowly in the tested window; these runs do not
+establish the diffusion-limited Lifshitz--Slyozov asymptote
+$L(t)\propto t^{1/3}$. I then generalise the
 conserved model to unequal couplings $J_x \neq J_y$, a simple stand-in for
 direction-dependent interfacial energy, and show it produces markedly
 elongated domains, similar in shape to directional coarsening seen in
@@ -37,13 +44,16 @@ model's growth exponent should stay fixed across the entire transition
 from a symmetric, bicontinuous quench to a dilute, off-critical quench in
 which the minority phase forms isolated droplets, even though the
 morphology changes completely. A sweep over six initial concentrations
-confirms this directly, and a periodic connected-component analysis of
-the simulated droplet-size distribution in the dilute regime is compared
-against the closed-form Lifshitz--Slyozov--Wagner prediction. Finally, by
+finds an approximately flat effective-exponent plateau down to $c=0.10$,
+with additional slowing at the most dilute point, $c=0.06$. A periodic
+connected-component analysis of the simulated droplet-size distribution in
+the dilute regime is compared against the closed-form
+Lifshitz--Slyozov--Wagner prediction. Finally, by
 tracking the heat exchanged with the thermal bath at every accepted move,
-I compute the non-equilibrium entropy production rate $\dot S(t)$ for both
+I compute the bath entropy-flow rate $\dot S_{\mathrm{bath}}(t)$ for both
 models and show it falls by several orders of magnitude as each system
-coarsens.
+coarsens. This heat-based quantity is a dissipation proxy, not the total
+stochastic entropy production, which also requires the system-entropy change.
 \end{abstract}
 
 \section{Introduction}
@@ -156,6 +166,61 @@ which I solve numerically and which reduces to Eq.~\eqref{eq:tc} when
 $J_x=J_y$. I use this both to sanity-check the simulation against an exact
 result and to set consistent quench temperatures for the anisotropic runs.
 
+\subsection{Regular-solution spinodal implied by the lattice coupling}
+
+The conserved model also has a direct binary-alloy reading, in which a
+$+1$ spin is an A atom, a $-1$ spin is a B atom, and
+$c=(1+m)/2$ is the A-atom concentration. This makes it possible to connect
+the kinetic simulations to a simple phase-diagram construction rather than
+only to a magnetic critical temperature. In a bond of direction $d\in\{x,y\}$,
+the Ising energy is $-J_d$ for either like pair (A--A or B--B) and $+J_d$
+for an unlike A--B pair. Thus an unlike bond costs $2J_d$ relative to a
+like bond. Counting one horizontal and one vertical bond per lattice site,
+then adding ideal configurational entropy, gives the Bragg--Williams
+regular-solution free energy per site
+\begin{equation}
+f(c,T) = k_B T\left[c\ln c+(1-c)\ln(1-c)\right]+\Omega c(1-c),
+\qquad \Omega=4(J_x+J_y).
+\label{eq:regular-solution-free-energy}
+\end{equation}
+The spinodal is the locus at which this homogeneous free energy loses local
+stability, $\partial^2 f/\partial c^2=0$:
+\begin{equation}
+k_B T_s(c)=2\Omega c(1-c)=8(J_x+J_y)c(1-c).
+\label{eq:regular-solution-spinodal}
+\end{equation}
+For the isotropic concentration study ($J_x=J_y=1$), Eq.~\eqref{eq:regular-solution-spinodal}
+becomes $T_s=16c(1-c)$ and has a mean-field maximum $T_c^{\rm RS}=4J/k_B$ at
+$c=0.5$; for the anisotropic baseline ($J_x=1$, $J_y=0.5$), it is
+$T_s=12c(1-c)$ with maximum $3J/k_B$. The plotting script evaluates these
+identities numerically before rendering Fig.~\ref{fig:spinodal}.
+
+Figure~\ref{fig:spinodal} places the actual Model B temperature paths on
+this mean-field diagram. The composition sweep begins above the spinodal at
+$T_i=6.808$ and finishes at $T_f=1.475$. Its $c\ge0.15$ end points lie
+inside the mean-field spinodal, whereas $c=0.10$ and $0.06$ lie outside
+it on the metastable side of this approximation. Droplet morphology alone
+does not identify a nucleation mechanism: $c=0.15$ is droplet-rich but
+remains inside this mean-field spinodal. The curve is not the exact
+two-dimensional Ising binodal:
+its $T_c^{\rm RS}=4J/k_B$ deliberately differs from Onsager's exact
+$T_c=2.269J/k_B$. Model A is not placed on this alloy diagram because its
+Metropolis single-spin-flip moves do not conserve composition.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../figures/fig_regular_solution_spinodal.png}
+\caption{Bragg--Williams regular-solution spinodal derived directly from
+the Model B Ising couplings, with the temperature paths used by the
+isotropic concentration sweep and the anisotropic kinetic baseline marked.
+The blue shaded region is unstable to infinitesimal composition fluctuations
+for the isotropic coupling. Position relative to this curve is a mean-field
+classification, not a mechanism diagnosed from domain shape. It is a
+mean-field thermodynamic guide,
+not the exact two-dimensional Ising coexistence boundary.}
+\label{fig:spinodal}
+\end{figure}
+
 \subsection{Monte Carlo sampling, Metropolis dynamics, and detailed balance}
 
 Directly summing over every configuration in $Z$ is impossible for any
@@ -193,10 +258,12 @@ move back with probability $e^{-\beta\Delta E} < 1$, giving precisely the
 required ratio, and the other sign works the same way by symmetry. So a
 rule that only ever looks at the energy change of one proposed move,
 with no knowledge of $Z$ or of any other configuration, is guaranteed to
-sample the full Boltzmann distribution given enough moves -- provided the
-chain is also \emph{ergodic} (able to reach any configuration from any
-other in a finite number of steps), which single-spin flips and
-neighbour swaps both are on a finite periodic lattice.
+sample the relevant Boltzmann distribution given enough moves -- provided
+the chain is also \emph{ergodic}. Single-spin flips connect the full finite
+configuration space. Neighbour exchanges instead connect only the
+fixed-magnetisation sector set by the initial composition, as required for
+the canonical binary-alloy interpretation; within that sector, the chain is
+ergodic on the finite periodic lattice.
 
 One \emph{Monte Carlo sweep} (MCS) is $N = L^2$ individual proposed moves,
 chosen at random with replacement -- roughly one attempted update per
@@ -220,8 +287,8 @@ built two interactive tools so the coarsening process can be watched
 directly rather than only read off a finished plot: a desktop dashboard
 (Matplotlib and Tkinter, animated with \texttt{FuncAnimation}) and a
 browser-based dashboard (built on the Solara framework), both of which
-render the live spin lattice alongside the growing domain-size and
-entropy-production curves as the quench runs, with sliders for the
+render the live spin lattice alongside the growing domain-size and bath
+entropy-flow curves as the quench runs, with sliders for the
 coupling ratio $J_x/J_y$, quench temperature, and lattice size. Getting
 the web dashboard to update smoothly at animation speed without
 overloading the UI framework's own re-render logic turned out to be a
@@ -325,11 +392,12 @@ both well short of the asymptotic prediction $1/3$. This is not a
 software bug: conserved-order-parameter coarsening is well known to have
 much stronger and longer-lived corrections to its asymptotic growth law
 than the non-conserved case \cite{Bray1994}, and the domain sizes reached
-here are still a small fraction of the lattice's finite-size limit, so
-the shortfall is a genuine, physically expected pre-asymptotic effect
-rather than a finite-size artefact. Figure~\ref{fig:comparative} puts
-both results side by side against their respective theoretical
-predictions.
+here are still a small fraction of the estimator's maximum range.
+Long-lived pre-asymptotic corrections are therefore a plausible explanation,
+but this observation alone cannot exclude finite-size or fit-window effects.
+A systematic finite-size analysis is needed before assigning the discrepancy
+uniquely. Figure~\ref{fig:comparative} puts both results side by side against
+their respective theoretical predictions.
 
 \begin{figure}[t]
 \centering
@@ -346,8 +414,9 @@ the direct signature of conservation slowing down coarsening.}
 \includegraphics[width=0.85\textwidth]{../model_a/figures/fig3_kinetics_entropy.png}
 \caption{Model A quench kinetics ($T_i=5.0\to T_f=1.5$, $L=128$, 16
 replicas). \emph{Top:} $L(t)$ with the fitted exponent $\alpha=0.4999$
-against the Lifshitz--Allen--Cahn line. \emph{Bottom:} entropy production
-rate $\dot S(t)$ (Section 5), decaying over four orders of magnitude.}
+against the Lifshitz--Allen--Cahn line. \emph{Bottom:} bath entropy-flow
+rate $\dot S_{\mathrm{bath}}(t)$ (Section 5), decaying over four orders of
+magnitude.}
 \label{fig:modela}
 \end{figure}
 
@@ -357,7 +426,7 @@ rate $\dot S(t)$ (Section 5), decaying over four orders of magnitude.}
 \caption{Model B anisotropic quench kinetics ($J_x=1.0$, $J_y=0.5$,
 $L=96$, 16 replicas). \emph{Top:} $L_x(t)$ growing visibly faster than
 $L_y(t)$, reflecting the stronger horizontal coupling. \emph{Bottom:}
-entropy production rate, again decaying over several orders of magnitude.}
+bath entropy-flow rate, again decaying over several orders of magnitude.}
 \label{fig:modelb}
 \end{figure}
 
@@ -385,17 +454,13 @@ directly in the anisotropic domain sizes $L_x(t) \neq L_y(t)$ plotted in
 Fig.~\ref{fig:modelb}, which is the real-space cross-section through
 exactly that ellipse along its two principal axes.
 
-The physical picture this supports is directional, texture-driven
-coarsening: the horizontal domains here grow roughly twice as fast as the
-vertical ones by the end of the run ($L_x\approx4.1$ vs.\ $L_y\approx1.9$
-lattice units at $t=10{,}000$ sweeps), a stretching of the microstructure
-along the stiffer-coupled axis that is the same \emph{shape} of effect as
-directional grain elongation in rolled sheet metal, or the
-stress-driven directional coarsening (`rafting') of $\gamma'$ precipitates
-seen in single-crystal nickel superalloy turbine blades -- in both real
-cases an external asymmetry (rolling direction, applied stress) biases
-which direction the microstructure is energetically permitted to grow
-along, exactly as $J_x \neq J_y$ does here.
+The physical picture here is directional coarsening: the horizontal domains
+grow roughly twice as fast as the vertical ones by the end of the run
+($L_x\approx4.1$ vs.\ $L_y\approx1.9$ lattice units at $t=10{,}000$
+sweeps). Real materials can also develop directional microstructures, but
+rolling and stress-driven $\gamma'$ rafting involve mechanisms absent from
+this fixed-bond lattice. The comparison is about shape and the question
+anisotropy raises, not predictive equivalence.
 
 \section{Concentration Dependence: Testing the Limits of Universality}
 \label{sec:concentration}
@@ -408,8 +473,8 @@ completely different under a microscope. Near $50/50$, both phases stay
 interconnected and coarsen as a single bicontinuous, sponge-like network
 (\emph{spinodal decomposition}); far from $50/50$, the minority phase
 breaks up into isolated droplets that coarsen by shrinking and vanishing
-individually while the survivors grow (\emph{nucleation and growth} /
-Ostwald ripening in its classic sense). It would be entirely reasonable to
+individually while the survivors grow. This is a late-stage morphology,
+not by itself proof of how the droplets first formed. It would be reasonable to
 expect a morphology change this dramatic to come with a different growth
 exponent -- and, before checking the literature carefully, I expected
 exactly that. It is not what the theory actually predicts, and checking
@@ -439,10 +504,10 @@ imprecise version of this story goes wrong: it is tempting to read
 ``bicontinuous network'' and ``isolated droplets'' as two different
 \emph{growth laws}, when the theory says they are two different
 \emph{morphologies of the same growth law}. This section tests that
-claim directly, in the actual lattice model simulated throughout this
+claim within a finite window, in the actual lattice model simulated throughout this
 report rather than in the continuum limit Bray's argument is stated in.
 
-\subsection{A methodological subtlety: the connected correlation function, and why it only applies to one model}
+\subsection{A methodological subtlety: choosing a correlation observable for each model}
 
 Extracting $L(t)$ off-critical exposed a real bug in the correlation-based
 method used everywhere above. Equation~\eqref{eq:autocorr} assumes the two
@@ -461,22 +526,21 @@ which isolates the fluctuation/domain-structure part of the correlation
 and is renormalised so $g(0,t)=1$, matching the convention the raw
 correlation already used at $m=0$.
 
-The instructive part is that this fix is only valid for Model B. Applying
-it uniformly to both models first (my initial approach) silently corrupted
+The instructive part is that this is the chosen fix for Model B, not a
+definition to impose automatically on Model A. Applying it uniformly to
+both models first (my initial approach) changed
 the already-verified Model A baseline in Section~3.3, dropping the fitted
 exponent from $0.4999$ to $0.379$ -- a large enough shift that comparing
 against that section's own previously-established number caught it
 immediately. The reason is a genuine physical distinction, not a coding
 slip: in Model B, Kawasaki exchange conserves $m$ \emph{exactly}, so
 $m(t)=m(0)=2c-1$ for the entire run and subtracting it removes a
-literally constant, physically trivial offset. In Model A, magnetisation
-is not conserved -- below $T_c$ the system spontaneously orders, and
-$m(t)$ itself grows towards the equilibrium spontaneous magnetisation
-(close to $1$ at $T_f=1.5$, well below $T_c$) as domains coarsen. That
-growing $m(t)$ \emph{is} the ordering signal $L(t)$ is supposed to
-measure, so subtracting it does not remove a nuisance offset; it removes
-the physics under study. Eq.~\eqref{eq:connected-corr} is therefore used
-only in Model B below; Model A keeps the raw correlation, Eq.~\eqref{eq:autocorr},
+constant composition background. In Model A, magnetisation is not conserved;
+its magnitude can change as finite replicas order below $T_c$. Subtracting
+$m(t)^2$ is mathematically possible, but it defines a different observable
+and changed the previously reported Model A baseline. Eq.~\eqref{eq:connected-corr}
+is therefore used for the Model B off-critical length below; Model A keeps
+the raw correlation, Eq.~\eqref{eq:autocorr},
 unchanged, and its off-critical quenches are better understood as a
 transient initial bias that ordinary (non-conserved) coarsening dynamics
 washes out rather than as a genuine steady off-critical state.
@@ -500,7 +564,7 @@ Figure~\ref{fig:concentration} shows the result.
 \caption{Fitted growth exponent vs.\ initial concentration for both
 models. Model A (non-conserved) sits on $\alpha\approx0.5$ at every
 concentration tested, from $0.488$ to $0.510$. Model B (conserved) sits
-on a lower, pre-asymptotic plateau ($\alpha\approx0.16$--$0.17$ for
+on a lower, finite-window plateau ($\alpha\approx0.16$--$0.17$ for
 $c\ge0.10$) that is flat across the bicontinuous-to-droplet transition,
 with a further mild slowing at the most dilute point tested ($c=0.06$,
 $\alpha\approx0.133$). Neither model shows the large, discrete jump in
@@ -531,13 +595,52 @@ long-lived \cite{Bray1994}, and there is every reason to expect those
 corrections to be strongest exactly where the fewest, most widely
 separated droplets have to communicate across the largest distances --
 i.e., in the most dilute regime, at fixed lattice size and run length.
-What the data rule out cleanly is the more dramatic alternative: nowhere
-in this range does Model B's exponent jump towards a qualitatively
-different value (e.g.\ $1/2$ or $1/4$, both of which appear in the
+Within the simulated time and size window, the data do not show the more
+dramatic alternative: nowhere in this range does Model B's exponent jump
+towards a qualitatively different value (e.g.\ $1/2$ or $1/4$, both of which appear in the
 literature for phase separation with hydrodynamic flow, which this
-lattice model does not have \cite{Bray1994}). The growth law is the same
-growth law on both sides of the bicontinuous-droplet transition; only its
-approach to that law's asymptotic value is composition-sensitive.
+lattice model does not have \cite{Bray1994}). These finite-window measurements
+are compatible with a shared asymptotic growth law, but do not establish it.
+A finite-size and longer-time study is required to distinguish
+composition-dependent transients, estimator effects and saturation from
+an asymptotic change in exponent.
+
+\subsection{A qualitative benchmark against Fe--Cr ageing data}
+
+Fe--Cr provides a useful experimental point of contact because its
+low-temperature miscibility gap produces Fe-rich $\alpha$ and Cr-rich
+$\alpha'$ regions and is associated with the industrially important
+``475\,$^\circ$C embrittlement'' phenomenon. Xu \emph{et al.} combined
+small-angle neutron scattering (SANS), atom-probe tomography, and electron
+microscopy for Fe--Cr alloys aged at 773\,K and reported an effective growth
+exponent of $0.16$ for the inverse SANS peak position (the decomposition
+wavelength) in their alloy labelled 35Cr; a Guinier particle-radius analysis gave
+$R\propto t^{0.27}$ \cite{Xu2016}. The present $c=0.35$ conserved-model run
+gives $\alpha=0.1676\pm0.0008$ as a fit standard error
+(Figure~\ref{fig:fecr-benchmark}). The experimental composition table uses
+weight percent, not the model's site fraction: these compositions are not
+matched, and proximity of the exponents is not evidence of agreement.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\textwidth]{../figures/fig_fecr_literature_benchmark.png}
+\caption{Qualitative comparison of the Model B $c=0.35$ effective exponent,
+two published Fe--35Cr measures at 773\,K, and the asymptotic LSW value. The
+similarity of the first two values motivates a shared pre-asymptotic question;
+it is not a dimensional calibration or quantitative validation.}
+\label{fig:fecr-benchmark}
+\end{figure}
+
+This numerical proximity must not be over-interpreted. The simulation is a
+two-dimensional, nearest-neighbour lattice with Monte Carlo sweeps as
+algorithmic time; the experiment is a three-dimensional alloy aged in hours,
+and the two experimental observables themselves give different effective
+exponents. The defensible connection is therefore the question rather than a
+parameter fit: both systems show regime-dependent effective exponents below
+$1/3$, making finite-time diagnostics and careful choice of length-scale
+estimator important. A quantitative Fe--Cr model would require, at minimum,
+three-dimensional geometry, calibrated free energy and mobility, and a mapping
+to physical length and time.
 
 \subsection{Droplet-size distribution vs.\ Lifshitz--Slyozov--Wagner theory}
 
@@ -577,63 +680,49 @@ beyond the strict LSW cutoff $u=3/2$.}
 \label{fig:lsw}
 \end{figure}
 
-The comparison is honest rather than perfect, and both departures have a
-clear physical reading rather than being simulation artefacts. LSW theory
-is an idealisation strictly valid only in the limit of vanishing volume
-fraction and infinite time; $c=0.06$ is small but not infinitesimal, and
-the run length is subject to the same pre-asymptotic regime already
-established for every other result in this report. At finite (not
-strictly zero) volume fraction, neighbouring droplets' diffusion fields
-overlap and occasionally two droplets merge geometrically as they grow --
-a purely diffusive coalescence mechanism, unrelated to the
-hydrodynamic-flow-driven droplet coalescence Bray's review discusses for
-real fluids \cite{Bray1994}, which this lattice model has no mechanism
-for at all, but a perfectly ordinary consequence of simulating a finite
-rather than infinitesimal concentration. That coalescence is the natural
-explanation for the excess of droplets beyond the strict LSW cutoff: two
-droplets merging produces one droplet larger than either parent, and
-larger than LSW's pure evaporation-condensation mechanism alone would
-ever allow. The excess of small droplets below $u\approx0.5$ is
-consistent with genuinely young droplets not yet incorporated into the
-self-similar scaling state assumed by Eq.~\eqref{eq:lsw-distribution} --
-exactly the sort of finite-time correction already documented for this
-model's growth-law exponent in Section~5.3. Rather than weakening the
-result, I think being explicit about where and why a real lattice
-simulation departs from an idealised continuum theory is a more
-convincing demonstration of having actually understood the theory than a
-suspiciously perfect match would be.
+The reference distribution is not an exact prediction for this finite,
+two-dimensional lattice. The classical LSW expression describes dilute
+three-dimensional droplets in an asymptotic regime, whereas the measured
+objects here are finite connected clusters with a lattice-dependent radius
+definition. Finite concentration, incomplete scaling, coalescence and the
+cluster estimator could all contribute to the discrepancies. A size
+histogram alone cannot distinguish them. In particular, assigning the
+large-droplet tail to coalescence would require tracking actual merger
+events, and assigning small clusters to newly formed droplets would require
+time-resolved evidence. The comparison is therefore qualitative; it is not
+a verification of the LSW distribution in two dimensions.
 
 \subsection{Synthesis}
 
-Put together, Sections 5.3 and 5.4 give a consistent, if slightly more
-nuanced, confirmation of Bray's statement than a single number could:
-the growth-law exponent is set by the conservation class (Model A vs.\
-Model B), not by composition or morphology, and stays on a stable
-plateau across the entire bicontinuous-to-droplet transition in both
-models -- while the morphology, the droplet-size distribution, and the
-size of the pre-asymptotic correction to that plateau all visibly do
-depend on concentration. The popular shorthand that ``droplet nucleation''
-and ``spinodal decomposition'' are different growth regimes conflates
-morphology with dynamics; the more precise statement, and the one this
-simulation actually supports, is that they are the same dynamics wearing
-two different, concentration-dependent, shapes.
+The two move rules give different measured coarsening rates, while changing
+composition changes morphology and has a smaller effect on the measured
+exponents over much of the tested range. These observations motivate a
+test of Bray's asymptotic prediction; they do not yet confirm composition
+independence of the asymptotic exponent. Nucleation and spinodal decomposition
+also have distinct early-stage mechanisms. A possible shared late-stage
+growth exponent does not make those mechanisms equivalent.
 
-\section{Non-Equilibrium Entropy Production}
+\section{Bath Entropy Flow and Interfacial Dissipation}
 
 Because the Metropolis rule couples the lattice to an implicit heat bath
 held at fixed temperature $T_f$, every accepted move that changes the
 system's energy by $\Delta E$ delivers heat $Q = -\Delta E$ to that bath,
 by simple conservation of energy. Summing the accepted $\Delta E$ within
-each time interval $dt$ (in sweeps) and averaging over replicas gives a
-per-spin estimate of the irreversible entropy production rate,
+each time interval $dt$ (in sweeps) and averaging over replicas gives the
+per-spin bath entropy-flow rate,
 \begin{equation}
-\dot S(t) = -\frac{1}{T_f}\,\frac{\langle \Delta E\rangle}{dt},
+\dot S_{\mathrm{bath}}(t) = -\frac{1}{T_f}\,\frac{\langle \Delta E\rangle}{dt},
 \label{eq:entropy}
 \end{equation}
 which requires no simulation beyond the bookkeeping the Metropolis step
-is already doing. For Model A, $\dot S(t{=}1)\approx0.297$ immediately
+is already doing. It is not, by itself, the total stochastic entropy
+production $\dot S_{\mathrm{tot}}=\dot S_{\mathrm{sys}}+\dot
+S_{\mathrm{bath}}$: estimating the system's ensemble Shannon-entropy change
+would require an additional calculation. For Model A,
+$\dot S_{\mathrm{bath}}(t{=}1)\approx0.297$ immediately
 after the quench, falling to $\approx9.8\times10^{-6}$ by $t=2000$ sweeps
--- over four orders of magnitude. For Model B, $\dot S(t{=}1)\approx0.149$
+-- over four orders of magnitude. For Model B,
+$\dot S_{\mathrm{bath}}(t{=}1)\approx0.149$
 falls to $\approx6.5\times10^{-6}$ by $t=10{,}000$ sweeps -- again over
 four orders of magnitude. In both cases the interpretation is the same:
 immediately after the quench the lattice is riddled with domain walls and
@@ -641,9 +730,10 @@ misaligned spins, so a large fraction of proposed moves are strongly
 energetically favourable and get accepted; as coarsening proceeds and
 interfacial area shrinks, fewer moves are favourable, and dissipation
 falls in step with it. Every individual move used to produce this result
-satisfies detailed balance and is microscopically time-reversible
-(Section~2.3); the monotonic, non-negative $\dot S(t)$ is a property of
-the replica-averaged, coarse-grained trajectory, not of any single move
+satisfies detailed balance and is microscopically reversible in the
+statistical sense (Section~2.3); the observed positive, decaying
+$\dot S_{\mathrm{bath}}(t)$ is a property of the replica-averaged,
+coarse-grained relaxation trajectory, not of every single move
 -- a concrete illustration of how macroscopic irreversibility emerges
 from reversible microscopic rules once one considers the statistically
 overwhelming direction of an ensemble's evolution, the standard
@@ -676,25 +766,27 @@ Ising Hamiltonian, differing only in whether their elementary move
 conserves the order parameter, and used them to measure directly how
 much that single difference changes microstructural coarsening kinetics.
 The non-conserved model coarsens close to the predicted $t^{1/2}$ rate;
-the conserved model coarsens more slowly, consistent with the
-diffusion-limited $t^{1/3}$ prediction once pre-asymptotic corrections are
-accounted for. Making the conserved model's coupling anisotropic produces
+the conserved model coarsens more slowly, with an effective exponent below
+the diffusion-limited $t^{1/3}$ prediction. The present runs have not
+quantitatively accounted for that discrepancy. Making the conserved model's coupling anisotropic produces
 directionally elongated domains, a lattice-scale analogue of textured and
-stress-rafted real microstructures. Sweeping the initial concentration
-away from $50/50$ shows that this growth exponent is set by the
-conservation law alone, not by composition or resulting morphology --
-both models hold their respective exponent essentially fixed across the
-entire transition from a bicontinuous network to isolated droplets, while
+stress-rafted real microstructures. Sweeping the initial concentration away
+from $50/50$ is consistent with the growth exponent being controlled
+primarily by the conservation law rather than morphology: Model B forms an
+approximately flat effective-exponent plateau down to $c=0.10$, followed by
+additional slowing at $c=0.06$, while
 the droplet-size distribution measured in the dilute regime shows the
 concentration-dependence the theory predicts belongs there instead,
 reproducing the qualitative shape of the closed-form Lifshitz--Slyozov--Wagner
 prediction along with physically explicable departures from it. Tracking
 the heat exchanged with the thermal bath at every accepted move gives a
-fully self-consistent, model-
-independent measurement of non-equilibrium entropy production in both
-cases, falling by several orders of magnitude as each system relaxes.
-All code, data, and both interactive dashboards described above are
-openly available \cite{CodeRepo}.
+consistently defined measurement of bath entropy flow in both cases, falling
+by several orders of magnitude as each system relaxes. Computing total
+stochastic entropy production remains a distinct extension because it also
+requires the system-entropy term.
+The source code, selected completed simulation archives, analysis outputs,
+and both interactive dashboard implementations are openly available
+\cite{CodeRepo}. The dashboards have not been deployed as research instruments.
 
 \begin{thebibliography}{9}
 
@@ -719,6 +811,8 @@ openly available \cite{CodeRepo}.
 \bibitem{Seifert2012} U. Seifert, Stochastic Thermodynamics, Fluctuation Theorems and Molecular Machines, Rep. Prog. Phys. \textbf{75}, 126001 (2012).
 
 \bibitem{Huang1987} K. Huang, \textit{Statistical Mechanics}, 2nd ed. (Wiley, New York, 1987).
+
+\bibitem{Xu2016} X. Xu \emph{et al.}, Structural Characterization of Phase Separation in Fe--Cr: A Current Comparison of Experimental Methods, Metall. Mater. Trans. A \textbf{47}, 5942 (2016), doi:10.1007/s11661-016-3800-4.
 
 \bibitem{CodeRepo} Code and data available at \url{https://github.com/djangothompson12-alt/ising-monte-carlo}.
 

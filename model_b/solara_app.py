@@ -5,7 +5,7 @@ solara_app.py
 Solara web dashboard for Model B (Kawasaki spin-exchange dynamics):
 interactive controls for the anisotropy ratio, quench temperature, lattice
 size, and sweeps-per-frame, with a live-updating lattice heatmap and
-directional domain-growth / entropy-production plots.
+directional domain-growth / bath-entropy-flow plots.
 
 Self-contained within `model_b/`: imports only the Numba-jitted kernels and
 FFT-based correlation/domain-size helpers from `kawasaki_engine.py`
@@ -19,6 +19,7 @@ Usage (Solara apps are launched via the `solara` CLI, not `python`):
 from __future__ import annotations
 
 import asyncio
+import base64
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,7 +36,9 @@ from kawasaki_engine import (  # noqa: E402
     _axis_correlation_xy,
     _kawasaki_sweep,
     domain_size_from_correlation,
+    anisotropic_critical_temperature,
 )
+from research_export import export_zip  # noqa: E402
 
 # --- Display constants ---
 _SPIN_DOWN_COLOR = "#1f4e79"
@@ -50,7 +53,6 @@ _ENTROPY_FLOOR = 1e-7
 _ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-7, 1.0  # matches _ENTROPY_FLOOR, so the floored tail sits on-axis, not clipped below it
 _ENTROPY_SMOOTHING_WINDOW = 10
 _SEED = 2026
-_ISING_TC = 2.269  # 2D Ising critical temperature (Onsager), for the T/Tc reduced-temperature readout
 
 # Target refresh interval for the live panel, in seconds (~20 Hz). Also used
 # as the idle poll interval while paused, so the loop notices Start being
@@ -135,45 +137,34 @@ def interfacial_density(lattice: np.ndarray) -> float:
 
 _ALPHA_FIT_WINDOW = 20  # recent-history points used for the log-log slope fit
 _ALPHA_MIN_SWEEP_T = 500  # only fit t > this -- early time is dominated by pre-scaling transients
-_ALPHA_MAX_PHYSICAL = 0.5  # clamp ceiling -- LS scaling predicts ~1/3; anything above this is fit noise
 
 
 def effective_growth_exponent(t_hist: list[float], Lx_hist: list[float], Ly_hist: list[float]) -> float:
-    """Local coarsening exponent alpha = d(log L)/d(log t), least-squares
-    fit over the most recent _ALPHA_FIT_WINDOW points with t > _ALPHA_MIN_SWEEP_T,
-    for the combined (Lx+Ly)/2 effective domain size vs. time -- Lifshitz-
-    Slyozov predicts alpha ~ 1/3 for isotropic Model B coarsening.
+    """Unclipped exploratory local slope from raw lengths; NaN if unresolved.
 
-    Restricted to late-stage (t > _ALPHA_MIN_SWEEP_T) data: early on, a
-    handful of noisy single-batch domain-size estimates dominate the fit
-    and can swing the slope to nonphysical values (negative, or far above
-    the LS prediction) well before power-law growth is actually
-    established. The result is clamped to [0.0, _ALPHA_MAX_PHYSICAL] --
-    a negative or unphysically large fitted slope means the fit caught
-    noise, not real growth, so 0.0 is reported rather than a misleading
-    number. Also returns 0.0 before enough late-stage history exists to
-    fit a slope through, or if the fit is degenerate (e.g. all t equal).
+    Negative or large measured slopes are diagnostics, not values to censor.
+    A single live trajectory cannot establish a growth law.
     """
     t_arr = np.asarray(t_hist)
     late = t_arr > _ALPHA_MIN_SWEEP_T
     if np.count_nonzero(late) < 2:
-        return 0.0
+        return float('nan')
 
     t = t_arr[late][-_ALPHA_FIT_WINDOW:]
     L = ((np.asarray(Lx_hist)[late] + np.asarray(Ly_hist)[late]) / 2.0)[-_ALPHA_FIT_WINDOW:]
 
-    valid = (t > 0) & (L > 0)
+    valid = (t > 0) & (L > 0) & np.isfinite(L)
     if np.count_nonzero(valid) < 2:
-        return 0.0
+        return float('nan')
     log_t = np.log(t[valid])
     log_L = np.log(L[valid])
     if np.ptp(log_t) == 0.0:
-        return 0.0
+        return float('nan')
 
     slope, _intercept = np.polyfit(log_t, log_L, 1)
     if not np.isfinite(slope):
-        return 0.0
-    return float(np.clip(slope, 0.0, _ALPHA_MAX_PHYSICAL))
+        return float('nan')
+    return float(slope)
 
 
 def moving_average(values: list[float] | np.ndarray, window: int) -> np.ndarray:
@@ -328,7 +319,7 @@ def build_domain_figure(
 def build_entropy_figure(
     t_hist: list[float], Sdot_smoothed: list[float], x_range: tuple[float, float],
 ) -> go.Figure:
-    """Build the S_dot(t) entropy-production log-log line chart.
+    """Build the S_dot,bath(t) bath-entropy-flow log-log line chart.
 
     Same len(t_hist) < 2 handling as build_domain_figure().
     """
@@ -341,7 +332,7 @@ def build_entropy_figure(
                 # relies on Plotly's own text markup, same as the domain
                 # chart's L<sub>x</sub>/L<sub>y</sub> subscripts.
                 x=t_hist if has_data else [], y=Sdot_smoothed if has_data else [],
-                mode="lines+markers", name="Ṡ(t)", uid="entropy-sdot",
+                mode="lines+markers", name="Ṡbath(t)", uid="entropy-sdot",
                 marker=dict(symbol="circle", size=5), line=dict(color=_ENTROPY_COLOR, width=1.5),
             ),
         ]
@@ -352,7 +343,7 @@ def build_entropy_figure(
     )
     fig.update_yaxes(
         type="log", range=_log_range(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX),
-        title_text="Ṡ(t) [k<sub>B</sub> / sweep]", showgrid=True, gridcolor="#eeeeee",
+        title_text="Ṡbath(t) [k<sub>B</sub> / sweep]", showgrid=True, gridcolor="#eeeeee",
         # automargin: Plotly expands the figure's own margin as needed to
         # fit the axis title and SI-prefixed tick labels (100μ, 1μ, ...)
         # rather than clipping them against a fixed-width margin -- the
@@ -416,6 +407,7 @@ class SimState:
         self.Lx_history: list[float] = []
         self.Ly_history: list[float] = []
         self.Sdot_history: list[float] = []
+        self.raw_history: list[dict] = []
         self.tick = 0
 
         # Shared x-axis upper bound for both line charts (see
@@ -431,7 +423,7 @@ class SimState:
         initial_concentration = int(np.count_nonzero(self.lattice == 1)) / (L * L)
         initial_interfacial = interfacial_density(self.lattice)
         self.metrics: solara.Reactive[SimMetrics] = solara.reactive(
-            SimMetrics(0, initial_energy, initial_concentration, 0.0, initial_interfacial)
+            SimMetrics(0, initial_energy, initial_concentration, float('nan'), initial_interfacial)
         )
 
 
@@ -503,7 +495,7 @@ def _slider_label(text: str, markdown: bool = False) -> None:
 _MATERIALS_SCIENCE_MARKDOWN = """
 - **Spinodal Phase Separation**: Models how a two-component mixture un-mixes over time while total concentration stays constant. I'm measuring domain size growth over time L(t) to verify whether it matches theoretical Lifshitz-Slyozov scaling L(t) ~ t^(1/3).
 - **Directional Precipitate Rafting**: Setting unequal horizontal and vertical couplings (J_x != J_y) forces domains to align into parallel bands, mimicking directional gamma-prime precipitate rafting in nickel superalloys under stress.
-- **Trajectory Entropy Production Rate**: Tracks the real-time heat dissipation rate during spin swaps across Monte Carlo sweeps. As the lattice relaxes toward equilibrium, entropy production drops off, quantifying thermodynamic irreversibility.
+- **Bath Entropy-Flow Proxy**: Tracks heat delivered to the bath during spin swaps. It falls as the lattice relaxes and interfaces disappear. Total stochastic entropy production would additionally require the system-entropy change.
 """
 
 
@@ -583,7 +575,7 @@ def LiveDashboard(state: SimState, Jx: float, Jy: float) -> None:
         _metric("Energy E", f"{metrics.energy:,.0f}")
         _metric("Concentration", f"{metrics.concentration:.4f}")
         _metric("$J_x / J_y$", f"{Jx / Jy:.2f}", markdown=True)
-        _metric("Growth Exponent $\\alpha$", f"{metrics.alpha:.3f}", markdown=True)
+        _metric("Local slope $\\alpha$", f"{metrics.alpha:.3f}" if np.isfinite(metrics.alpha) else "—", markdown=True)
         _metric("Interfacial Density", f"{metrics.interfacial_density:.4f}")
 
     # Bottom dashboard: fixed-size square lattice heatmap in the left
@@ -603,7 +595,7 @@ def LiveDashboard(state: SimState, Jx: float, Jy: float) -> None:
                 _LiveFigure(state, initial_domain_fig, on_ready=lambda w: setattr(state, "domain_widget", w))
 
             with solara.Card(style=f"height: {_CHART_HEIGHT + 60}px;"):
-                solara.Markdown("### Entropy Production Rate")
+                solara.Markdown("### Bath Entropy-Flow Rate")
                 _LiveFigure(state, initial_entropy_fig, on_ready=lambda w: setattr(state, "entropy_widget", w))
 
     solara.Text(
@@ -633,6 +625,15 @@ def Page() -> None:
     state: SimState = solara.use_memo(
         lambda: SimState(L_value.value, _SEED, Jx, Jy, concentration.value), [sim_key]
     )
+    # Freeze immutable export bytes at each paused checkpoint.
+    export_payload = solara.use_memo(
+        lambda: export_zip(state.raw_history, state.lattice.copy(),
+            dict(L=state.L, Jx=Jx, Jy=Jy, T_final=T_final.value,
+                 initial_seed=_SEED, requested_concentration=concentration.value,
+                 realized_concentration=float(np.mean(state.lattice == 1)),
+                 final_sweep=state.sweep_count)) if not state.running.value and state.raw_history else b'',
+        [state, state.running.value, state.sweep_count],
+    )
 
     async def worker() -> None:
         """Advances the simulation while state.running is True.
@@ -661,11 +662,17 @@ def Page() -> None:
 
             r_max = state.L // 2
             Cx, Cy = _axis_correlation_xy(state.lattice, r_max)
-            Lx = _display_domain_size(domain_size_from_correlation(Cx))
-            Ly = _display_domain_size(domain_size_from_correlation(Cy))
+            raw_Lx = domain_size_from_correlation(Cx)
+            raw_Ly = domain_size_from_correlation(Cy)
+            Lx = _display_domain_size(raw_Lx)
+            Ly = _display_domain_size(raw_Ly)
 
             dE_per_sweep_per_spin = (total_dE / n_sweeps) / (state.L * state.L)
             Sdot = max(-dE_per_sweep_per_spin / T_final.value, _ENTROPY_FLOOR)
+            state.raw_history.append(dict(sweep=int(t), batch_sweeps=n_sweeps,
+                length_x_sites=float(raw_Lx), length_y_sites=float(raw_Ly),
+                delta_energy=float(total_dE),
+                bath_entropy_flow_per_spin_per_sweep=float(-dE_per_sweep_per_spin / T_final.value)))
 
             state.t_history.append(t)
             state.Lx_history.append(Lx)
@@ -705,7 +712,9 @@ def Page() -> None:
             if state.tick % _METRICS_UPDATE_EVERY_N_TICKS == 0:
                 E = total_energy(state.lattice, Jx, Jy)
                 concentration = int(np.count_nonzero(state.lattice == 1)) / (state.L * state.L)
-                alpha = effective_growth_exponent(state.t_history, state.Lx_history, state.Ly_history)
+                recent = state.raw_history[-_ALPHA_FIT_WINDOW:]
+                alpha = effective_growth_exponent([r['sweep'] for r in recent],
+                    [r['length_x_sites'] for r in recent], [r['length_y_sites'] for r in recent])
                 interfacial = interfacial_density(state.lattice)
                 state.metrics.value = SimMetrics(state.sweep_count, E, concentration, alpha, interfacial)
 
@@ -745,8 +754,8 @@ def Page() -> None:
                     _slider_label(f"Quench Temperature: {T_final.value:.2f}")
                     solara.SliderFloat("", value=T_final, min=0.1, max=2.5, step=0.1)
                     solara.Markdown(
-                        f"$T / T_c$ = {T_final.value / _ISING_TC:.3f}  ($T_c$ = {_ISING_TC}, "
-                        "the 2D Ising critical temperature)",
+                        f"$T / T_c$ = {T_final.value / anisotropic_critical_temperature(Jx, Jy):.3f} "
+                        f"($T_c$ = {anisotropic_critical_temperature(Jx, Jy):.3f}, anisotropic 2D Ising)",
                         style={"color": "#888", "font-size": "0.75rem", "margin": "0", "margin-top": "-10px"},
                     )
                     _slider_label(f"Concentration: {concentration.value:.2f}")
@@ -763,6 +772,16 @@ def Page() -> None:
                         solara.Button("Start", on_click=lambda: state.running.set(True), color="primary")
                         solara.Button("Pause", on_click=lambda: state.running.set(False))
                         solara.Button("Reset", on_click=lambda: set_reset_counter(reset_counter + 1))
+
+                    if not state.running.value and state.raw_history:
+                        # A standard download link needs no asynchronous widget
+                        # round-trip or browser-side reconstruction of the ZIP.
+                        solara.HTML(tag='a', unsafe_innerHTML='Export raw research data',
+                            attributes={'href': 'data:application/zip;base64,' + base64.b64encode(export_payload).decode('ascii'),
+                                        'download': f'kawasaki_L{state.L}_t{state.sweep_count}.zip'},
+                            style='display:block;padding:8px;border:1px solid #246080;border-radius:4px;color:#175a78;')
+                    solara.Text('Pause to export raw lengths, signed heat, parameters and lattice. Charts use display floors; exported data do not.',
+                                style={'font-size': '0.75rem', 'color': '#666'})
 
                     solara.Markdown(
                         f"$J_x$={Jx:.2f}, $J_y$={Jy:.3f}  (ratio={anisotropy_ratio.value:.2f})",

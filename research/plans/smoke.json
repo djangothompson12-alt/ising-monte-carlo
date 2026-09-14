@@ -1,0 +1,5 @@
+{
+  "sizes": [16, 24], "concentrations": [0.5],
+  "replicas": 2, "max_sweeps": 100, "time_samples": 16,
+  "equilibration": 10, "Jx": 1.0, "Jy": 1.0, "seed": 71
+}

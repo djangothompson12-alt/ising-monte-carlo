@@ -1,0 +1,10 @@
+{
+  "reference": "S. Majumder and S. K. Das, ‘Domain coarsening in two dimensions: Conserved dynamics and finite-size scaling’, Physical Review E 81, 050102(R) (2010), DOI: 10.1103/PhysRevE.81.050102; preprint arXiv:1001.3985.",
+  "purpose": "Prepare a transparent measurement comparison with the symmetric 2D Kawasaki study. The present archive will be remeasured by its declared post-processing convention before any numerical comparison is attempted.",
+  "dynamics_match": "Both studies use a 2D square lattice, periodic boundaries, 50:50 composition, nearest-neighbour Kawasaki exchange and isotropic coupling. The reference reports a quench to T=0.6 Tc and sizes L=32, 64 and 128. The archived campaign uses the implementation default T_final=0.65 Tc, T_initial=3 Tc, 200 initial equilibration sweeps, sizes L=32, 64, 96 and 128, and eight replicas per size. These are not parameter-identical runs, so this is not a literal reproduction.",
+  "postprocessing_match": "The reference states that it applies a majority-spin rule using a site and its nearest neighbours to remove thermal noise. This code applies one simultaneous periodic five-site majority pass after saving a snapshot. The student must inspect the reference's operational details before calling this a matched filter.",
+  "observable_match": "The reference obtains the average domain length from the first moment of the distribution of distances between successive interfaces along x or y. This runner reports finite periodic same-spin chords along both axes after one majority pass. A reviewer must decide whether the sampling and weighting match closely enough for numerical comparison. First-zero raw correlations and a spectral moment are retained as diagnostics, not substituted for the reference's primary chord statistic.",
+  "comparison_scope": "Only symmetric c=0.5, isotropic runs are eligible. Do not generalise any result to c=0.15, anisotropic coupling, a physical alloy or the long-time asymptotic exponent without a separately justified analysis.",
+  "reviewer_status": "not_yet_reviewed",
+  "student_verified": false
+}

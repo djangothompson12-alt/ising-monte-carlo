@@ -1,12 +1,17 @@
-# 2D Ising Model Quench Dynamics: Glauber (Model A) vs. Kawasaki (Model B) Kinetics
+# Ising coarsening: spin flips, atom swaps, and how we measure growth
 
 **🔴 [Live Demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)** — real-time Model A dynamics running in-browser via HTML5 Canvas, with live Chart.js plots of magnetization and energy.
 
-Independent research project, completed during a gap year, on non-equilibrium phase-ordering kinetics in the two-dimensional Ising model. The question driving it: how does the conservation law obeyed by an order parameter's microscopic dynamics change the exponent governing domain growth after a temperature quench?
+This is an ongoing gap-year research project about how patterns grow after a sudden temperature drop. It began with two 2D Ising simulations:
 
-Two dynamics answer this differently, and both are implemented here from scratch. **Model A** — single-spin-flip dynamics, in which the order parameter $M = \sum_i \sigma_i$ is *not* conserved — is predicted by phase-ordering theory to coarsen via curvature-driven interfacial motion, the **Lifshitz–Allen–Cahn growth law** $L(t) \propto t^{1/2}$. **Model B** — nearest-neighbor spin-exchange dynamics, in which $M$ is conserved exactly — coarsens by a slower, diffusion-limited process, the **Lifshitz–Slyozov growth law** $L(t) \propto t^{1/3}$. This repository contains two independent Numba-accelerated Monte Carlo engines (plus a pure-JavaScript reimplementation of Model A), extracts the characteristic domain size $L(t)$ from the spin-autocorrelation function of each, and fits the resulting scaling exponents against both predictions.
+- **Model A** flips one spin at a time using the Metropolis rule. Total magnetisation can change.
+- **Model B** exchanges neighbouring spins using the Metropolis rule. The number of each spin type stays fixed, so it is a simple model of a binary mixture with conserved composition.
 
-*A terminology note, since it matters for precision:* the move-acceptance rule implemented for Model A throughout this codebase is **Metropolis** ($P_\text{accept} = \min(1, e^{-\beta\Delta E})$), not the Glauber rate function ($P_\text{accept} = 1/(1+e^{\beta\Delta E})$) in the strict sense. Both are non-conserved single-spin-flip dynamics belonging to the same Hohenberg–Halperin **Model A** universality class, and both produce the same asymptotic growth exponent — "Glauber dynamics" is used in the title in the broad sense common in the phase-ordering-kinetics literature (e.g. Bray, *Adv. Phys.* 1994) for non-conserved single-spin-flip dynamics generally, not as a claim that the specific rate function is Glauber's.
+The original question was why the two models coarsen at different rates. The current, harder question is **how much a measured growth exponent depends on run length, lattice size and the way domain size is measured**. The expected late-time laws are $L(t)\propto t^{1/2}$ for non-conserved dynamics and, under the usual diffusion-controlled conditions, $L(t)\propto t^{1/3}$ for conserved dynamics. Our finite runs do not prove either asymptotic law. [Progress and limits](docs/PROGRESS_AND_LIMITS.md) gives the short account; the longer sections below explain the code and methods.
+
+The completed 64-run Model B study found effective slopes near 0.26 in its later fit window for the larger lattices. Changing the fit window or the image-processing pipeline changes the fitted slope. That is a measurement result, **not** evidence that a real alloy follows a different growth law. The model has no calibrated mapping from Monte Carlo sweeps to hours or from lattice sites to micrometres. [Raw data and reproducibility](research/DATA_README.md) are documented separately. Development included substantial [AI assistance](AI_USE_AND_CONTRIBUTIONS.md); all scientific claims remain subject to student review.
+
+*A terminology note, since it matters for precision:* the move-acceptance rule implemented for Model A throughout this codebase is **Metropolis** ($P_\text{accept} = \min(1, e^{-\beta\Delta E})$), not the Glauber rate function ($P_\text{accept} = 1/(1+e^{\beta\Delta E})$). Both are non-conserved single-spin-flip realizations in the Hohenberg–Halperin **Model A** universality class, but this repository calls the implemented dynamics Metropolis throughout.
 
 <p align="center">
   <img src="model_a/figures/fig1_phase_transitions.png" width="700" alt="Phase transition observables vs. temperature">
@@ -73,10 +78,10 @@ which is marked as a vertical reference line in the generated figures.
 ### Non-equilibrium quench kinetics
 
 <p align="center">
-  <img src="model_a/figures/fig3_kinetics_entropy.png" width="600" alt="Domain growth and entropy production kinetics after a temperature quench">
+  <img src="model_a/figures/fig3_kinetics_entropy.png" width="600" alt="Domain growth and bath entropy-flow kinetics after a temperature quench">
 </p>
 
-Quenching the lattice from a disordered high-temperature state ($T_{\text{initial}} = 5.0 \gg T_c$) to an ordered low-temperature state ($T_{\text{final}} = 1.5 < T_c$) leaves the system far from equilibrium: rather than relaxing instantly, ferromagnetic domains nucleate and then coarsen, growing over time. For this **non-conserved** order parameter (single-spin-flip dynamics, no magnetization conservation), phase-ordering theory predicts curvature-driven interfacial motion obeying the **Lifshitz–Allen–Cahn growth law**
+Quenching the lattice from a disordered high-temperature state ($T_{\text{initial}} = 5.0 \gg T_c$) to an ordered low-temperature state ($T_{\text{final}} = 1.5 < T_c$) leaves the system far from equilibrium: ordered patches appear and coarsen. For this **non-conserved** order parameter (single-spin-flip dynamics, no magnetization conservation), phase-ordering theory predicts curvature-driven interfacial motion obeying the **Lifshitz–Allen–Cahn growth law**
 
 $$
 L(t) \sim t^{1/2}
@@ -90,13 +95,13 @@ $$
 
 (averaged over lattice sites and the two principal lattice directions) as the lattice distance $r$ at which $C(r, t)$ first decays to $1/2$, linearly interpolated between the bracketing integer separations. `run_quench_kinetics` (in `model_a/ising_engine.py`) averages this over many independent quench replicas and samples $C(r,t)$ at logarithmically spaced sweep counts, since the growth is expected to be a power law in time.
 
-**Entropy production.** The lattice is coupled to a heat bath at fixed $T_{\text{final}}$: every accepted Metropolis flip changes the system's energy by $\Delta E$, and by conservation of energy the bath absorbs heat $-\Delta E$ over that move. Summing accepted $\Delta E$ within each inter-checkpoint interval gives an estimate of the (per-spin) irreversible entropy production rate
+**Bath entropy flow.** The lattice is coupled to a heat bath at fixed $T_{\text{final}}$: every accepted Metropolis flip changes the system's energy by $\Delta E$, and by conservation of energy the bath absorbs heat $-\Delta E$ over that move. Summing accepted $\Delta E$ within each inter-checkpoint interval therefore gives the per-spin bath entropy-flow rate
 
 $$
-\dot{S}(t) = -\frac{1}{T}\frac{\langle \Delta E \rangle}{dt}
+\dot{S}_{\mathrm{bath}}(t) = -\frac{1}{T}\frac{\langle \Delta E \rangle}{dt}.
 $$
 
-which is non-negative for a relaxing system and is expected to decay towards zero as domain walls annihilate and accepted moves become rarer — the system's dissipation subsides as it approaches a slowly coarsening, quasi-equilibrium state.
+This is a useful dissipation proxy and is positive on average in the reported relaxation runs. It is **not by itself the total stochastic entropy-production rate**, which would also require the system's Shannon-entropy change. The result arrays retain the historical field name `entropy_production` for API compatibility.
 
 ## Repository structure
 
@@ -104,6 +109,7 @@ which is non-negative for a relaxing system and is expected to decay towards zer
 .
 ├── index.html                  # Model A live demo (Canvas + Chart.js, no build step)
 ├── comparative_analysis.py     # Reads both models' CSVs, plots L(t) scaling side by side
+├── phase_diagram.py            # Regular-solution spinodal mapped from Model B couplings
 ├── requirements.txt
 ├── manuscript/                  # main.tex (revtex4-2 PRL format) + compiled main.pdf
 ├── figures/                      # fig_comparative_scaling.png (from comparative_analysis.py)
@@ -111,13 +117,17 @@ which is non-negative for a relaxing system and is expected to decay towards zer
 │   ├── ising_engine.py           # Numba-jitted Metropolis MC core + observable calculation
 │   ├── visualizer.py              # Publication-quality figure generation (matplotlib)
 │   ├── main.py                    # CLI entry point: runs the sweep, saves data + figures
-│   ├── plot_kinetics.py           # Quench simulation + domain-growth/entropy-production plot
+│   ├── plot_kinetics.py           # Quench simulation + domain-growth/bath-flow plot
+│   ├── ising_3d_engine.py          # Separate cubic-lattice Model A core
+│   ├── plot_3d.py                  # Orthogonal-slice renderer for 3D Model A
 │   ├── figures/                    # Generated PNGs (fig1, fig2, fig3)
 │   └── results/                    # Generated observables.csv, quench_kinetics.csv
 └── model_b/                    # Model B: conserved order parameter (Kawasaki) -- see below
     ├── kawasaki_engine.py         # Numba-jitted Kawasaki MC core, anisotropic couplings,
-    │                                #   directional FFT correlations, entropy production
+    │                                #   directional FFT correlations, bath heat bookkeeping
     ├── plot_kawasaki_kinetics.py  # Launcher: runs the quench, saves CSV + figure
+    ├── kawasaki_3d_engine.py       # Separate anisotropic cubic-lattice Model B core
+    ├── plot_3d.py                  # Orthogonal-slice renderer for 3D Model B
     ├── live_visualizer.py         # Native desktop dashboard (matplotlib + Tk)
     ├── solara_app.py              # Web dashboard (Solara)
     ├── figures/                    # fig_anisotropic_kinetics.png
@@ -131,7 +141,7 @@ A self-contained, single-file browser simulation — open `index.html` directly 
 - **`model_a/ising_engine.py`** — `SimulationConfig` (lattice size, temperature range, equilibration/sampling sweeps), the JIT-compiled Metropolis sweep and energy/magnetization kernels, and `run_temperature_sweep` / `sample_snapshot` for producing sweep-level and single-temperature results.
 - **`model_a/visualizer.py`** — `plot_phase_transitions` (4-panel $|M|$, $E$, $C_v$, $\chi$ vs. $T$) and `plot_spin_domains` (lattice snapshots at representative temperatures).
 - **`model_a/main.py`** — orchestrates a full run: temperature sweep → `results/observables.csv` → `figures/fig1_phase_transitions.png` and `figures/fig2_spin_domains.png`.
-- **`model_a/plot_kinetics.py`** — runs a $T_{\text{initial}} \to T_{\text{final}}$ quench via `ising_engine.run_quench_kinetics`, saves `results/quench_kinetics.csv`, fits a power law to the domain-growth scaling regime, and renders the two-panel `figures/fig3_kinetics_entropy.png` ($L(t)$ scaling fit on top, entropy production rate $\dot{S}(t)$ below).
+- **`model_a/plot_kinetics.py`** — runs a $T_{\text{initial}} \to T_{\text{final}}$ quench via `ising_engine.run_quench_kinetics`, saves `results/quench_kinetics.csv`, fits a power law to the domain-growth scaling regime, and renders the two-panel `figures/fig3_kinetics_entropy.png` ($L(t)$ scaling fit on top, bath entropy-flow rate below).
 
 ## Installation
 
@@ -198,7 +208,7 @@ lattice = sample_snapshot(T=2.269, config=config, seed=0)  # (L, L) array of +-1
 python model_a/plot_kinetics.py
 ```
 
-Runs a $T=5.0 \to T=1.5$ quench (default: $L=128$, 16 independent replicas, 2000 sweeps), writes `model_a/results/quench_kinetics.csv` ($t$, $L(t)$ and its standard error, $\dot{S}(t)$ and its standard error), fits the domain-growth power law over the genuine scaling regime, and saves `model_a/figures/fig3_kinetics_entropy.png`. On the same hardware as the pipeline above, this takes under a minute; with the default configuration and seed it gives a fitted exponent $\alpha = 0.4841$, within about 3% of the Lifshitz–Allen–Cahn prediction of $0.5$ (reproducible bit-for-bit given the fixed seed, though it will shift slightly with different parameters, replica counts, or seeds).
+Runs a $T=5.0 \to T=1.5$ quench (default: $L=128$, 16 independent replicas, 2000 sweeps), writes `model_a/results/quench_kinetics.csv` ($t$, $L(t)$ and its standard error, bath entropy-flow rate and its standard error), fits a declared finite window, and saves `model_a/figures/fig3_kinetics_entropy.png`. Fitting the currently committed CSV with the current code gives $\alpha = 0.4999$ from 19 checkpoints at 3–489 sweeps. An older draft stated 0.4841; that number is not the fit of this archived CSV and should not be reused without its original data and fit settings. Nearness to $1/2$ is a consistency check, not proof of an asymptotic law.
 
 ```python
 import sys
@@ -212,7 +222,7 @@ result = run_quench_kinetics(config)
 
 ### Manuscript
 
-[`manuscript/main.pdf`](manuscript/main.pdf) is a short Physical Review Letters–format writeup ("Quantifying Phase-Ordering Kinetics and Non-Equilibrium Entropy Production in the Two-Dimensional Ising Quench") built from [`manuscript/main.tex`](manuscript/main.tex) with `revtex4-2`, covering the theoretical background, methodology, and results above in full, citation-backed detail. Rebuild it with:
+[`manuscript/main.tex`](manuscript/main.tex) is a working draft, not a finished or peer-reviewed paper. The tracked [`manuscript/main.pdf`](manuscript/main.pdf) is older than that source. To rebuild it after checking the claims, use:
 
 ```bash
 cd manuscript && pdflatex main.tex && pdflatex main.tex
@@ -220,17 +230,54 @@ cd manuscript && pdflatex main.tex && pdflatex main.tex
 
 (two passes, to resolve citations and cross-references).
 
+### Exploratory 3D cubic lattices
+
+The manuscript and all reported results remain two-dimensional. Separate,
+exploratory 3D cubic-lattice engines have been added without changing the
+validated 2D engines, visualisers or results. Both use six periodic nearest
+neighbours. Model A uses Metropolis single-spin-flip dynamics; Model B uses
+nearest-neighbour Kawasaki exchange and conserves total magnetisation exactly.
+
+```bash
+python model_a/plot_3d.py --L 32 --sweeps 200
+python model_b/plot_3d.py --L 32 --sweeps 200 --Jx 1 --Jy 1 --Jz 1
+```
+
+Each command saves central `xy`, `xz`, and `yz` slices of a genuine 3D spin
+volume. Model B has couplings `Jx`, `Jy`, and `Jz`; unlike the 2D anisotropic
+model, its 3D critical-temperature surface has no exact Onsager condition, so
+the 3D quench temperatures are explicit inputs. These are learning and future
+development tools, not grounds for a 3D growth-law, alloy-prediction, or
+experimental-validation claim until a separate 3D measurement protocol exists.
+
+### Real-image measurement intake
+
+`research/analyse_images.py` accepts only explicitly calibrated, documented
+2D images and never guesses a segmentation threshold or fits an experimental
+growth exponent. For a data owner or microscopist who supplies a justified
+range of candidate thresholds, `research/segmentation_sensitivity.py` retains
+every result instead of silently selecting the most favourable one:
+
+```bash
+python -m research.segmentation_sensitivity approved_image_manifest.json \
+  --output research/runs/declared_threshold_sensitivity
+```
+
+The template contains placeholders, not real measurements. Registration, ROI
+selection, phase identification and permissions must be supplied by the data
+owner before a real dataset is analysed.
+
 ## Verification
 
-The generated `fig1_phase_transitions.png` shows the expected signatures of a second-order phase transition: $\langle |M| \rangle$ drops from near 1 to near 0 across $T_c$, $\langle E \rangle$ rises smoothly, and both $C_v$ and $\chi$ peak sharply near $T_c \approx 2.269$ — consistent with Onsager's exact solution. `fig2_spin_domains.png` shows a single dominant magnetic domain at $T = 1.5$, scale-spanning clusters at $T \approx T_c$, and fine-grained disorder at $T = 3.5$. `fig3_kinetics_entropy.png`'s top panel shows $L(t)$ tracking the predicted $t^{1/2}$ line closely across roughly two decades of Monte Carlo time (fitted exponent $\alpha = 0.4841$); points from the earliest post-quench sweeps (lattice-discreteness transient) and the latest sweeps (where $L(t)$ approaches the periodic lattice's finite-size limit) are shown but excluded from the power-law fit, and are visibly where the data departs from the scaling line. Its bottom panel shows $\dot{S}(t)$ falling from $\approx 0.295$ to $\approx 1.2\times 10^{-5}$ (per spin, $k_B$ units) — over four orders of magnitude — over the same window, consistent with dissipation being concentrated at domain-wall annihilation events that become rarer as coarsening proceeds.
+The generated `fig1_phase_transitions.png` shows the expected signatures of a second-order phase transition: $\langle |M| \rangle$ drops from near 1 to near 0 across $T_c$, $\langle E \rangle$ rises smoothly, and both $C_v$ and $\chi$ peak near $T_c \approx 2.269$. `fig2_spin_domains.png` shows large ordered regions at $T = 1.5$, mixed-scale clusters near $T_c$, and fine-grained disorder at $T = 3.5$. In the archived Model A quench CSV, the selected finite-window fit is $\alpha = 0.4999$. The bath entropy-flow-rate estimate falls from about 0.297 at the first checkpoint to $9.76\times10^{-6}$ at the last; this is a decline in an interval-averaged rate, not cumulative heat loss or total entropy production.
 
 ## Model B: Conserved Kawasaki Dynamics & Anisotropy
 
 > **Live demo:** the previous badge here pointed at a Streamlit Community Cloud deployment (`anisotropic-materials-sim.streamlit.app`). The web dashboard has since been rebuilt on Solara (see below), which that platform can't host — Streamlit Cloud only runs Streamlit apps, and `model_b/solara_app.py` no longer imports `streamlit` at all, so the old deployment will break once this change reaches it. No replacement deployment exists yet; run it locally with the instructions below in the meantime.
 
-### Executive summary
+### In plain language
 
-This module simulates **anisotropic, conserved-order-parameter phase separation** and connects it to three real materials phenomena. **Binary alloy spinodal decomposition** is close to a literal correspondence: this simulation *is* the standard lattice-gas model of a quenched A/B alloy, with conserved magnetization standing in for conserved alloy composition and the measured $t^{1/3}$ growth law matching the Lifshitz–Slyozov description of precipitate coarsening (Ostwald ripening) used in metallurgy. **Directional grain alignment in rolled sheet metals** is a looser but genuinely useful parallel — rolling imposes a preferred direction via plastic deformation rather than diffusion, but the qualitative outcome (elongated, texture-aligned grains along one axis) is the same *shape* of phenomenon that $J_x \neq J_y$ produces here. **Single-crystal superalloy turbine blade microstructures** are the closest real-world analog to the anisotropy mechanism specifically: Ni-based superalloys grown as single crystals undergo directional $\gamma'$ precipitate coarsening ("rafting") under applied stress, driven by elastic anisotropy — an external asymmetry biasing which direction domains preferentially grow along, exactly like $J_x \neq J_y$ biases $L_x(t)$ vs. $L_y(t)$ in this model.
+Model B is a 2D lattice-gas analogue of a binary mixture: a move swaps two neighbours, so it cannot create or destroy either component. Its unequal couplings can make patterns longer in one lattice direction. Real materials also develop directional microstructures, including precipitate rafting in some superalloys, but **the mechanism here is not the same**: this code has fixed bond anisotropy, not elastic strain, stress, rolling or real alloy diffusion. Those examples motivate questions; they are not validations of the model.
 
 Model A (above: `model_a/`, plus `index.html` and `manuscript/` at the repo root) is the Hohenberg–Halperin classification's non-conserved case: single-spin-flip dynamics, in which the order parameter is *not* conserved. [`model_b/`](model_b/) is a fully standalone implementation of the complementary case, **Model B**: Kawasaki spin-exchange dynamics, in which total magnetization $\sum_i \sigma_i$ is exactly conserved. It does not import, modify, or depend on any file outside `model_b/`.
 
@@ -244,7 +291,7 @@ $$
 
 so the two coarsening directions can be compared directly. The critical temperature generalizes Onsager's exact result to the anisotropic case as the root of $\sinh(2J_x/T_c)\sinh(2J_y/T_c) = 1$ (`anisotropic_critical_temperature`, solved numerically; reduces to $T_c = 2J/\ln(1+\sqrt2)$ when $J_x = J_y = J$), and is used to set the quench temperatures automatically ($T_{\text{initial}} = 3\,T_c$, $T_{\text{final}} = 0.65\,T_c$) whenever they aren't given explicitly.
 
-Because the order parameter is conserved, phase separation here is diffusion-limited rather than curvature-driven, and Hohenberg–Halperin theory predicts the slower **Lifshitz–Slyozov growth law** $L(t) \sim t^{1/3}$, in contrast to Model A's $t^{1/2}$. The directional domain sizes $L_x(t)$ and $L_y(t)$ are extracted independently (rather than axis-averaged) from $C_x(r,t)$ and $C_y(r,t)$, each computed via the same 2D-FFT / Wiener–Khinchin approach used in the Model A engine. Entropy production $\dot{S}(t) = -\frac{1}{T}\langle \Delta E \rangle / dt$ is tracked identically to the Model A quench, from the energy change of *accepted exchanges*.
+Because the order parameter is conserved, interfaces cannot move by changing a spin in place; material must be transported, usually by diffusion in the late-stage picture. Curvature still matters because it affects interfacial chemical potential. Under the usual conditions the expected late-time **Lifshitz–Slyozov growth law** is $L(t) \sim t^{1/3}$, in contrast to Model A's $t^{1/2}$. The directional domain sizes $L_x(t)$ and $L_y(t)$ are extracted independently from $C_x(r,t)$ and $C_y(r,t)$, computed with a 2D FFT. The bath entropy-flow proxy $\dot{S}_{\mathrm{bath}}(t) = -\frac{1}{T}\langle \Delta E \rangle / dt$ is tracked from the energy change of accepted exchanges.
 
 The exchange energy-change formula and magnetization conservation were both checked directly against an independent brute-force recomputation of the full lattice Hamiltonian before any production run (exact match, not just "close").
 
@@ -268,15 +315,15 @@ result = run_quench_kinetics(config)
 
 ### Results
 
-At the default configuration, $L_x(t)$ grows visibly faster than $L_y(t)$ throughout the run (e.g. $L_x \approx 4.0$ vs. $L_y \approx 1.9$ lattice units by $t=10{,}000$ sweeps), correctly reflecting the stronger horizontal coupling $J_x > J_y$. The entropy production rate falls from $\dot{S}(t{=}1) \approx 0.151$ to $\dot{S}(t{=}10{,}000) \approx 7.3\times 10^{-6}$ (per spin, $k_B$ units) — again over four orders of magnitude, as in Model A.
+At the default configuration, $L_x(t)$ grows visibly faster than $L_y(t)$ throughout the run (e.g. $L_x \approx 4.0$ vs. $L_y \approx 1.9$ lattice units by $t=10{,}000$ sweeps), correctly reflecting the stronger horizontal coupling $J_x > J_y$. The measured bath entropy-flow proxy falls from $\dot{S}_{\mathrm{bath}}(t{=}1) \approx 0.151$ to $\dot{S}_{\mathrm{bath}}(t{=}10{,}000) \approx 7.3\times 10^{-6}$ (per spin, $k_B$ units) — again over four orders of magnitude, as in Model A.
 
-Fitting $L_x(t)$ and $L_y(t)$ over the same style of trimmed scaling regime used for Model A gives effective exponents $\alpha_x \approx 0.18$ and $\alpha_y \approx 0.14$ — both well below the asymptotic Lifshitz–Slyozov prediction of $1/3$. This is expected, not a defect: conserved-order-parameter coarsening is well documented to have much stronger and longer-lived corrections to its asymptotic growth law than the non-conserved case, so an effective exponent well below $1/3$ at Monte-Carlo-accessible timescales (here, up to $10^4$ sweeps) is the physically correct outcome, not a fitting artifact — domain sizes reach only a small fraction of the periodic lattice's finite-size limit ($r_{\max}=48$) by the end of the run, so the shortfall isn't finite-size saturation either. Reaching closer to $1/3$ would require substantially longer runs than were practical to include here.
+Fitting $L_x(t)$ and $L_y(t)$ over the same style of trimmed scaling regime used for Model A gives effective exponents $\alpha_x \approx 0.18$ and $\alpha_y \approx 0.14$ — both well below the asymptotic Lifshitz–Slyozov prediction of $1/3$. Long-lived pre-asymptotic corrections are a plausible explanation for this shortfall, and the measured domain sizes remain well below the estimator's maximum range. Those observations do not, however, rule out finite-size or fit-window effects. Systematic runs over several lattice sizes and longer times are therefore required before assigning the discrepancy uniquely to pre-asymptotic physics.
 
 ### Interactive dashboards
 
 Two live-updating visualizers sit alongside the batch pipeline (`plot_kawasaki_kinetics.py`) above — both read live simulation state directly (plain Python / reactive variables), not the saved CSV/figure:
 
-- **Native desktop dashboard** (`model_b/live_visualizer.py`, matplotlib + Tk): a lattice heatmap, directional domain-growth plot, and entropy-production plot, animated with `FuncAnimation`.
+- **Native desktop dashboard** (`model_b/live_visualizer.py`, matplotlib + Tk): a lattice heatmap, directional domain-growth plot, and bath entropy-flow plot, animated with `FuncAnimation`.
 - **Web dashboard** (`model_b/solara_app.py`, [Solara](https://solara.dev/)): the same three live panels in a browser, with sidebar sliders (rendered with inline LaTeX via `solara.Markdown`) for the anisotropy ratio $J_x/J_y$, quench temperature $T_f$, lattice size, and sweeps per frame, plus Start/Pause/Reset controls, live growth-exponent/interfacial-density readouts, and a "Materials Science & Engineering" expander covering the analogies above. A background `asyncio` task advances the simulation and patches the lattice/chart widgets' traits directly, bypassing Solara's own reactive re-render cycle for that hot path (continuously driving a component re-render at animation speed turned out to race Solara 1.61.0's render scheduler); only a throttled numeric-metrics readout still goes through an actual `solara.reactive()` publish.
 
 Run the web dashboard locally with:
@@ -297,6 +344,124 @@ python comparative_analysis.py
 ```
 
 Saves `figures/fig_comparative_scaling.png` at the repo root (distinct from each model's own `figures/` subdirectory, since this figure isn't specific to either one) and prints both fitted growth exponents to stdout. This is the figure that most directly answers the question the project set out to ask: the two panels, plotted on identical log-log axes, make the different growth exponents of conserved vs. non-conserved order-parameter kinetics a direct visual comparison rather than a claim to take on faith.
+
+## Regular-solution phase diagram
+
+```bash
+python phase_diagram.py
+```
+
+For the conserved Model B lattice-gas interpretation, this writes
+`figures/fig_regular_solution_spinodal.png`: the Bragg--Williams
+regular-solution spinodal derived by bond counting from the implemented
+couplings, $k_B T_s(c)=8(J_x+J_y)c(1-c)$. It marks the actual isotropic
+concentration-sweep and anisotropic-baseline quench paths. The plot is
+explicitly a mean-field thermodynamic guide, not the exact 2D Ising
+coexistence curve; Model A is excluded because its Metropolis spin flips do
+not conserve composition.
+
+## Fe--Cr literature benchmark
+
+```bash
+python fecr_literature_benchmark.py
+```
+
+This reads the committed Model B concentration-sweep result at `c=0.35` and
+writes `figures/fig_fecr_literature_benchmark.png`, comparing its effective
+growth exponent with two published measures for Xu et al.'s alloy labelled
+35Cr at 773 K. Their composition table uses weight percent, not model site
+fraction; these are not composition-matched systems. The
+figure labels the comparison as qualitative: a 2D lattice measured in Monte
+Carlo sweeps is not calibrated to a 3D alloy aged in hours. Its purpose is to
+motivate a shared finite-time/coarsening question, not to claim quantitative
+prediction. Experimental values and DOI provenance are documented in the
+script.
+
+## Reproducibility and external review
+
+The controlled observation benchmark is implemented and has been run on the
+64 long-run replicas plus eight fresh-seed repeats. See
+[measurement-study results](docs/MEASUREMENT_STUDY_RESULTS.md),
+[the observation protocol](research/IMAGING_PROTOCOL.md), and
+[the writing/evidence guide](docs/PAPER_EVIDENCE_GUIDE.md).
+It tests sensitivity to field of view, blur, pixel averaging and segmentation;
+it does not establish a new growth law or a universal measurement correction.
+Five licensed original experimental slices have also been retrieved and audited,
+but are not yet a validated experimental kinetics comparison.
+
+```bash
+python -m research.imaging_benchmark research/runs/overnight --output new_imaging_analysis
+python -m research.analyse_images --help
+python -m research.verify_study research/runs/overnight \
+  --source-root research/frozen_sources/2026-09-10
+```
+
+For a **separate symmetric-literature benchmark**, first complete and save a
+copy of `research/reference_benchmark.template.json`. It is deliberately
+invalid until a real target citation and comparison decisions have been
+recorded. The runner only accepts an isotropic `c=0.5` campaign, writes every
+replica/timepoint rather than an exponent fit, and records hashes of the input
+archives and declaration:
+
+```bash
+python -m research.reference_benchmark research/runs/overnight my_completed_declaration.json --output reference_measurements
+```
+
+This is a measurement-comparison preparation tool, not a claim that a paper
+has been reproduced. One-pass majority filtering occurs only after a saved
+snapshot and must not be put back into Kawasaki dynamics or substituted for
+the primary off-critical connected-correlation analysis. See
+`research/REFERENCE_BENCHMARK_PROTOCOL.md`.
+
+New work: [start here](docs/START_HERE.md), [research design and report plan](research/STUDY_DESIGN.md), [finite-size campaign protocol](research/PROTOCOL.md),
+[tennis-string experiment protocol](experiments/PROTOCOL.md), and
+[one-page review brief](docs/review_brief.html). The tennis work is a separate
+mechanics experiment, not validation of the Ising model. No physical string
+measurements are included yet.
+
+The Solara dashboard now offers **Export raw research data** when paused after
+a run. Its ZIP contains unmodified directional lengths, signed heat flow,
+parameters and a lattice snapshot. Display floors/smoothing are excluded.
+Live trajectories are exploratory: initialization seed alone does not reproduce
+the dynamics RNG. Use `python -m research.campaign` for seeded replica ensembles.
+The live slope is no longer clipped to a theoretical range, and the reduced
+temperature readout uses the anisotropic critical temperature.
+
+For the new tools:
+
+```bash
+python -m research.campaign --plan research/plans/pilot.json --output research/runs/pilot --hours 1
+python -m research.analyse_campaign research/runs/pilot
+python -m research.compare_estimators research/runs/pilot --output research/runs/pilot/new_estimator_analysis
+python -m experiments.string_lab --help
+```
+
+Most new campaign output remains git-ignored, but the completed main, pilot
+and fresh observation-repeat archives in [the data guide](research/DATA_README.md)
+are included in this snapshot. The 0.6Tc literature benchmark is incomplete
+(7/40 planned runs), and the longer 0.65Tc extension has not started. The
+tracked `manuscript/main.pdf` is **older than** `manuscript/main.tex`; use the
+source as a working draft and rebuild and check a new PDF before sharing any
+paper as a report.
+
+Run the fast physics-contract checks with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The tests independently check energy bookkeeping, exact Kawasaki composition
+conservation, periodic component labelling, LSW normalization, the exact
+critical-temperature relation, and the regular-solution mapping. The same
+suite runs in GitHub Actions on pushes and pull requests. `CITATION.cff`
+provides software citation metadata, and `EXTERNAL_REVIEW.md` is a bounded
+technical-review packet rather than a request for a general endorsement.
+`AI_USE_AND_CONTRIBUTIONS.md` records the project's AI-assisted provenance and
+the verification still required before an external release.
+
+Public research progress and limitations are collected in
+[the progress log](docs/PROGRESS_AND_LIMITS.md). Personal application and
+outreach notes are deliberately kept out of this public research snapshot.
 
 ## License
 

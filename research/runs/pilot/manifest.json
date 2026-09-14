@@ -1,0 +1,36 @@
+{
+  "identity": {
+    "plan": {
+      "sizes": [
+        32,
+        64,
+        96
+      ],
+      "concentrations": [
+        0.5,
+        0.15
+      ],
+      "replicas": 4,
+      "max_sweeps": 20000,
+      "time_samples": 48,
+      "equilibration": 200,
+      "Jx": 1.0,
+      "Jy": 1.0,
+      "seed": 20260911
+    },
+    "sources": {
+      "model_b/kawasaki_engine.py": "2452e882dc9acc217903d262215f0fa1ab6fa13d39f6db701de2e1b37ebeebf9",
+      "research/campaign.py": "ddcc4769c48800b1db2683c7377537721fb62b05392676094ed68361df985321"
+    },
+    "versions": {
+      "numpy": "2.0.2",
+      "scipy": "1.17.1",
+      "numba": "0.60.0"
+    },
+    "python": "3.11.16"
+  },
+  "created_utc": "2026-09-10T01:05:27.860431+00:00",
+  "git_commit": "fb717d105af4644bb8bd8e5c64bd5dec1967f3df",
+  "git_status": " M .gitignore\n M CLAUDE.md\n M README.md\n M manuscript/main.tex\n M model_a/figures/fig3_kinetics_entropy.png\n M model_a/ising_engine.py\n M model_a/plot_kinetics.py\n M model_b/figures/fig_anisotropic_kinetics.png\n M model_b/kawasaki_engine.py\n M model_b/live_visualizer.py\n M model_b/plot_kawasaki_kinetics.py\n M model_b/solara_app.py\n?? .github/\n?? AI_USE_AND_CONTRIBUTIONS.md\n?? CITATION.cff\n?? EXTERNAL_REVIEW.md\n?? docs/\n?? fecr_literature_benchmark.py\n?? figures/fig_fecr_literature_benchmark.png\n?? figures/fig_regular_solution_spinodal.png\n?? phase_diagram.py\n?? research/\n?? tests/\n",
+  "description": "Prospective finite-size study; hypotheses are not conclusions."
+}

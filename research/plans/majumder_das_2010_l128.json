@@ -1,0 +1,15 @@
+{
+  "sizes": [128],
+  "concentrations": [0.5],
+  "replicas": 40,
+  "max_sweeps": 4500000,
+  "time_samples": 96,
+  "equilibration": 0,
+  "Jx": 1.0,
+  "Jy": 1.0,
+  "T_initial_over_tc": 3.0,
+  "T_final_over_tc": 0.6,
+  "seed": 20260913,
+  "purpose": "Predeclared L=128 symmetric Kawasaki benchmark against Majumder and Das (2010), DOI: 10.1103/PhysRevE.81.050102. It checks their reported L=128 time scale and ensemble size with a declared post-processing comparison; it cannot by itself reproduce their multi-size finite-size scaling analysis.",
+  "stop_rule": "Complete all 40 replicas unless an invariant or storage failure is documented. Do not alter parameters, discard replicas, or extend solely because a fitted slope is inconvenient. Analyse all completed replicas before deciding on any new plan."
+}

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using these metadata."
+title: "Two-dimensional Ising Monte Carlo models for phase-ordering kinetics"
+type: software
+authors:
+  - family-names: Thompson
+    given-names: Django
+repository-code: "https://github.com/djangothompson12-alt/ising-monte-carlo"
+license: MIT
+abstract: >-
+  Reproducible Model A Metropolis and Model B Kawasaki Monte Carlo engines
+  for two-dimensional phase-ordering kinetics, including anisotropic
+  couplings, concentration sweeps, correlation-based domain metrology,
+  and interactive visualizers.
+keywords:
+  - Ising model
+  - Monte Carlo
+  - phase-ordering kinetics
+  - Kawasaki dynamics
+  - materials science

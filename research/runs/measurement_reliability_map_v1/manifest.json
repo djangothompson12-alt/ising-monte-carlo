@@ -1,0 +1,22 @@
+{
+  "created_utc": "2026-09-13T18:27:32.545531+00:00",
+  "source_sha256": "e1d666a653d14ce732b14e82eea01a152631052cda7ded21108465bd3b14bb76",
+  "inputs_sha256": {
+    "original": {
+      "paired_fits.csv": "56f195183251c3b75e8a95a19a8b88d4dcc51b04165994f731574f5352390a53",
+      "observations.csv": "1b65e97c7322c7f7f9f82dcabc9de41385c0f10d1746970cec4144a10d823917"
+    },
+    "fresh": {
+      "paired_fits.csv": "d3857c65b8c65c12c445beca5efb1aa3a99440a76c188f4db1ed7661486870ed",
+      "observations.csv": "7e1b9b39a542de726344bf2e7b0e30d20044777c8c424402fdb61c93492adf8d"
+    }
+  },
+  "fit_window": "nominal 1,000\u201320,000 sweeps; actual retained endpoints shown in CSV",
+  "original_role": "exploratory discovery ensemble",
+  "fresh_role": "four-replica-per-composition holdout",
+  "caveats": [
+    "Block width, blur sigma and field width are different operators; x positions are not interchangeable.",
+    "No fitted universal reliability threshold or correction is inferred.",
+    "A held-out simulation is not experimental validation."
+  ]
+}

@@ -6,7 +6,7 @@ Standalone launcher for the anisotropic Kawasaki (Model B, conserved order
 parameter) quench: runs the simulation, saves the raw kinetics data, and
 generates a two-panel publication-style figure -- directional domain growth
 L_x(t) / L_y(t) with a Lifshitz-Slyozov t^(1/3) power-law fit on top, and the
-entropy production rate S_dot(t) below.
+bath entropy-flow proxy S_dot,bath(t) below.
 
 This script and `kawasaki_engine.py` are fully self-contained and do not
 import from, modify, or depend on any file outside `model_b/`.
@@ -19,6 +19,11 @@ Usage:
 from __future__ import annotations
 
 from pathlib import Path
+
+import matplotlib
+
+# This script writes a file and never opens a GUI window.
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -119,7 +124,7 @@ def plot_anisotropic_kinetics(
     A_y: float,
     mask_y: np.ndarray,
 ) -> Path:
-    """Render the two-panel directional domain-growth + entropy-production figure."""
+    """Render the two-panel directional growth + bath-entropy-flow figure."""
     _apply_publication_style()
 
     fig, (ax_top, ax_bottom) = plt.subplots(2, 1, figsize=(7, 10))
@@ -170,7 +175,7 @@ def plot_anisotropic_kinetics(
     )
     ax_top.legend(loc="upper left", fontsize=8)
 
-    # --- Bottom panel: entropy production rate S_dot(t) ---
+    # --- Bottom panel: bath entropy-flow proxy ---
     Sdot, Sdot_err = result.entropy_production, result.entropy_production_err
     finite = np.isfinite(Sdot)
     ax_bottom.errorbar(
@@ -180,9 +185,9 @@ def plot_anisotropic_kinetics(
     ax_bottom.axhline(0, color="black", linewidth=0.8, alpha=0.5)
     ax_bottom.set_xscale("log")
     ax_bottom.set_xlabel(r"Time $t$ (Monte Carlo sweeps)")
-    ax_bottom.set_ylabel(r"Entropy production rate $\dot{S}(t)$ (per spin, $k_B$ units)")
+    ax_bottom.set_ylabel(r"Bath entropy-flow rate $\dot{S}_{\rm bath}(t)$ (per spin, $k_B$ units)")
     ax_bottom.set_title(
-        r"Irreversible Entropy Production (Kawasaki exchange dynamics)"
+        r"Interfacial Dissipation (Kawasaki exchange dynamics)"
     )
 
     fig.suptitle(

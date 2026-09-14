@@ -1,0 +1,11 @@
+{
+  "sizes": [128],
+  "concentrations": [0.5, 0.15],
+  "replicas": 4,
+  "max_sweeps": 20000,
+  "time_samples": 40,
+  "equilibration": 200,
+  "Jx": 1.0,
+  "Jy": 1.0,
+  "seed": 20260913
+}

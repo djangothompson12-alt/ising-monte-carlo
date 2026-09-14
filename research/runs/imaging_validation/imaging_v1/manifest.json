@@ -1,0 +1,52 @@
+{
+  "created_utc": "2026-09-10T14:25:43.340715+00:00",
+  "input_manifest_sha256": "7c86317e43b52a43af2160c7432eaf80cd8eb6c86c9eb15813de32a73a2fc1e5",
+  "input_files": {
+    "c0_L128_rep000.npz": "8157dddbd181c22962dbb8c7bab37e808ccc65152c3c244418a127746b28f890",
+    "c0_L128_rep001.npz": "b93905369b0d26902d55a060accfa60ec6669e578efdb841b3cc67ee7c6686c9",
+    "c0_L128_rep002.npz": "e2cfbdb02686ec332ea44e7e9a740968d346ebaa3002c5a3ce0b147472c5f1ac",
+    "c0_L128_rep003.npz": "23ac9a72c084ac89b875e1c3af932bb1624576053365cccde34df5506b48318d",
+    "c1_L128_rep000.npz": "3322e5150fff33fa0e43e613fb0eaa3d069f5be92cfb4d2da49ba30e116dbf5d",
+    "c1_L128_rep001.npz": "a8574718a67314975557b169c1572f0db406665af4b23737cf784d89a2d9dd14",
+    "c1_L128_rep002.npz": "fd577d552d5ea3c361c764aed712edf2516fd42afab768834445fcbdad6bccd6",
+    "c1_L128_rep003.npz": "ff1f78ef4792ab17e59722f787d57b3f6229cecb6f265b81dc2697e060fc8edd"
+  },
+  "sources": {
+    "imaging_benchmark.py": "a7b15f12f7dd1b01c851826602d32af89a8d5984777f45e6bdeaafa4bc1461f6",
+    "imaging.py": "46a28cedabc417d8d002628004637b05a0e61920cafb14f89446e4b058db95af",
+    "metrology.py": "2413cc5b09074e12933999b202c03bd1dbcd0a37cc81d2675b1b58eb96907991",
+    "compare_estimators.py": "490f0924baf6332017d5e8501f10a41ab0e7fbc21785a12caacb57674dd9b653",
+    "analyse_campaign.py": "0f1923c2818fcbcb3604a3311a013178d53dd04636d40eac752cf3bc87136f2e",
+    "IMAGING_PROTOCOL.md": "a6b76842e73047235886c63abc42fadc35e5a2777c823e71d6127e1ab52ce916"
+  },
+  "versions": {
+    "numpy": "2.0.2",
+    "scipy": "1.17.1"
+  },
+  "role": "fresh-seed repeat",
+  "planned_replicas": 8,
+  "completed_replicas": 8,
+  "reference": "full finite-window image, NOT true particle radius",
+  "transforms": {
+    "bin2": {
+      "factor": 2
+    },
+    "bin4": {
+      "factor": 4
+    },
+    "blur1": {
+      "sigma": 1.0
+    },
+    "blur2": {
+      "sigma": 2.0
+    },
+    "blur1_threshold_minus02": {
+      "sigma": 1.0,
+      "threshold": -0.2
+    },
+    "blur1_threshold_plus02": {
+      "sigma": 1.0,
+      "threshold": 0.2
+    }
+  }
+}

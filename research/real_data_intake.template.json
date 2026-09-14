@@ -1,0 +1,27 @@
+{
+  "source_and_stable_link": "Dataset citation or data-owner reference",
+  "reuse_permission": "Public licence or specific written permission and any sharing restrictions",
+  "material_system": "Binary or clearly identified two-phase material",
+  "composition_and_units": "e.g. atomic fraction or weight percent, with source",
+  "ageing_temperature_and_units": "Temperature for every stage, e.g. 773 K",
+  "imaging_modality": "SEM, TEM, APT reconstruction, X-ray CT, etc.",
+  "phase_definition_and_evidence": "Which measured feature is the foreground phase and how this was verified",
+  "specimen_or_sampling_design": "Registered same specimen/volume, or independent specimens at each stage; list counts",
+  "instrument_and_reconstruction_changes": "Changes to settings, detector, contrast, reconstruction or resolution at each stage",
+  "roi_rule_and_expert": "Predeclared specimen-interior region rule and person who can review it",
+  "segmentation_candidates_and_rationale": "Several technically plausible thresholds or expert masks, declared before fitting",
+  "records": [
+    {
+      "id": "unique_time_and_specimen_id",
+      "specimen": "specimen_id",
+      "ageing_time": 0,
+      "time_unit": "min",
+      "image_path": "relative/path/to/approved_image.tif",
+      "pixel_or_voxel_size": null,
+      "length_unit": "um",
+      "image_revision": "instrument/reconstruction version",
+      "phase_mask_or_thresholds": "approved masks or numeric thresholds"
+    }
+  ],
+  "current_status": "unfilled; no approved dataset supplied"
+}

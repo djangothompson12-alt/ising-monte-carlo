@@ -14,8 +14,8 @@ self-contained in its own directory:
   `main.py`, `plot_kinetics.py`, plus its own `results/`/`figures/` output
   dirs. `index.html` (standalone browser demo, no server) reimplements the
   same physics in JavaScript and stays at the repo root since it's a static
-  asset with no Python dependency. `manuscript/` (a revtex4-2 PRL-format
-  paper, compiled with `pdflatex`) also stays at the root, covering both models.
+  asset with no Python dependency. `manuscript/` (an article-format paper,
+  compiled with `pdflatex`) also stays at the root, covering both models.
 - **`model_b/` ("Model B")** — conserved order parameter (Kawasaki spin-exchange
   dynamics). Fully standalone: does not import from or depend on anything
   outside `model_b/`.
@@ -23,6 +23,17 @@ self-contained in its own directory:
   legitimately spans both models: reads the CSV each model's own kinetics
   script already produces and plots their domain-growth scaling side by
   side. See "`comparative_analysis.py`" below.
+- **`phase_diagram.py`** (repo root) — derives and plots the Bragg--Williams
+  regular-solution spinodal implied by Model B's couplings and marks the actual
+  quench paths.
+- **`fecr_literature_benchmark.py`** (repo root) — citation-backed qualitative
+  comparison of the `c=0.35` Model B effective exponent with published Fe--Cr
+  values; explicitly not a dimensional calibration.
+- **`tests/` and `.github/workflows/physics-tests.yml`** — fast physics
+  invariant checks and their CI workflow.
+- **`EXTERNAL_REVIEW.md`, `AI_USE_AND_CONTRIBUTIONS.md`, and `docs/`** — the
+  technical-review packet, provenance record, and sourced admissions/external-
+  validation strategy.
 
 Both `model_a/` and `model_b/` were previously flattened into the repo root
 (`model_a/`'s files lived directly at the root) before being split out for
@@ -30,16 +41,83 @@ symmetry with `model_b/`'s already-established self-contained layout --
 if you're looking at history predating that move, `ising_engine.py` etc.
 were at the top level.
 
-Model B is the actively-developed part as of this writing.
+The current cross-model work is the materials-science interpretation,
+reproducibility package, and external-validation preparation.
+
+## Research additions (10 September 2026)
+
+- The controlled observation study is implemented: `research/imaging.py`
+  measures finite-window covariance without wrapping image edges;
+  `research/imaging_benchmark.py` compares crops, binning, blur and segmentation.
+  Protocol: `research/IMAGING_PROTOCOL.md`. Existing 64 long-run replicas and
+  eight fresh shorter replicas have been analysed; see
+  `docs/MEASUREMENT_STUDY_RESULTS.md` and `docs/PAPER_EVIDENCE_GUIDE.md`.
+- `research/analyse_images.py` requires explicit image calibration and thresholds.
+  `source_audit.py`, `fetch_experimental_subset.py` and `experimental_qa.py`
+  retrieve/audit a bounded licensed AlGe subset. Original experimental slices
+  are real, but registration, segmentation and quantitative comparability are
+  NOT validated. Do not report an experimental exponent from them.
+- `research/verify_study.py` audits raw campaign contracts.
+  `research/build_evidence_pack.py` builds a private, hash-verified portable pack
+  with sources/data/figures. It does not publish, endorse or write the paper.
+
+- `research/campaign.py` runs seeded, resumable Model B replicas through the
+  unchanged kernels, with source/version manifests and raw NPZ archives.
+  `research/plans/` has smoke, pilot and overnight plans.
+- `research/analyse_campaign.py` produces replica-based uncertainty, shared
+  fit-window comparisons and a candidate z=3 collapse. Do not assume that finite
+  size explains the slow exponent. See `research/PROTOCOL.md`.
+- `research/metrology.py` and `research/compare_estimators.py` compare four
+  observables on identical archived Model B snapshots, with paired replica
+  bootstrapping and a shared resolved-time mask. This is exploratory analysis
+  designed after the pilot; it does not change engine physics. See
+  `research/STUDY_DESIGN.md` for priorities and report structure.
+- `research/reference_measurements.py` is an observation-only implementation
+  of a one-pass periodic majority filter, chord lengths and raw correlations
+  for a declared symmetric-literature comparison. `reference_benchmark.py`
+  remeasures archived isotropic `c=0.5` replicas only after a human completes
+  a citation/method declaration, preserving all checkpoints and hashes. Never
+  feed filtered output into dynamics or use it to replace Model B's primary
+  connected off-critical correlation measurement.
+- New output under `research/runs/` is git-ignored by default; selected
+  completed main/pilot/validation archives are deliberately tracked for the
+  working public snapshot. Completed replicas are immutable; changing
+  campaign/engine source or environment requires a new output directory.
+  The completed 64-run campaign used the exact sources archived under
+  `research/frozen_sources/2026-09-10/`; use that path with
+  `research.verify_study --source-root`, because the current campaign runner
+  later gained temperature-ratio support.
+- `model_b/research_export.py` serializes paused live data without display
+  clipping. Live initialization seed is not a replayable dynamics seed. Solara's
+  local slope is now unclipped and its Tc readout uses both couplings.
+- `experiments/string_lab.py` provides an independent ideal-string acoustic
+  measurement tool. `experiments/PROTOCOL.md` describes a prospective low-load
+  tennis-string study. No physical data exist yet. This is not an Ising-based
+  tension model or a whole-racket tension meter.
+- `docs/PROGRESS_AND_LIMITS.md`, `docs/START_HERE.md`,
+  `docs/review_brief.html`, and `manuscript/WRITING_GUIDE.md` organise the
+  public working snapshot and student review. Personal application/outreach
+  notes stay local. No external technical endorsement or paper acceptance has
+  occurred. Public drafts require student verification and AI disclosure.
+- Fe–Cr comparison correction: Xu et al.'s Table I gives weight percent, not
+  atomic percent. The alloy labelled 35Cr is not composition-matched to c=.35.
+  Similar exponents with different observables do not establish agreement.
+- Classical 3D LSW is a qualitative reference for the 2D cluster distribution;
+  histogram tails alone do not identify coalescence or new-droplet mechanisms.
+- The current LaTeX PDF is stale relative to main.tex. Rebuild and inspect before
+  sharing. `.venv311` is the tested Intel Mac numerical environment (Numba .60).
+- The 0.6Tc literature benchmark is paused at 7/40 planned independent runs,
+  not a completed comparison. The planned million-sweep 0.65Tc extension has
+  not started.
 
 ## `model_a/` in detail
 
 | File | Purpose |
 |---|---|
-| `ising_engine.py` | Numba JIT-compiled Metropolis single-spin-flip core + observable calculation (magnetization, energy, specific heat, susceptibility) and the domain-size/entropy-production quench-kinetics helpers. |
+| `ising_engine.py` | Numba JIT-compiled Metropolis single-spin-flip core + observable calculation (magnetization, energy, specific heat, susceptibility) and the domain-size/bath-entropy-flow quench-kinetics helpers. |
 | `visualizer.py` | Publication-quality figure generation (matplotlib): `plot_phase_transitions`, `plot_spin_domains`, and the shared `_apply_publication_style` rcParams helper. |
 | `main.py` | CLI entry point: runs a temperature sweep, saves `results/observables.csv` + `figures/fig1_phase_transitions.png` / `fig2_spin_domains.png`. |
-| `plot_kinetics.py` | Runs a quench, saves `results/quench_kinetics.csv` + `figures/fig3_kinetics_entropy.png` (domain growth `L(t) ~ t^(1/2)` fit + entropy production). |
+| `plot_kinetics.py` | Runs a quench, saves `results/quench_kinetics.csv` + `figures/fig3_kinetics_entropy.png` (domain growth `L(t) ~ t^(1/2)` fit + bath entropy flow). |
 | `concentration_sweep.py` | Control/contrast for `model_b/concentration_sweep.py`: fits the growth exponent across the same concentrations under non-conserved dynamics. Saves `results/concentration_exponent_sweep.csv` + `figures/fig_concentration_exponent.png`. |
 
 Run with:
@@ -181,7 +259,7 @@ right column's `LiveDashboard` component (see architecture notes above) is:
   `width=340, height=340, autosize=False` — the figure and its wrapping Card
   must stay in sync or the box stops being square, and this is the one panel
   that's deliberately *not* responsive, since a 1:1 aspect ratio has to be
-  pixel-exact) in the left slot, and the domain-growth / entropy-production
+  pixel-exact) in the left slot, and the domain-growth / bath-entropy-flow
   charts **stacked vertically** (each a `Card` sized to `_CHART_HEIGHT + 60`
   = 260px, `_CHART_HEIGHT = 200`) in the right slot.
 - Both line-plot `Card`s use `autosize=True` on their Plotly figure and a
@@ -203,7 +281,7 @@ Condensed to three direct, physically-grounded bullets (not long-form prose)
 — each ties a real, named materials phenomenon to the specific simulated
 quantity that demonstrates it, rather than a generic analogy: Spinodal
 Phase Separation (`L(t) ~ t^(1/3)`), Directional Precipitate Rafting
-(`J_x != J_y`), and Trajectory Entropy Production Rate. Written in plain
+(`J_x != J_y`), and the Bath Entropy-Flow Proxy. Written in plain
 prose (an explicit later request moved it off LaTeX/formal notation), unlike
 the sidebar's slider labels and metric tiles, which do use inline LaTeX.
 

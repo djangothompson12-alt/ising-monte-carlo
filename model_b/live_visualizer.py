@@ -4,7 +4,7 @@ live_visualizer.py
 
 Real-time interactive dashboard for the Model B (Kawasaki spin-exchange)
 quench: a live-updating 2D lattice heatmap alongside directional domain-size
-and entropy-production traces, animated with matplotlib's FuncAnimation.
+and bath-entropy-flow traces, animated with matplotlib's FuncAnimation.
 
 Self-contained within `model_b/`: imports only the Numba-jitted kernels and
 FFT-based correlation/domain-size helpers from `kawasaki_engine.py` (unmodified)
@@ -53,7 +53,7 @@ _LATTICE_CMAP = ListedColormap([_SPIN_DOWN_COLOR, _SPIN_UP_COLOR])
 # background per axes and only redraws the changed artists on top of it;
 # letting the axes autoscale as data grows would invalidate that cached
 # background every frame and defeat the purpose of blitting. Fixed, generous
-# ranges (domain size is bounded above by r_max = L/2; entropy production is
+# ranges (domain size is bounded above by r_max = L/2; bath entropy flow is
 # bounded below near machine-precision-noise) avoid needing to rescale at all.
 _T_AXIS_MIN, _T_AXIS_MAX = 1.0, 2.0e5
 _DOMAIN_AXIS_MIN, _DOMAIN_AXIS_MAX = 0.3, L / 2.0
@@ -61,7 +61,7 @@ _ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-5, 1.0
 _ENTROPY_FLOOR = 1e-7  # internal floor so S_dot=0 samples don't hit log(0); below the visible axis range
 
 # Simple moving-average window (in frames) applied to S_dot(t) before plotting.
-# Late-time entropy production is a tiny per-sweep energy-change average over
+# Late-time bath entropy flow is a tiny per-sweep energy-change average over
 # only SWEEPS_PER_FRAME sweeps, so it's dominated by shot noise once the true
 # rate drops near the floor; smoothing turns that noise into a readable
 # asymptotic baseline without touching the underlying (still exact) data.
@@ -220,15 +220,15 @@ def build_dashboard(state: LiveKawasakiState):
     ax_domain.legend(loc="upper left", fontsize=8)
     ax_domain.grid(True, which="both", alpha=0.3, linestyle="--")
 
-    # --- Right-bottom panel: entropy production rate ---
+    # --- Right-bottom panel: bath entropy-flow rate ---
     (line_S,) = ax_entropy.plot([], [], "o-", ms=3, lw=1, color="#6a1b9a", animated=True)
     ax_entropy.set_xscale("log")
     ax_entropy.set_yscale("log")
     ax_entropy.set_xlim(_T_AXIS_MIN, _T_AXIS_MAX)
     ax_entropy.set_ylim(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX)
     ax_entropy.set_xlabel("Time $t$ (sweeps)")
-    ax_entropy.set_ylabel(r"$\dot{S}(t)$ (per spin, $k_B$)")
-    ax_entropy.set_title("Irreversible Entropy Production")
+    ax_entropy.set_ylabel(r"$\dot{S}_{\rm bath}(t)$ (per spin, $k_B$)")
+    ax_entropy.set_title("Interfacial Dissipation")
     ax_entropy.grid(True, which="both", alpha=0.3, linestyle="--")
 
     artists = (im, line_Lx, line_Ly, line_S, hud_text)
