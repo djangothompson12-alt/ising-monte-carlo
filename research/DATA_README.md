@@ -54,30 +54,44 @@ python -m research.verify_study research/runs/overnight \
 python -m research.analyse_campaign research/runs/overnight
 ```
 
-For the **completed** extension, the following sequence was run after a
+After installing `requirements.txt` in an active virtual environment (as in
+the root README), first check both newly released raw campaigns:
+
+```bash
+python -m research.verify_study research/runs/majumder_das_2010_l128 --source-root .
+python -m research.verify_study research/runs/main_065_multisize_v1 --source-root .
+```
+
+Both commands have also passed from a fresh checkout of the public commit.
+The older 64-run `overnight` campaign, unlike these two, needs the frozen
+2026-09-10 source directory shown above. This distinction follows the source
+hashes recorded at each campaign's launch.
+
+To **recheck the completed extension from a fresh checkout**, use new output
+names rather than replacing the published tables. The campaign must have a
 `complete` status with all 128 declared files. The independent audit recalculates every declared
 growth-fit, ensemble-length and matched-size table entry from raw NPZ files;
 it checks arithmetic and provenance, not the physical interpretation:
 
 ```bash
-.venv311/bin/python -m research.verify_study research/runs/main_065_multisize_v1 --source-root .
-.venv311/bin/python -m research.audit_archived_observables \
+python -m research.verify_study research/runs/main_065_multisize_v1 --source-root .
+python -m research.audit_archived_observables \
   research/runs/main_065_multisize_v1 \
-  --output research/runs/main_065_multisize_v1/observable_audit_v1.json
-.venv311/bin/python -m research.replay_first_energy_interval \
+  --output research/runs/main_065_multisize_v1/observable_audit_recheck.json
+python -m research.replay_first_energy_interval \
   research/runs/main_065_multisize_v1 --source-root . \
-  --output research/runs/main_065_multisize_v1/first_interval_replay_v1.json
-MPLCONFIGDIR=.mplconfig .venv311/bin/python -m research.analyse_main_extension \
+  --output research/runs/main_065_multisize_v1/first_interval_replay_recheck.json
+MPLCONFIGDIR=.mplconfig python -m research.analyse_main_extension \
   research/runs/main_065_multisize_v1 \
-  --output research/runs/main_065_multisize_v1/analysis_declared_v1
-.venv311/bin/python -m research.audit_main_extension \
+  --output research/runs/main_065_multisize_v1/analysis_recheck
+python -m research.audit_main_extension \
   research/runs/main_065_multisize_v1 \
-  research/runs/main_065_multisize_v1/analysis_declared_v1 \
-  --output research/runs/main_065_multisize_v1/analysis_declared_v1/independent_table_audit.json
-.venv311/bin/python -m research.render_extension_appendix \
+  research/runs/main_065_multisize_v1/analysis_recheck \
+  --output research/runs/main_065_multisize_v1/analysis_recheck/independent_table_audit.json
+python -m research.render_extension_appendix \
   research/runs/main_065_multisize_v1 \
-  research/runs/main_065_multisize_v1/analysis_declared_v1 \
-  --output research/runs/main_065_multisize_v1/analysis_declared_v1/appendix_v1
+  research/runs/main_065_multisize_v1/analysis_recheck \
+  --output research/runs/main_065_multisize_v1/analysis_recheck/appendix_recheck
 ```
 
 The [separate new-seed image holdout](PROSPECTIVE_IMAGE_HOLDOUT_2026-09-18.md)
@@ -91,6 +105,18 @@ byte-identical to the archived local results; the observable audit again
 checked 19,200 directional lengths and the first-interval replay passed all
 128 trajectories. This is a same-code reproducibility check, not an
 independent laboratory replication or a different dynamics implementation.
+
+**Public-checkout replay, 18 September:** A clean local clone of release
+commit `ec3fb87` (with the same tested Python environment) passed all 119
+tests and both new raw-campaign verifiers. Its archived-observable audit
+checked 9,600 snapshots and 19,200 directional lengths, retaining the one
+strict-threshold FFT-roundoff ambiguity; its first-interval energy replay
+passed all 128 extension trajectories. Reanalysis in a new directory passed
+the independent 80-fit/450-matched-size-row audit. The three principal CSVs
+and rendered all-row appendix were byte-identical to the published versions.
+This checks that the Git snapshot contains enough information to rerun the
+analysis on that environment; it is not an independent implementation or
+scientific validation of the model.
 
 Reanalysis tools write new outputs; they do not alter completed NPZ archives.
 Run them in a separate output directory if preserving the published snapshot
