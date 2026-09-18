@@ -39,6 +39,15 @@ def load_declaration(path: Path) -> dict:
     missing = [key for key in REQUIRED_DECLARATION_KEYS if not str(declaration.get(key, "")).strip()]
     if missing:
         raise ValueError("Declaration has empty required fields: " + ", ".join(missing))
+    template = json.loads(Path(__file__).with_name("reference_benchmark.template.json").read_text())
+    text_fields = ("reference", "purpose", "dynamics_match",
+                   "postprocessing_match", "observable_match", "comparison_scope")
+    wrong_type = [key for key in text_fields if not isinstance(declaration[key], str)]
+    if wrong_type:
+        raise ValueError("Declaration fields must be written text: " + ", ".join(wrong_type))
+    unfilled = [key for key in text_fields if declaration[key].strip() == template[key]]
+    if unfilled:
+        raise ValueError("Declaration still contains template prompts: " + ", ".join(unfilled))
     if declaration.get("reviewer_status") not in {"not_yet_reviewed", "reviewed"}:
         raise ValueError("reviewer_status must be 'not_yet_reviewed' or 'reviewed'")
     if declaration.get("student_verified") is not True:

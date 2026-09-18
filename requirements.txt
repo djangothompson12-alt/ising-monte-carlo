@@ -2,6 +2,7 @@ numpy>=1.24
 numba>=0.58
 matplotlib>=3.7
 scipy>=1.10
+Pillow>=10.0     # public TIFF image-audit scripts and associated unit tests
 solara>=1.30      # model_b/solara_app.py -- tested on 1.61.0; exact minimum for
                    # use_reactive/use_thread/Details/FigurePlotly as used
                    # here isn't independently confirmed, so treat 1.61.0 as

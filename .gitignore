@@ -12,6 +12,11 @@ experiments/results/
 experiments/measurements.json
 experiments/recordings/
 
+# Generated audit logs and private reviewer packets contain copied data.
+# Select any future public audit output deliberately from research/results/;
+# do not sweep this working directory into a broad git add.
+output/
+
 # LaTeX build artifacts (manuscript/main.tex -> manuscript/main.pdf is tracked)
 manuscript/*.aux
 manuscript/*.log

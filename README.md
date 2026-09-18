@@ -1,6 +1,6 @@
-# Ising coarsening: spin flips, atom swaps, and how we measure growth
+# Ising coarsening: what changes when we measure growth differently?
 
-**🔴 [Live Demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)** — real-time Model A dynamics running in-browser via HTML5 Canvas, with live Chart.js plots of magnetization and energy.
+**[Try the live Model A demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)** · **[Read the result in five minutes](docs/EXPECTED_VS_OBSERVED_2026-09-18.md)** · **[See the complete data](research/DATA_README.md)** · **[Request a technical review](EXTERNAL_REVIEW.md)**
 
 This is an ongoing gap-year research project about how patterns grow after a sudden temperature drop. It began with two 2D Ising simulations:
 
@@ -9,12 +9,33 @@ This is an ongoing gap-year research project about how patterns grow after a sud
 
 The original question was why the two models coarsen at different rates. The current, harder question is **how much a measured growth exponent depends on run length, lattice size and the way domain size is measured**. The expected late-time laws are $L(t)\propto t^{1/2}$ for non-conserved dynamics and, under the usual diffusion-controlled conditions, $L(t)\propto t^{1/3}$ for conserved dynamics. Our finite runs do not prove either asymptotic law. [Progress and limits](docs/PROGRESS_AND_LIMITS.md) gives the short account; the longer sections below explain the code and methods.
 
-The completed 64-run Model B study found effective slopes near 0.26 in its later fit window for the larger lattices. Changing the fit window or the image-processing pipeline changes the fitted slope. That is a measurement result, **not** evidence that a real alloy follows a different growth law. The model has no calibrated mapping from Monte Carlo sweeps to hours or from lattice sites to micrometres. [Raw data and reproducibility](research/DATA_README.md) are documented separately. Development included substantial [AI assistance](AI_USE_AND_CONTRIBUTIONS.md); all scientific claims remain subject to student review.
+The completed 64-run Model B study found effective slopes near 0.26 in its later fit window for the larger lattices. A separate 128-run, million-sweep extension finished on 18 September 2026 and passed internal raw-data, saved-observable and table audits. At `L=128`, its broad 20,000–1,000,000-sweep fits gave 0.300 at 50:50 and 0.281 at 15:85; these are **finite-window** slopes, not proof of the one-third asymptote. The smallest 15:85 lattice flattened, while some 50:50 small-box lengths became unresolved. A fixed new-seed image test repeated the direction of the earlier block-and-threshold measurement shift, but also changed apparent phase fraction. These are model and measurement results, **not** evidence that a real alloy follows a different growth law. The extension's raw trajectories and analyses, plus the separate 40-run `0.6Tc` reference trajectories, are now in [the data directory](research/DATA_README.md); the reference set has **not** yet undergone a student-approved paper-method comparison. Development included substantial [AI assistance](AI_USE_AND_CONTRIBUTIONS.md); all scientific claims remain subject to student review.
+
+| If you want to… | Start with… |
+|---|---|
+| Understand the published-paper comparison | [Expected versus observed](docs/EXPECTED_VS_OBSERVED_2026-09-18.md) and [the method crosswalk](docs/MAJUMDER_DAS_METHOD_CROSSWALK_2026-09-18.md) |
+| Check every reported fit, including failures | [The all-row appendix](research/runs/main_065_multisize_v1/analysis_declared_v1/appendix_v1/APPENDIX.md) and [data guide](research/DATA_README.md) |
+| Run or test the code | [Installation](#installation), [usage](#usage), and [verification](#verification) |
+| See where materials engineering enters—and where it does not | [Phase-diagram derivation](docs/REGULAR_SOLUTION_BINODAL_2026-09-18.md), [Fe–Cr source note](docs/FECR_MATERIALS_CASE_STUDY_2026-09-18.md), and [limits](docs/PROGRESS_AND_LIMITS.md) |
+
+For the next write-up, see the [AI-assisted working-paper draft for student revision](manuscript/REPORT_DRAFT_2026-09-18.md), [claim audit](docs/CLAIM_AUDIT_2026-09-17.md), [technical-report backbone](docs/TECHNICAL_REPORT_BACKBONE.md), and [comparison with the 2010–2013 Majumder–Das papers](docs/LITERATURE_COMPARISON_2026-09-17.md). Composition-dependent 2D Kawasaki coarsening is established prior work. The [fixed new-seed image-holdout protocol](research/PROSPECTIVE_IMAGE_HOLDOUT_2026-09-18.md) was executed only after all 128 extension runs completed; its [result and limits](research/runs/main_065_multisize_v1/image_holdout_v1/REPORT.md) are archived separately from the physics fits. The [applied image-audit prototype](docs/APPLIED_IMAGE_AUDIT.md) has a synthetic demonstration; a newer [supplied-mask resolution audit](docs/MASK_RESOLUTION_AUDIT.md) is a bounded way to discuss a measurement with an imaging specialist. A separate [42-image annotated-steel pilot](docs/METALDAM_STATIC_PILOT_2026-09-17.md), [cleanup follow-up](docs/METALDAM_CLEANUP_SENSITIVITY_2026-09-17.md), and [expert-mask resolution audit](docs/METALDAM_REFERENCE_MASK_SCALE_RESULTS_2026-09-18.md) test distinct measurement sensitivities. A [fixed Al–Ge segmented-image test](docs/ALGE_REAL_IMAGE_AUDIT_2026-09-18.md) reports failed early-region measurements and descriptive static length shifts, not an experimental growth law. None validates the simulation against alloy ageing or establishes a lab-ready tool.
+
+The supplied-mask tool has a [deterministic synthetic demo](research/make_mask_resolution_demo.py) with both a resolved field and an empty, unresolved one. Its [pilot record](docs/MASK_AUDIT_PILOT_RECORD.template.md) is meant to be filled in with an image owner before trying new data. Neither is outside validation.
+
+The main result is visible here: the same 50:50 Model B study is shown for
+four lattice widths, with declared finite-window measurements and unresolved
+small-box behaviour discussed in the [full appendix](research/runs/main_065_multisize_v1/analysis_declared_v1/appendix_v1/APPENDIX.md).
+
+![Model B domain-growth lengths at four lattice widths](research/runs/main_065_multisize_v1/analysis_declared_v1/main_extension_c0.png)
+
+<details>
+<summary>Open the full physics, installation and methods guide</summary>
+
 
 *A terminology note, since it matters for precision:* the move-acceptance rule implemented for Model A throughout this codebase is **Metropolis** ($P_\text{accept} = \min(1, e^{-\beta\Delta E})$), not the Glauber rate function ($P_\text{accept} = 1/(1+e^{\beta\Delta E})$). Both are non-conserved single-spin-flip realizations in the Hohenberg–Halperin **Model A** universality class, but this repository calls the implemented dynamics Metropolis throughout.
 
 <p align="center">
-  <img src="model_a/figures/fig1_phase_transitions.png" width="700" alt="Phase transition observables vs. temperature">
+  <img src="model_a/figures/fig1_phase_transitions_corrected.png" width="700" alt="Phase transition observables and absolute-magnetization fluctuation proxy vs. temperature">
 </p>
 
 <p align="center">
@@ -61,13 +82,23 @@ $$
 C_v = \frac{1}{N T^2}\left( \langle H^2 \rangle - \langle H \rangle^2 \right)
 $$
 
-**Magnetic susceptibility**, from magnetization fluctuations:
+**Absolute-magnetization fluctuation proxy**, stored under the historical
+`susceptibility` field name:
 
 $$
-\chi = \frac{1}{N T}\left( \langle M^2 \rangle - \langle |M| \rangle^2 \right)
+\chi_{|M|} = \frac{1}{N T}\left( \langle M^2 \rangle - \langle |M| \rangle^2 \right)
 $$
 
-$C_v$ and $\chi$ are both response functions and, in the thermodynamic limit, diverge at the critical temperature — the simulation reproduces this as sharp finite-size peaks. The exact critical temperature for this model (Onsager, 1944) is
+$C_v$ is a heat-capacity fluctuation estimator. The plotted
+$\chi_{|M|}$ also peaks near the transition, but replacing $\langle M\rangle^2$
+with $\langle |M|\rangle^2$ means it is **not** the zero-field magnetic
+susceptibility $\chi=(\langle M^2\rangle-\langle M\rangle^2)/(NT)$ given by
+the field-response fluctuation relation. The `susceptibility` column name is
+retained for compatibility, not as a claim of that identity. Using $|M|$
+reduces artificial cancellation when a finite zero-field lattice switches
+between positive and negative magnetisation, making this a useful transition
+indicator, but it must still be labelled as a proxy. The exact critical
+temperature for this model (Onsager, 1944) is
 
 $$
 T_c = \frac{2}{\ln(1+\sqrt{2})} \approx 2.269\ (J/k_B)
@@ -98,7 +129,8 @@ $$
 **Bath entropy flow.** The lattice is coupled to a heat bath at fixed $T_{\text{final}}$: every accepted Metropolis flip changes the system's energy by $\Delta E$, and by conservation of energy the bath absorbs heat $-\Delta E$ over that move. Summing accepted $\Delta E$ within each inter-checkpoint interval therefore gives the per-spin bath entropy-flow rate
 
 $$
-\dot{S}_{\mathrm{bath}}(t) = -\frac{1}{T}\frac{\langle \Delta E \rangle}{dt}.
+\dot{s}_{\mathrm{bath}}(t) = -\frac{1}{N T}\frac{\langle \Delta E \rangle}{dt},
+\qquad N=L^2.
 $$
 
 This is a useful dissipation proxy and is positive on average in the reported relaxation runs. It is **not by itself the total stochastic entropy-production rate**, which would also require the system's Shannon-entropy change. The result arrays retain the historical field name `entropy_production` for API compatibility.
@@ -109,9 +141,9 @@ This is a useful dissipation proxy and is positive on average in the reported re
 .
 ├── index.html                  # Model A live demo (Canvas + Chart.js, no build step)
 ├── comparative_analysis.py     # Reads both models' CSVs, plots L(t) scaling side by side
-├── phase_diagram.py            # Regular-solution spinodal mapped from Model B couplings
+├── phase_diagram.py            # Mean-field guides and exact 2D coexistence check
 ├── requirements.txt
-├── manuscript/                  # main.tex (revtex4-2 PRL format) + compiled main.pdf
+├── manuscript/                  # historical main.tex and stale PDF; current working draft is Markdown
 ├── figures/                      # fig_comparative_scaling.png (from comparative_analysis.py)
 ├── model_a/                    # Model A: non-conserved order parameter (Metropolis)
 │   ├── ising_engine.py           # Numba-jitted Metropolis MC core + observable calculation
@@ -136,10 +168,10 @@ This is a useful dissipation proxy and is positive on average in the reported re
 
 ### Live demo (`index.html`)
 
-A self-contained, single-file browser simulation — open `index.html` directly (or visit the [live demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)) to run Model A dynamics interactively at ~60 FPS. It reimplements the same physics as `model_a/ising_engine.py` (including an external field term $H = -J\sum_{\langle i,j\rangle}\sigma_i\sigma_j - H\sum_i \sigma_i$) directly in JavaScript, rendered with an HTML5 Canvas pixel buffer, with live [Chart.js](https://www.chartjs.org/) plots of magnetization and energy on locked axes matching the Matplotlib figures below. Sliders control temperature, external field, lattice size, and sweeps per frame; three preset buttons jump directly to a low-temperature quench, the critical point, and the high-temperature paramagnetic phase. A "Download Run Data (CSV)" button exports lattice size, sweep count, $M(t)$, $E(t)$, and an estimated domain size $L(t)$ for direct comparison against the Python pipeline's output. No build step or server required.
+A self-contained, single-file browser simulation — open `index.html` directly (or visit the [live demo](https://djangothompson12-alt.github.io/ising-monte-carlo/)) to run Model A dynamics interactively at ~60 FPS. It uses the same nearest-neighbour Metropolis spin-flip rule as `model_a/ising_engine.py`, with an **optional browser-only external field** term $-h\sum_i \sigma_i$. The Python temperature-sweep and quench results reported here use zero field. The browser version is rendered with an HTML5 Canvas pixel buffer and live [Chart.js](https://www.chartjs.org/) plots of magnetization and energy. Sliders control temperature, external field, lattice size, and sweeps per frame; three preset buttons jump directly to a low-temperature quench, the critical point, and the high-temperature paramagnetic phase. A "Download Run Data (CSV)" button exports lattice size, sweep count, $M(t)$, $E(t)$, and an estimated domain size $L(t)$ for comparison against the Python pipeline's output. No build step or server required.
 
 - **`model_a/ising_engine.py`** — `SimulationConfig` (lattice size, temperature range, equilibration/sampling sweeps), the JIT-compiled Metropolis sweep and energy/magnetization kernels, and `run_temperature_sweep` / `sample_snapshot` for producing sweep-level and single-temperature results.
-- **`model_a/visualizer.py`** — `plot_phase_transitions` (4-panel $|M|$, $E$, $C_v$, $\chi$ vs. $T$) and `plot_spin_domains` (lattice snapshots at representative temperatures).
+- **`model_a/visualizer.py`** — `plot_phase_transitions` (4-panel $|M|$, $E$, $C_v$, $|M|$ fluctuation proxy vs. $T$) and `plot_spin_domains` (lattice snapshots at representative temperatures). `model_a/plot_observables_from_csv.py` redraws the corrected-label panel from the archived CSV without new simulations.
 - **`model_a/main.py`** — orchestrates a full run: temperature sweep → `results/observables.csv` → `figures/fig1_phase_transitions.png` and `figures/fig2_spin_domains.png`.
 - **`model_a/plot_kinetics.py`** — runs a $T_{\text{initial}} \to T_{\text{final}}$ quench via `ising_engine.run_quench_kinetics`, saves `results/quench_kinetics.csv`, fits a power law to the domain-growth scaling regime, and renders the two-panel `figures/fig3_kinetics_entropy.png` ($L(t)$ scaling fit on top, bath entropy-flow rate below).
 
@@ -263,13 +295,30 @@ python -m research.segmentation_sensitivity approved_image_manifest.json \
   --output research/runs/declared_threshold_sensitivity
 ```
 
-The template contains placeholders, not real measurements. Registration, ROI
-selection, phase identification and permissions must be supplied by the data
-owner before a real dataset is analysed.
+The template contains placeholders, not real measurements. For any new
+partner dataset, registration, ROI selection, phase identification and
+permissions must be agreed with the data owner before a physical comparison.
+
+A separate exploratory script, `research/metaldam_reference_mask_scale.py`,
+tests static pixel-resolution sensitivity **on published expert masks**. It
+requires the producer ZIP, checks its hash, and outputs only numerical tables;
+it does not distribute source images or infer a coarsening rate. See its
+[frozen protocol](research/METALDAM_REFERENCE_MASK_SCALE_PROTOCOL_2026-09-18.md)
+and [bounded result](docs/METALDAM_REFERENCE_MASK_SCALE_RESULTS_2026-09-18.md).
+
+The separate [Al–Ge public-data audit](docs/ALGE_REAL_IMAGE_AUDIT_2026-09-18.md)
+tests the same declared 4× image operation on four CC BY 4.0 segmented
+solid-state-ageing stacks. Its first two stages **fail** the fixed
+all-planes-resolved rule: several interior planes have no Ge to measure.
+The two later stages show descriptive static length changes, not a growth
+exponent. The original TIFFs are excluded from Git; the code, fixed
+[protocol](research/ALGE_STATIC_OPERATOR_PROTOCOL_2026-09-18.md), hashes and
+numeric tables record the result. This is neither an experimentally
+validated Kawasaki model nor outside laboratory use.
 
 ## Verification
 
-The generated `fig1_phase_transitions.png` shows the expected signatures of a second-order phase transition: $\langle |M| \rangle$ drops from near 1 to near 0 across $T_c$, $\langle E \rangle$ rises smoothly, and both $C_v$ and $\chi$ peak near $T_c \approx 2.269$. `fig2_spin_domains.png` shows large ordered regions at $T = 1.5$, mixed-scale clusters near $T_c$, and fine-grained disorder at $T = 3.5$. In the archived Model A quench CSV, the selected finite-window fit is $\alpha = 0.4999$. The bath entropy-flow-rate estimate falls from about 0.297 at the first checkpoint to $9.76\times10^{-6}$ at the last; this is a decline in an interval-averaged rate, not cumulative heat loss or total entropy production.
+The corrected `fig1_phase_transitions_corrected.png`, replotted from the **same archived CSV** without rerunning the model, shows the expected signatures of a second-order phase transition: $\langle |M| \rangle$ drops from near 1 to near 0 across $T_c$, $\langle E \rangle$ rises smoothly, and both $C_v$ and the absolute-magnetization fluctuation proxy peak near $T_c \approx 2.269$. The old `fig1_phase_transitions.png` remains as a historical artifact but mislabels that fourth panel “susceptibility”; do not use it in a report. `fig2_spin_domains.png` shows large ordered regions at $T = 1.5$, mixed-scale clusters near $T_c$, and fine-grained disorder at $T = 3.5$. In the archived Model A quench CSV, the selected finite-window fit is $\alpha = 0.4999$. The bath entropy-flow-rate estimate falls from about 0.297 at the first checkpoint to $9.76\times10^{-6}$ at the last; this is a decline in an interval-averaged rate, not cumulative heat loss or total entropy production.
 
 ## Model B: Conserved Kawasaki Dynamics & Anisotropy
 
@@ -291,7 +340,7 @@ $$
 
 so the two coarsening directions can be compared directly. The critical temperature generalizes Onsager's exact result to the anisotropic case as the root of $\sinh(2J_x/T_c)\sinh(2J_y/T_c) = 1$ (`anisotropic_critical_temperature`, solved numerically; reduces to $T_c = 2J/\ln(1+\sqrt2)$ when $J_x = J_y = J$), and is used to set the quench temperatures automatically ($T_{\text{initial}} = 3\,T_c$, $T_{\text{final}} = 0.65\,T_c$) whenever they aren't given explicitly.
 
-Because the order parameter is conserved, interfaces cannot move by changing a spin in place; material must be transported, usually by diffusion in the late-stage picture. Curvature still matters because it affects interfacial chemical potential. Under the usual conditions the expected late-time **Lifshitz–Slyozov growth law** is $L(t) \sim t^{1/3}$, in contrast to Model A's $t^{1/2}$. The directional domain sizes $L_x(t)$ and $L_y(t)$ are extracted independently from $C_x(r,t)$ and $C_y(r,t)$, computed with a 2D FFT. The bath entropy-flow proxy $\dot{S}_{\mathrm{bath}}(t) = -\frac{1}{T}\langle \Delta E \rangle / dt$ is tracked from the energy change of accepted exchanges.
+Because the order parameter is conserved, interfaces cannot move by changing a spin in place; material must be transported, usually by diffusion in the late-stage picture. Curvature still matters because it affects interfacial chemical potential. Under the usual conditions the expected late-time **Lifshitz–Slyozov growth law** is $L(t) \sim t^{1/3}$, in contrast to Model A's $t^{1/2}$. The directional domain sizes $L_x(t)$ and $L_y(t)$ are extracted independently from $C_x(r,t)$ and $C_y(r,t)$, computed with a 2D FFT. The per-spin bath entropy-flow proxy $\dot{s}_{\mathrm{bath}}(t) = -\langle \Delta E \rangle /(N T\,dt)$ is tracked from the energy change of accepted exchanges.
 
 The exchange energy-change formula and magnetization conservation were both checked directly against an independent brute-force recomputation of the full lattice Hamiltonian before any production run (exact match, not just "close").
 
@@ -345,20 +394,29 @@ python comparative_analysis.py
 
 Saves `figures/fig_comparative_scaling.png` at the repo root (distinct from each model's own `figures/` subdirectory, since this figure isn't specific to either one) and prints both fitted growth exponents to stdout. This is the figure that most directly answers the question the project set out to ask: the two panels, plotted on identical log-log axes, make the different growth exponents of conserved vs. non-conserved order-parameter kinetics a direct visual comparison rather than a claim to take on faith.
 
-## Regular-solution phase diagram
+## Thermodynamic phase-diagram checks
 
 ```bash
 python phase_diagram.py
 ```
 
-For the conserved Model B lattice-gas interpretation, this writes
-`figures/fig_regular_solution_spinodal.png`: the Bragg--Williams
-regular-solution spinodal derived by bond counting from the implemented
-couplings, $k_B T_s(c)=8(J_x+J_y)c(1-c)$. It marks the actual isotropic
-concentration-sweep and anisotropic-baseline quench paths. The plot is
-explicitly a mean-field thermodynamic guide, not the exact 2D Ising
-coexistence curve; Model A is excluded because its Metropolis spin flips do
-not conserve composition.
+For the conserved Model B lattice-gas interpretation, this preserves the
+original `figures/fig_regular_solution_spinodal.png`, writes
+`figures/fig_regular_solution_binodal_spinodal.png`, and adds
+`figures/fig_exact_vs_meanfield_coexistence.png`. Bond counting gives
+$\Omega=4(J_x+J_y)$ and $k_B T_s(c)=2\Omega c(1-c)$; a separate symmetric
+common-tangent derivation gives the regular-solution coexistence curve.
+Numerical tests check both mappings. At the isotropic `0.65Tc` finish,
+`c=0.06` and `c=0.10` lie **between** these approximate curves, while
+`c=0.15` and `c=0.50` lie below the mean-field spinodal. These labels do
+not prove the microscopic nucleation mechanism. The separate exact 2D Ising
+coexistence calculation puts all six studied fractions inside the
+thermodynamic-limit two-phase region at this final temperature, but supplies
+no exact spinodal, no finite-time growth exponent and no real Fe--Cr phase
+boundary. Model A is excluded
+because its Metropolis spin flips do not conserve composition. See the
+[mean-field derivation](docs/REGULAR_SOLUTION_BINODAL_2026-09-18.md) and
+[exact-theory check](docs/EXACT_ISING_COEXISTENCE_CHECK_2026-09-18.md).
 
 ## Fe--Cr literature benchmark
 
@@ -374,8 +432,12 @@ fraction; these are not composition-matched systems. The
 figure labels the comparison as qualitative: a 2D lattice measured in Monte
 Carlo sweeps is not calibrated to a 3D alloy aged in hours. Its purpose is to
 motivate a shared finite-time/coarsening question, not to claim quantitative
-prediction. Experimental values and DOI provenance are documented in the
-script.
+prediction. Treat it as historical exploratory context, not the primary
+evidence or experimental validation. A more directly materials-engineering
+[source note](docs/FECR_MATERIALS_CASE_STUDY_2026-09-18.md) examines a
+binary Fe--Cr study that measures microstructure and hardness while openly
+discussing feature-size method differences. Experimental values and DOI
+provenance for the older figure remain documented in its script.
 
 ## Reproducibility and external review
 
@@ -386,8 +448,12 @@ The controlled observation benchmark is implemented and has been run on the
 [the writing/evidence guide](docs/PAPER_EVIDENCE_GUIDE.md).
 It tests sensitivity to field of view, blur, pixel averaging and segmentation;
 it does not establish a new growth law or a universal measurement correction.
-Five licensed original experimental slices have also been retrieved and audited,
-but are not yet a validated experimental kinetics comparison.
+Five licensed experimental slices were inspected in an early feasibility
+audit. A separate four-stack segmented Al–Ge test asks whether the same
+static length changes under 4× image binning; it includes unresolved
+measurements and does **not** fit an experimental growth exponent. See the
+[real-image audit](docs/ALGE_REAL_IMAGE_AUDIT_2026-09-18.md) and its
+[all-plane display](figures/fig_alge_fixed_plane_audit.png).
 
 ```bash
 python -m research.imaging_benchmark research/runs/overnight --output new_imaging_analysis
@@ -404,14 +470,17 @@ replica/timepoint rather than an exponent fit, and records hashes of the input
 archives and declaration:
 
 ```bash
-python -m research.reference_benchmark research/runs/overnight my_completed_declaration.json --output reference_measurements
+python -m research.reference_benchmark research/runs/majumder_das_2010_l128 my_completed_declaration.json --output reference_measurements
 ```
 
 This is a measurement-comparison preparation tool, not a claim that a paper
 has been reproduced. One-pass majority filtering occurs only after a saved
 snapshot and must not be put back into Kawasaki dynamics or substituted for
 the primary off-critical connected-correlation analysis. See
-`research/REFERENCE_BENCHMARK_PROTOCOL.md`.
+`research/REFERENCE_BENCHMARK_PROTOCOL.md`. The separate L=128 raw campaign
+has completed 40 of 40 trajectories and passed integrity checks, but the
+student's paper-method declaration is not yet verified; no reproduction
+claim or benchmark exponent is released from it.
 
 New work: [start here](docs/START_HERE.md), [research design and report plan](research/STUDY_DESIGN.md), [finite-size campaign protocol](research/PROTOCOL.md),
 [tennis-string experiment protocol](experiments/PROTOCOL.md), and
@@ -436,11 +505,12 @@ python -m research.compare_estimators research/runs/pilot --output research/runs
 python -m experiments.string_lab --help
 ```
 
-Most new campaign output remains git-ignored, but the completed main, pilot
-and fresh observation-repeat archives in [the data guide](research/DATA_README.md)
-are included in this snapshot. The 0.6Tc literature benchmark is incomplete
-(7/40 planned runs), and the longer 0.65Tc extension has not started. The
-tracked `manuscript/main.pdf` is **older than** `manuscript/main.tex`; use the
+Most generated campaign output remains git-ignored. The selected completed
+archives described in [the data guide](research/DATA_README.md), including
+the 0.6Tc reference raw trajectories and 0.65Tc extension, are deliberately
+included in this release. The campaigns are separate; the reference set is
+not yet a paper-method reproduction or an independently endorsed result.
+The tracked `manuscript/main.pdf` is **older than** `manuscript/main.tex`; use the
 source as a working draft and rebuild and check a new PDF before sharing any
 paper as a report.
 
@@ -463,6 +533,10 @@ Public research progress and limitations are collected in
 [the progress log](docs/PROGRESS_AND_LIMITS.md). Personal application and
 outreach notes are deliberately kept out of this public research snapshot.
 
+</details>
+
 ## License
 
-MIT
+The code is available under the [MIT License](LICENSE). Third-party image
+sources retain their own licensing and attribution; see the relevant data
+notes before reusing any adapted panel.

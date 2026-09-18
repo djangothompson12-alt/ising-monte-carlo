@@ -1,0 +1,73 @@
+{
+  "created_utc": "2026-09-18T19:35:10.705505+00:00",
+  "status": "complete-campaign new-seed image-operator holdout, not blind first discovery",
+  "campaign_manifest_sha256": "24f71c117f8f7a54ee0d030c1804747c4e3734d091307e8b3479ef869aa24e0e",
+  "campaign_status_sha256": "76c853030ffd2a802d412c7acd7c8c392c46b50b3809f76dc1d21f9e6e8ba3f7",
+  "input_sha256": {
+    "c0_L128_rep000.npz": "668134ce1c8ce459ff07f86bba54e958c108761acf0a070b5d7c587100e0df88",
+    "c0_L128_rep001.npz": "dbcf112e5209511fe366721bb0026a00973f161cffc599d724fcb5ce26b2054e",
+    "c0_L128_rep002.npz": "39dc853d22b77a9785ef316fbdcd25b232976050ed11d31b94b03ffb8aef5df4",
+    "c0_L128_rep003.npz": "be8e5c00218d9f8182e2c907472d8ca87663bd7d2f2c7400ee565e70130ed04e",
+    "c0_L128_rep004.npz": "8551b4cd50d21584dec4258c3d38373a8b215732108c769de4cc5dc69c919ea3",
+    "c0_L128_rep005.npz": "c275abe7ed3e15aa3f3d8ab2fa1dab4e5b1b2ca1e4629304d761238f606cd830",
+    "c0_L128_rep006.npz": "08feb297e495313bf9dd1dfc3eb48c78832bfc0ea6c68046fbb8beec4f2ca4f7",
+    "c0_L128_rep007.npz": "835765731b940ff728c3421a0d6037fc93f9fd53f0759bf550909dae807833ec",
+    "c0_L128_rep008.npz": "21e9c38d6a8f791ee6fec3e51f722f960829389f935208a5338207ceb49c981d",
+    "c0_L128_rep009.npz": "18b82ebe1538d2e70952d86989e33ed6a0eab5f2b73ba1bd2ac481801c3bbb74",
+    "c0_L128_rep010.npz": "1b619f00072798a9c2d779b228693bf85183245b60bf644470de95207f297226",
+    "c0_L128_rep011.npz": "da22b1ea380ab13adbbaea4e396f4bd15fcfe60f0696851fe305c21cc7d3a200",
+    "c0_L128_rep012.npz": "ed4cbd553e4bcb4cf258cf51db48934614013cd15f5e1b229c87f67e0b21b21d",
+    "c0_L128_rep013.npz": "1d9e594b72b46742691e4417c8ef2819fc7d85c27e5e4bf474e561ed3b90cc72",
+    "c0_L128_rep014.npz": "19a2112a6bd86dbabb256e15b5150a52d06e3dd3a618dd5cbf49fed8fd582751",
+    "c0_L128_rep015.npz": "6ad2392958e638e47dd7afb6a6d3b477a6e2d939d9697221e6641576c5d36a3c",
+    "c1_L128_rep000.npz": "68fa184f09a8aaaa1f04955f8ec724affaeb54cc3008fc9d53747ee9cfc4f333",
+    "c1_L128_rep001.npz": "a82c53b16fc74ac1739b5c8d4e85a338cbacf0a5c1feb98996141e28ff548fef",
+    "c1_L128_rep002.npz": "6824c7485f1ee92974647453c888dd533df2fef0a76bf170822a0ee4fcefbd50",
+    "c1_L128_rep003.npz": "09c9f6c23deda7d08cdda026986b55d4c3c2ffbffa86ae0aa4fe9b7b30adf304",
+    "c1_L128_rep004.npz": "86cc35d1e5cdf4b3b4d437c2c70167b5409b0eb38c85c9d46bfb6f6ed9cbe41d",
+    "c1_L128_rep005.npz": "eda5e9a1d78852f20b1bebf60585d589552bcbd5e14d394ca9238cdd6dd8d60d",
+    "c1_L128_rep006.npz": "31d2dc07142bda0860cc72526455bde56678e384034ffffc688f59e80a65bb27",
+    "c1_L128_rep007.npz": "edba91e4a4c3d0c1796a086f801730072d5a5bb83f22dc6c903c794571e942dd",
+    "c1_L128_rep008.npz": "4dd2a8e2822aa64d3e9a0132190f844dcac201b78b8122b9ecd8185fae6464f5",
+    "c1_L128_rep009.npz": "f0074b3a36f0b1ddd0f982a3f738c693131ea125744919b0cb57419317b062b9",
+    "c1_L128_rep010.npz": "3a3c9ac87c347e5cf1813207ba296e2118025f83ec073fefa0a03e5affc78be6",
+    "c1_L128_rep011.npz": "913e8129b383fdf0d90ab133d11d7dbc69b5784dfa4cb4ee4b09f9ad33bed85f",
+    "c1_L128_rep012.npz": "e8884c70595cabc503da7f35d10f4f5b96ce60399bf5492537b9a856ea58adda",
+    "c1_L128_rep013.npz": "66ae9cca9cacb8e09ac5f44845d385ff7c700656fba783b26be7eceac4891410",
+    "c1_L128_rep014.npz": "c5caf29ad0176f3796ed3db4417d6244c543549452231609f9a83ed98650448b",
+    "c1_L128_rep015.npz": "fa0e4b0db836ee7d1f311e54b86083e5a0d8fbd3edb5127ade7c1b6d2e25ebc7"
+  },
+  "prior_manifest_sha256": {
+    "/Users/djangothompson/Documents/ChatGPT/kawasaki ising model/research/runs/overnight": "398c39d581e15c4f24368ff99f2e12ede790025d9a6f76023e4ad842006adbb7",
+    "/Users/djangothompson/Documents/ChatGPT/kawasaki ising model/research/runs/imaging_validation": "7c86317e43b52a43af2160c7432eaf80cd8eb6c86c9eb15813de32a73a2fc1e5"
+  },
+  "source_sha256": {
+    "research/confirm_image_operator_extension.py": "0694f14d73d167f2a063a3483adfa03ded0911b4f5679fd461a6f63c068c145e",
+    "research/PROSPECTIVE_IMAGE_HOLDOUT_2026-09-18.md": "c7ba49459bc267ca34595c7f96345fe4b97643f02600f1b4ba823e43e344e864",
+    "research/imaging.py": "46a28cedabc417d8d002628004637b05a0e61920cafb14f89446e4b058db95af",
+    "research/compare_estimators.py": "490f0924baf6332017d5e8501f10a41ab0e7fbc21785a12caacb57674dd9b653",
+    "research/analyse_campaign.py": "0f1923c2818fcbcb3604a3311a013178d53dd04636d40eac752cf3bc87136f2e",
+    "research/verify_study.py": "6f68d4bffd3f763c22f49670daee0ff86fe7781a92e8ae93080205458a936486"
+  },
+  "windows": [
+    [
+      1000,
+      20000
+    ],
+    [
+      1000,
+      200000
+    ]
+  ],
+  "independent_units": "seeded full trajectories",
+  "bootstrap_draws": 500,
+  "full_campaign_audit": {
+    "replicas": 128,
+    "snapshots": 9600,
+    "unique_seeds": 128,
+    "source_hashes_match": true,
+    "plan_configs_and_seeds_match": true,
+    "magnetisation_and_later_energy_intervals_checked": true,
+    "first_energy_interval_independently_checked": false
+  }
+}

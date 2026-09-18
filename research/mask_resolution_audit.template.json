@@ -1,0 +1,22 @@
+{
+  "source": "Replace with approved dataset or laboratory source",
+  "license": "Replace with reuse and sharing conditions",
+  "phase_definition": "Replace with the expert's precise foreground-feature definition",
+  "tie_rule": "background",
+  "records": [
+    {
+      "id": "unique-mask-id",
+      "specimen_id": "actual specimen or experiment identifier",
+      "mask_path": "relative/path/to/single-plane-mask.png",
+      "foreground_value": 1,
+      "background_value": 0,
+      "mask_authority": "Who segmented this mask and by what method",
+      "roi": [0, 128, 0, 128],
+      "roi_reason": "Why this fixed rectangular field is appropriate",
+      "pixel_size": 0.06,
+      "length_unit": "um",
+      "time": 15,
+      "time_unit": "min"
+    }
+  ]
+}

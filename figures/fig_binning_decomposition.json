@@ -1,0 +1,7 @@
+{
+  "status": "exploratory post-hoc figure; point estimates only",
+  "main_csv_sha256": "acacebcf16a97b8472f77106cdf1c0ddc75414bee00a4789d6c8871a27c0b887",
+  "repeat_csv_sha256": "19d5a475c9be0c5ca5a545f07259fdc339f8262254f8ebaecf8e41dd8eecd9bc",
+  "source_sha256": "f29ce5cbe7dc774daa7be4910b07d53b2ae2a485ce41463e240a9ad73ee5cbb2",
+  "interpretation": "Stage bars add within each cohort and fixed time mask; uncertainty is in paired_fits.csv."
+}

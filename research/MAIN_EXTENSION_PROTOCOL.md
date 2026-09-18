@@ -63,6 +63,16 @@ MPLCONFIGDIR=.mplconfig .venv311/bin/python -m research.analyse_main_extension \
 The output includes directional and mean lengths, unresolved counts, fixed
 window fits, whole-replica bootstrap intervals, and matched-time size plots.
 
+Presentation-only note, 18 September while the campaign was still running
+(114/128 recorded at the last check): `render_extension_appendix.py` was
+added to place **all 80** declared fit rows, group missingness counts and
+matched-size coverage into a neutral Markdown appendix. It requires the
+completed campaign and passing independent raw-to-table audit. It cannot
+choose a fit window, infer a finite-size onset or add a new growth estimate;
+the underlying CSVs remain the authoritative numerical outputs. This is a
+reporting convenience added before final extension results were read, not a
+change to the frozen physical analysis.
+
 ## Report interpretation
 
 The earlier pilot suggested that short windows and single trajectories were

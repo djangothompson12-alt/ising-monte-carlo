@@ -1,9 +1,13 @@
 # Data included in the repository
 
 The main evidence is a set of seeded Model B simulations, not a measured
-alloy time series. Files are under `research/runs/`; most new run output is
-ignored by Git, but the selected completed campaigns listed below are tracked
-as a public snapshot.
+alloy time series. Files are under `research/runs/`; most generated output is
+ignored by Git, but the named campaigns below were deliberately selected for
+this release. A complete archive is not automatically a validated physical
+result.
+[Field names, units, missing-value rules and the independent sampling unit](DATA_DICTIONARY.md)
+are defined separately so a reader can check a number without guessing what
+an NPZ array means.
 
 | Folder | What it contains | Status |
 |---|---|---|
@@ -11,6 +15,8 @@ as a public snapshot.
 | `runs/imaging_validation/` | Eight fresh raw NPZ trajectories and image-operation repeat | Complete to 20,000 sweeps |
 | `runs/pilot/` | Earlier 24-replica exploratory campaign and summaries | Pilot; not an independent confirmation |
 | `runs/measurement_reliability_map_v1/` | Compact comparison of original and fresh image-operation results | Exploratory |
+| [`runs/majumder_das_2010_l128/`](runs/majumder_das_2010_l128/) | 40 new 0.6 Tc, L=128 trajectories to 4.5 million sweeps; raw manifest and integrity audit | Complete raw archive; no student-approved paper-method fit or multi-size reproduction |
+| [`runs/main_065_multisize_v1/`](runs/main_065_multisize_v1/) | 128 completed 0.65 Tc million-sweep trajectories over four sizes and two compositions, with analysis and new-seed image holdout | Complete, internally audited release; not independently peer reviewed |
 
 The main comparison used `Jx=Jy=1`, `T_final=0.65Tc`, compositions 0.50 and
 0.15, widths 32/64/96/128 and eight independent runs per condition. The
@@ -19,10 +25,25 @@ composition. Exact integer compositions, seeds, code hashes and dependency
 versions are in each campaign manifest. NPZ files include archived times,
 lattice snapshots, directional lengths, energies and magnetisation.
 
-The incomplete 0.6Tc literature benchmark (7/40 planned runs at this
-snapshot), the planned million-sweep extension, the third-party Al-alloy
-images, and large duplicate evidence ZIPs are **not** included as completed
-public datasets. No physical tennis-string measurements exist yet.
+The completed 0.6 Tc reference raw run and million-sweep extension are now
+selected Git-tracked datasets. The local review packs under `output/` are
+duplicate private packaging, not a second source of observations; they are
+**not** in this repository. The reference raw trajectories do not themselves
+give a paper-method-matched exponent. The extension files include the
+[complete fit table](runs/main_065_multisize_v1/analysis_declared_v1/appendix_v1/APPENDIX.md),
+unresolved rows, source hashes, independent table audit and
+[new-seed image-holdout result](runs/main_065_multisize_v1/image_holdout_v1/REPORT.md).
+Internal reproducibility is not independent laboratory replication or
+external endorsement.
+A separate synthetic known-growth **measurement control** is not a Kawasaki trajectory.
+The third-party Al-alloy images and large duplicate evidence ZIPs are likewise
+not public repository data. Small aggregate outputs and an attributed
+inspection panel from the public CC BY 4.0 Al–Ge source are under
+[`research/results/`](results/README.md); the four original Mendeley ROI
+volumes are **not** included. Those outputs record exact source TIFF hashes
+and include unresolved rows from a fixed image-operator test, not an
+experimental coarsening rate. No physical tennis-string measurements exist
+yet.
 
 From the repository root, with dependencies installed:
 
@@ -32,6 +53,44 @@ python -m research.verify_study research/runs/overnight \
   --source-root research/frozen_sources/2026-09-10
 python -m research.analyse_campaign research/runs/overnight
 ```
+
+For the **completed** extension, the following sequence was run after a
+`complete` status with all 128 declared files. The independent audit recalculates every declared
+growth-fit, ensemble-length and matched-size table entry from raw NPZ files;
+it checks arithmetic and provenance, not the physical interpretation:
+
+```bash
+.venv311/bin/python -m research.verify_study research/runs/main_065_multisize_v1 --source-root .
+.venv311/bin/python -m research.audit_archived_observables \
+  research/runs/main_065_multisize_v1 \
+  --output research/runs/main_065_multisize_v1/observable_audit_v1.json
+.venv311/bin/python -m research.replay_first_energy_interval \
+  research/runs/main_065_multisize_v1 --source-root . \
+  --output research/runs/main_065_multisize_v1/first_interval_replay_v1.json
+MPLCONFIGDIR=.mplconfig .venv311/bin/python -m research.analyse_main_extension \
+  research/runs/main_065_multisize_v1 \
+  --output research/runs/main_065_multisize_v1/analysis_declared_v1
+.venv311/bin/python -m research.audit_main_extension \
+  research/runs/main_065_multisize_v1 \
+  research/runs/main_065_multisize_v1/analysis_declared_v1 \
+  --output research/runs/main_065_multisize_v1/analysis_declared_v1/independent_table_audit.json
+.venv311/bin/python -m research.render_extension_appendix \
+  research/runs/main_065_multisize_v1 \
+  research/runs/main_065_multisize_v1/analysis_declared_v1 \
+  --output research/runs/main_065_multisize_v1/analysis_declared_v1/appendix_v1
+```
+
+The [separate new-seed image holdout](PROSPECTIVE_IMAGE_HOLDOUT_2026-09-18.md)
+also refused to run before full completion and used its own saved-state
+measurement. It is not part of the original physics fit. Its local result is
+[`research/runs/main_065_multisize_v1/image_holdout_v1/REPORT.md`](runs/main_065_multisize_v1/image_holdout_v1/REPORT.md).
+On 18 September, the analysis and holdout were also run from an unpacked
+private review copy into a **fresh separate output folder**. The three
+primary CSV tables, all-row Markdown appendix and two holdout CSVs were
+byte-identical to the archived local results; the observable audit again
+checked 19,200 directional lengths and the first-interval replay passed all
+128 trajectories. This is a same-code reproducibility check, not an
+independent laboratory replication or a different dynamics implementation.
 
 Reanalysis tools write new outputs; they do not alter completed NPZ archives.
 Run them in a separate output directory if preserving the published snapshot

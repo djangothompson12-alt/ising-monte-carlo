@@ -34,12 +34,16 @@ observables are estimated (per spin, extensive quantities divided by
 .. math::
     C_v = \\frac{1}{N T^2}\\big(\\langle H^2 \\rangle - \\langle H \\rangle^2\\big),
     \\qquad
-    \\chi = \\frac{1}{N T}\\big(\\langle M^2 \\rangle - \\langle |M| \\rangle^2\\big)
+    \\chi_{|M|} = \\frac{1}{N T}\\big(\\langle M^2 \\rangle - \\langle |M| \\rangle^2\\big)
 
-:math:`C_v` (specific heat) and :math:`\\chi` (magnetic susceptibility) are
-fluctuation-dissipation quantities: both diverge (in the infinite-lattice
-limit) at the critical temperature :math:`T_c \\approx 2.269 J / k_B`
-(Onsager's exact result, :math:`T_c = 2 / \\ln(1 + \\sqrt{2})`).
+:math:`C_v` is a heat-capacity fluctuation estimator. The second quantity is
+an absolute-magnetization fluctuation proxy; the stored field name
+``susceptibility`` is historical. Because it subtracts
+:math:`\\langle |M|\\rangle^2` rather than :math:`\\langle M\\rangle^2`, it
+is not the zero-field magnetic susceptibility from the field-response
+fluctuation relation. It can still show a finite-size peak near
+:math:`T_c \\approx 2.269 J / k_B` (Onsager's exact result,
+:math:`T_c = 2 / \\ln(1 + \\sqrt{2})`).
 """
 
 from __future__ import annotations
@@ -281,7 +285,7 @@ def simulate_temperature(
 
     Returns:
         Dictionary with per-spin observables `magnetization`, `energy`,
-        `specific_heat`, `susceptibility`, plus standard errors on the mean
+        `specific_heat`, historical `susceptibility` proxy, plus standard errors on the mean
         for magnetization/energy, and optionally `lattice`.
     """
     N = config.L * config.L
@@ -420,14 +424,14 @@ def _axis_correlation(lattice: np.ndarray, r_max: int) -> np.ndarray:
 
     Deliberately *not* the connected correlation (contrast
     `model_b/kawasaki_engine.py`'s `_axis_correlation_xy`, which subtracts
-    m^2): that fix is only valid when m is pinned by an exact conservation
-    law, so subtracting it removes a genuinely trivial offset. Under
-    Metropolis single-spin-flip dynamics magnetization is *not* conserved --
-    below T_c the system spontaneously orders and m(t) itself grows towards
-    the equilibrium spontaneous magnetization (close to 1 well below T_c) as
-    domains coarsen. That growing m(t) *is* the ordering signal L(t) is
-    measuring, not a nuisance concentration offset; subtracting m(t)^2 here
-    would erase the very physics under study rather than isolate it.
+    m^2). A connected statistic can be defined for Model A too, but changing
+    to it would change this established length observable and its baseline.
+    Under Metropolis single-spin-flip dynamics magnetization is not conserved:
+    below T_c it changes as the system orders. Subtracting the time-varying
+    m(t)^2 is therefore not just removing the fixed composition background
+    that appears in conserved, off-critical Model B. The raw definition is
+    retained here for consistency with the reported Model A analysis; it is
+    not asserted to be the unique correct domain length.
     """
     L = lattice.shape[0]
     spins = lattice.astype(np.float64)

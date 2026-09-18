@@ -23,6 +23,7 @@ from research.analyse_campaign import bootstrap_slope, fit_slope
 WINDOWS = ((1_000, 20_000), (1_000, 200_000), (20_000, 200_000),
            (20_000, 1_000_000), (200_000, 1_000_000))
 LENGTH_FRACTION = 0.15
+MATCHED_RATIO_DRAWS = 500
 
 
 def sha(path: Path) -> str:
@@ -56,6 +57,47 @@ def _inventory(folder: Path, plan: dict) -> tuple[dict, dict]:
     return groups, hashes
 
 
+def matched_size_ratios(times: np.ndarray, smaller: np.ndarray, reference: np.ndarray,
+                        *, composition: float, smaller_L: int, reference_L: int = 128,
+                        seed: int = 20260917, draws: int = MATCHED_RATIO_DRAWS) -> list[dict]:
+    """Whole-replica uncertainty for size ratios at the same sweep counts.
+
+    Arrays are (replica, checkpoint, x/y direction). Independent replicas
+    are resampled within each size; no seed pairing across sizes is assumed.
+    """
+    if (smaller.ndim != 3 or reference.ndim != 3 or smaller.shape[2] != 2
+            or reference.shape[2] != 2 or smaller.shape[1] != len(times)
+            or reference.shape[1] != len(times) or min(len(smaller), len(reference)) < 2
+            or draws < 1):
+        raise ValueError("Need two complete directional trajectory ensembles")
+    small_resolved = np.all(np.isfinite(smaller) & (smaller > 0), axis=(0, 2))
+    ref_resolved = np.all(np.isfinite(reference) & (reference > 0), axis=(0, 2))
+    small_length = smaller.mean(axis=2)
+    ref_length = reference.mean(axis=2)
+    mean_small = small_length.mean(axis=0)
+    mean_ref = ref_length.mean(axis=0)
+    rng = np.random.default_rng(seed)
+    small_indices = rng.integers(len(smaller), size=(draws, len(smaller)))
+    ref_indices = rng.integers(len(reference), size=(draws, len(reference)))
+    small_boot = small_length[small_indices].mean(axis=1)
+    ref_boot = ref_length[ref_indices].mean(axis=1)
+    rows = []
+    for index, sweep in enumerate(times):
+        resolved = bool(small_resolved[index] and ref_resolved[index])
+        ratio = float(mean_small[index] / mean_ref[index]) if resolved else float("nan")
+        low, high = (np.percentile(small_boot[:, index] / ref_boot[:, index], [2.5, 97.5])
+                     if resolved else (float("nan"), float("nan")))
+        rows.append(dict(composition=composition, L=smaller_L, reference_L=reference_L,
+                         sweep=int(sweep), n_small=len(smaller), n_reference=len(reference),
+                         resolved_small=bool(small_resolved[index]),
+                         resolved_reference=bool(ref_resolved[index]),
+                         mean_small=float(mean_small[index]), mean_reference=float(mean_ref[index]),
+                         difference_sites=float(mean_small[index] - mean_ref[index]) if resolved else float("nan"),
+                         ratio=ratio, ratio_low=float(low), ratio_high=float(high),
+                         status="resolved" if resolved else "unresolved"))
+    return rows
+
+
 def analyse(folder: Path, output: Path) -> Path:
     if output.exists():
         raise FileExistsError("Use a new output directory")
@@ -67,9 +109,14 @@ def analyse(folder: Path, output: Path) -> Path:
             plan["max_sweeps"] != 1_000_000 or plan["replicas"] != 16 or
             plan["T_final_over_tc"] != 0.65):
         raise ValueError("Input does not match the frozen main-extension protocol")
+    status_path = folder / "status.json"
+    status = json.loads(status_path.read_text()) if status_path.is_file() else {}
+    expected_count = plan["replicas"] * len(plan["sizes"]) * len(plan["concentrations"])
+    if status.get("state") != "complete" or status.get("completed") != expected_count:
+        raise ValueError("Campaign incomplete or not marked complete")
     groups, hashes = _inventory(folder, plan)
     output.mkdir(parents=True)
-    records, values = [], []
+    records, values, matched = [], [], []
     for ci, c in enumerate(plan["concentrations"]):
         fig, axes = plt.subplots(1, 3, figsize=(15, 4.4), layout="constrained")
         for L in plan["sizes"]:
@@ -110,6 +157,31 @@ def analyse(folder: Path, output: Path) -> Path:
                                         n_replicas=len(trajectory), n_points=int(mask.sum()),
                                         alpha=alpha, bootstrap_low=lo, bootstrap_high=hi,
                                         max_length_over_L=float(np.max((mean/L)[mask])) if mask.any() else ""))
+        reference_times, reference_directional = groups[(ci, 128)]
+        ratio_figure, ratio_axis = plt.subplots(figsize=(7, 4.5), layout="constrained")
+        for side in (32, 64, 96):
+            comparison_times, directional = groups[(ci, side)]
+            if not np.array_equal(comparison_times, reference_times):
+                raise ValueError("Cannot compare sizes at different checkpoint times")
+            comparison = matched_size_ratios(reference_times, directional, reference_directional,
+                                             composition=c, smaller_L=side,
+                                             seed=20260917 + 100 * ci + side)
+            matched.extend(comparison)
+            resolved_rows = [row for row in comparison if row["status"] == "resolved"]
+            if resolved_rows:
+                ratio_axis.plot([row["sweep"] for row in resolved_rows],
+                                [row["ratio"] for row in resolved_rows], label=f"L={side} / 128")
+                ratio_axis.fill_between([row["sweep"] for row in resolved_rows],
+                                        [row["ratio_low"] for row in resolved_rows],
+                                        [row["ratio_high"] for row in resolved_rows], alpha=0.12)
+        ratio_axis.axhline(1.0, ls=":", color="black", label="equal measured length")
+        ratio_axis.set(xscale="log", xlabel="Matched sweeps after quench",
+                       ylabel="Mean length ratio to L=128",
+                       title=f"c={c}: relative size comparison (not an onset test)")
+        ratio_axis.grid(alpha=0.2)
+        ratio_axis.legend(fontsize=8)
+        ratio_figure.savefig(output / f"matched_size_ratios_c{ci}.png", dpi=180)
+        plt.close(ratio_figure)
         axes[0].set(xscale="log", yscale="log", xlabel="Sweeps after quench", ylabel="Mean length (sites)", title="Growth (replica SE)")
         axes[1].set(xscale="log", ylabel=r"$\ell/L$", xlabel="Sweeps after quench", title="Domain fraction")
         axes[1].axhline(LENGTH_FRACTION, ls=":", color="black", label="0.15 sensitivity cut")
@@ -121,7 +193,8 @@ def analyse(folder: Path, output: Path) -> Path:
         fig.suptitle(f"Model B, c={c}; 16 independent replicas per size")
         fig.savefig(output / f"main_extension_c{ci}.png", dpi=180)
         plt.close(fig)
-    for filename, rows in (("fit_windows.csv", records), ("ensemble_lengths.csv", values)):
+    for filename, rows in (("fit_windows.csv", records), ("ensemble_lengths.csv", values),
+                           ("matched_size_ratios.csv", matched)):
         with (output / filename).open("x", newline="") as stream:
             writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
             writer.writeheader()
@@ -131,6 +204,8 @@ def analyse(folder: Path, output: Path) -> Path:
         campaign_manifest_sha256=sha(manifest_path), input_sha256=hashes,
         primary_windows=WINDOWS, sensitivity_length_fraction=LENGTH_FRACTION,
         bootstrap_unit="whole independent replica", bootstrap_draws=500,
+        matched_size_addendum_sha256=sha(Path(__file__).with_name("MAIN_EXTENSION_MATCHED_SIZE_ADDENDUM_2026-09-17.md")),
+        matched_size_reference=128, matched_size_ratio_draws=MATCHED_RATIO_DRAWS,
         interpretation="Finite-window effective slopes. A size effect must be assessed at matched times; visual curve overlap alone is insufficient."), indent=2) + "\n")
     return output / "fit_windows.csv"
 

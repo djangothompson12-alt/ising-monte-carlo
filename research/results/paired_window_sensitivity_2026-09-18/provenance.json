@@ -1,0 +1,30 @@
+{
+  "created_utc": "2026-09-18T01:27:05.221219+00:00",
+  "status": "post-result paired sensitivity analysis, not prospective confirmation",
+  "input_manifest_sha256": "398c39d581e15c4f24368ff99f2e12ede790025d9a6f76023e4ad842006adbb7",
+  "input_status_sha256": "1a8c90217ae5798466e5834fb80b758d93f8d5f151f4ab5754e46f872e1cbd8c",
+  "input_sha256": {
+    "c0_L128_rep000.npz": "bd50a79c575d3d441a3d7f1cb3bba645193df44b98f46c420117813541eccc52",
+    "c0_L128_rep001.npz": "667ad949e9946d034af8ef255e4658e72eb9794458394075eea529c980ddf8e6",
+    "c0_L128_rep002.npz": "bb3b12cff76c1d45ae4113b236f930c98d0406e956a1699c46f22a14b0bac205",
+    "c0_L128_rep003.npz": "0a1c6edb060eade10aacfaadadca77cb3d902b2f0bf8703837990b92b931fcaf",
+    "c0_L128_rep004.npz": "48c149fc6d2703f1ab42934bc5dfc79a23d316ad8d4a67846be8757b2b1129fc",
+    "c0_L128_rep005.npz": "828f32f650291068716ba09caafb0eb73283f6f0d0b4c4113cada5ec2ad94c06",
+    "c0_L128_rep006.npz": "0a2418c0f27e5d15f2270db2a79d556cfd07b2fd68a1913aa8768f416aa49e80",
+    "c0_L128_rep007.npz": "8692cebefa7366565128f338032ee50c2b245766c43e15b5f79298062578c687",
+    "c1_L128_rep000.npz": "682ad2be74ec1b1eb0f8c6ca84878b2388c16051fe592d70f6a33abfe56179ce",
+    "c1_L128_rep001.npz": "db696252398319975013bd9519870e48399982dc2066baed10870803956706e1",
+    "c1_L128_rep002.npz": "d50cff1a58219f780bb9a677f1de71041bf9c2cec75fef8257fcea362b1c2167",
+    "c1_L128_rep003.npz": "4a402f403b168afe2ab0110f9f377c0f28e505734b1981e1ae84f9af725f5fd2",
+    "c1_L128_rep004.npz": "7f36615a9ae15491d3d7d30b923631120d6ccb643aa4f27f73caee36b57a20d8",
+    "c1_L128_rep005.npz": "196ee0e0d1ab9abcdbf3e8b91ab87c6bce308d26198a9b62d8bfaa6911677183",
+    "c1_L128_rep006.npz": "d31289663067a67788c0db2f2478835dd88fd7e7216a32824a26aeeea05236ef",
+    "c1_L128_rep007.npz": "2222dd8c3da2fe263750cef6758eccb49a8bb0c01ad0ac36e2ba07bbc539e6cc"
+  },
+  "source_sha256": {
+    "research/paired_window_sensitivity.py": "17612870d22dc3be869f1028f0cb1c187363fa83bf74df1fcf0079d22d8f7e1f",
+    "research/analyse_campaign.py": "0f1923c2818fcbcb3604a3311a013178d53dd04636d40eac752cf3bc87136f2e"
+  },
+  "independent_units": "eight complete seeded trajectories per composition",
+  "uncertainty": "5000 paired whole-trajectory bootstrap draws; conditional on each fixed original fit mask"
+}

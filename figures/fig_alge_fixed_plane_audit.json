@@ -1,0 +1,8 @@
+{
+  "source_sha256": "fd64230881fb2a69d7bf4f42d3581b631ba6069654c5650e4a36816b768a71d4",
+  "table_sha256": "0934f54d605d8ba60c9945867cabe904bd030429e9bc0703513d55120d3bafa0",
+  "summary_sha256": "5daec7ddc2c88b7824fa5cb0b906eb1fb9d7d1801f193429a9536eb9e5488fb4",
+  "source": "Fell 2023, DOI 10.17632/hj9njz3rxp.1, CC BY 4.0",
+  "status": "descriptive static observation audit; no independent-specimen uncertainty or growth fit",
+  "figure": "fig_alge_fixed_plane_audit.png"
+}

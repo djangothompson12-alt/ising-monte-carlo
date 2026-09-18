@@ -17,6 +17,6 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install numerical dependencies
-        run: python -m pip install numpy scipy numba matplotlib
+        run: python -m pip install numpy scipy numba matplotlib Pillow
       - name: Run physics-invariant tests
         run: python -m unittest discover -s tests -v

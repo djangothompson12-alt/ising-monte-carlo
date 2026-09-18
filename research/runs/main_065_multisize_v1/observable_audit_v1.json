@@ -1,0 +1,16 @@
+{
+  "campaign": "research/runs/main_065_multisize_v1",
+  "manifest_sha256": "24f71c117f8f7a54ee0d030c1804747c4e3734d091307e8b3479ef869aa24e0e",
+  "replicas": 128,
+  "snapshots_checked": 9600,
+  "directional_lengths_checked": 19200,
+  "unresolved_saved": 239,
+  "unresolved_recomputed": 238,
+  "threshold_rounding_ambiguities": 1,
+  "maximum_absolute_correlation_difference": 8.881784197001252e-16,
+  "maximum_absolute_length_difference": 2.842170943040401e-14,
+  "maximum_absolute_interface_difference": 0.0,
+  "maximum_absolute_direct_pair_difference": 4.440892098500626e-16,
+  "tolerance": 1e-10,
+  "conclusion": "All stored correlations and interface fractions match independent recomputation within tolerance. Stored lengths match an independent crossing of stored correlations; any fresh-FFT length differences occur only at the strict 0.5 boundary and are counted above. This does not validate the model against a material."
+}

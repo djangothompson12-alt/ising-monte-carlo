@@ -23,9 +23,10 @@ self-contained in its own directory:
   legitimately spans both models: reads the CSV each model's own kinetics
   script already produces and plots their domain-growth scaling side by
   side. See "`comparative_analysis.py`" below.
-- **`phase_diagram.py`** (repo root) — derives and plots the Bragg--Williams
-  regular-solution spinodal implied by Model B's couplings and marks the actual
-  quench paths.
+- **`phase_diagram.py`** (repo root) — plots the Bragg--Williams
+  regular-solution spinodal and binodal implied by Model B's couplings,
+  and separately compares their coexistence guide with the exact
+  infinite-lattice 2D Ising coexistence boundary. None is a Fe--Cr diagram.
 - **`fecr_literature_benchmark.py`** (repo root) — citation-backed qualitative
   comparison of the `c=0.35` Model B effective exponent with published Fe--Cr
   values; explicitly not a dimensional calibration.
@@ -44,7 +45,7 @@ were at the top level.
 The current cross-model work is the materials-science interpretation,
 reproducibility package, and external-validation preparation.
 
-## Research additions (10 September 2026)
+## Research additions (begun 10 September; updated 18 September 2026)
 
 - The controlled observation study is implemented: `research/imaging.py`
   measures finite-window covariance without wrapping image edges;
@@ -60,6 +61,22 @@ reproducibility package, and external-validation preparation.
 - `research/verify_study.py` audits raw campaign contracts.
   `research/build_evidence_pack.py` builds a private, hash-verified portable pack
   with sources/data/figures. It does not publish, endorse or write the paper.
+  The verifier now checks that every archived filename, configuration and
+  deterministic seed matches its plan. Separate read-only audits recompute
+  archived correlations, lengths and fit tables, and replay the pre-quench
+  preparation to check the first recorded heat interval. These are internal
+  checks, not independent validation of the dynamics; see
+  `docs/ARCHIVED_OBSERVABLE_AUDIT_2026-09-17.md`.
+  `research/build_extension_review_pack.py` separately assembles the
+  completed 128-run extension into a private, hash-listed review copy only
+  after its raw, observable, table, replay and image-holdout checks pass.
+  `research/verify_review_copy.py` checks an unpacked file inventory. The
+  copy is not a GitHub release, endorsement or student-authored paper.
+  `tests/test_exact_small_lattice_balance.py` separately enumerates all
+  fixed-composition 3×3 states for a detailed-balance check, and
+  `research/check_small_lattice_sampling.py` compares actual samples with
+  the exact tiny-sector energy mean. These checks do not establish any
+  large-lattice coarsening exponent.
 
 - `research/campaign.py` runs seeded, resumable Model B replicas through the
   unchanged kernels, with source/version manifests and raw NPZ archives.
@@ -67,11 +84,20 @@ reproducibility package, and external-validation preparation.
 - `research/analyse_campaign.py` produces replica-based uncertainty, shared
   fit-window comparisons and a candidate z=3 collapse. Do not assume that finite
   size explains the slow exponent. See `research/PROTOCOL.md`.
+- `research/paired_window_sensitivity.py` resamples the **same complete
+  trajectories** for two fitted windows in the finished original campaign.
+  This is a post-result conditional sensitivity check, not proof of an
+  asymptotic exponent; see `docs/PAIRED_WINDOW_AUDIT_2026-09-18.md` and
+  its tracked aggregate results under `research/results/`.
 - `research/metrology.py` and `research/compare_estimators.py` compare four
   observables on identical archived Model B snapshots, with paired replica
   bootstrapping and a shared resolved-time mask. This is exploratory analysis
   designed after the pilot; it does not change engine physics. See
   `research/STUDY_DESIGN.md` for priorities and report structure.
+  `research/decompose_binning.py` makes a post-hoc, same-snapshot comparison
+  of block averaging, thresholding and tie handling; its stage contributions
+  change with composition and fit window. See
+  `docs/BINNING_DECOMPOSITION_RESULTS_2026-09-17.md`.
 - `research/reference_measurements.py` is an observation-only implementation
   of a one-pass periodic majority filter, chord lengths and raw correlations
   for a declared symmetric-literature comparison. `reference_benchmark.py`
@@ -106,9 +132,44 @@ reproducibility package, and external-validation preparation.
   histogram tails alone do not identify coalescence or new-droplet mechanisms.
 - The current LaTeX PDF is stale relative to main.tex. Rebuild and inspect before
   sharing. `.venv311` is the tested Intel Mac numerical environment (Numba .60).
-- The 0.6Tc literature benchmark is paused at 7/40 planned independent runs,
-  not a completed comparison. The planned million-sweep 0.65Tc extension has
-  not started.
+- The 0.6Tc literature-reference campaign and the million-sweep 0.65Tc
+  extension are separate. Both raw campaigns finished. The 0.6Tc paper-method
+  comparison remains gated by student review of the published measurement
+  method; do not call it a reproduction yet. The 0.65Tc extension has 128
+  verified trajectories and completed declared analysis, independent table
+  audit, all-row appendix and fixed new-seed image holdout. These results
+  are selected public research data and finite-window measurements, not an
+  asymptotic proof.
+- A separate public MetalDAM annotated-steel pilot uses 42 **static** SEM
+  images to stress-test an image-length measurement; a cleanup follow-up
+  improved length agreement while worsening phase-fraction error. The raw
+  images are ignored locally because reuse terms for redistribution are not
+  established. This is not a time-series ageing validation or lab deployment;
+  see `docs/EXTERNAL_USE_DECISION_2026-09-17.md`.
+- `research/mask_resolution_audit.py` accepts an owner-supplied binary mask,
+  fixed rectangular field and physical pixel size, and reports native/2×/4×
+  static lengths with unresolved cases retained. It does not segment raw
+  images or fit ageing kinetics. `research/make_mask_resolution_demo.py`
+  gives an explicitly synthetic resolved/unresolved demonstration;
+  `docs/MASK_AUDIT_PILOT_RECORD.template.md` is an owner-led intake note.
+  None has yet been adopted or validated by a lab.
+- `research/inspect_alge_time_series.py` and
+  `research/alge_static_operator_test.py` test one fixed 2D image-observation
+  choice on four CC BY 4.0 segmented Al–Ge ROI stacks. The source TIFFs are
+  ignored locally; small aggregate results, source hashes and an attributed
+  QA panel are under `research/results/`. The all-plane figure is
+  `figures/fig_alge_fixed_plane_audit.png` and its provenance is adjacent.
+  Seven of 11 chosen 15-minute planes and one 105-minute plane were
+  unresolved. Later-stage ratios are **static lengths**, not growth
+  exponents. Fell et al. distinguish Ge lamellae from precipitates, whereas
+  this simple 2D test combines them. See
+  `docs/ALGE_REAL_IMAGE_AUDIT_2026-09-18.md` before making any materials
+  claim or inviting outside review.
+- Generated `output/review_pack_*` and `output/extension_review_*`
+  directories/ZIPs are private copies and
+  ignored by Git. A future public release must deliberately select source,
+  aggregate data, raw campaign evidence and disclosure; do not broadly add
+  `output/` or publish a private pack by accident.
 
 ## `model_a/` in detail
 

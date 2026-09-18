@@ -30,7 +30,7 @@ directly: one with Metropolis single-spin-flip dynamics, in which the
 order parameter is not conserved, and one with spin-exchange (Kawasaki)
 dynamics, in which it is conserved exactly. After quenching each below its
 respective critical temperature, I extract the
-characteristic domain size $L(t)$ from the spin autocorrelation function and
+characteristic domain size $L(t)$ from the equal-time spatial spin correlation function and
 fit its growth. The non-conserved case gives a finite-window exponent close to the
 curvature-driven Lifshitz--Allen--Cahn prediction $L(t)\propto t^{1/2}$; the
 conserved case grows more slowly in the tested window; these runs do not
@@ -38,14 +38,16 @@ establish the diffusion-limited Lifshitz--Slyozov asymptote
 $L(t)\propto t^{1/3}$. I then generalise the
 conserved model to unequal couplings $J_x \neq J_y$, a simple stand-in for
 direction-dependent interfacial energy, and show it produces markedly
-elongated domains, similar in shape to directional coarsening seen in
-textured alloys. I then test a more subtle prediction: that the conserved
-model's growth exponent should stay fixed across the entire transition
-from a symmetric, bicontinuous quench to a dilute, off-critical quench in
+elongated domains. This gives a controlled way to explore directional
+interface costs, not a prediction of a textured alloy. I then test a more
+subtle late-stage prediction: that the conserved
+model's asymptotic growth exponent is independent of composition within
+the scaling regime, even when moving from a symmetric, bicontinuous quench to a dilute, off-critical quench in
 which the minority phase forms isolated droplets, even though the
 morphology changes completely. A sweep over six initial concentrations
-finds an approximately flat effective-exponent plateau down to $c=0.10$,
-with additional slowing at the most dilute point, $c=0.06$. A periodic
+finds an approximately flat *finite-window* effective-exponent plateau down
+to $c=0.10$, with additional slowing at the most dilute point, $c=0.06$;
+this is not a test of the asymptotic limit. A periodic
 connected-component analysis of the simulated droplet-size distribution in
 the dilute regime is compared against the closed-form
 Lifshitz--Slyozov--Wagner prediction. Finally, by
@@ -73,35 +75,38 @@ The Ising model is normally introduced as a toy magnet, and that is a
 perfectly good way to think about it. But it is also, without much
 translation needed, a lattice model of a binary mixture: a `$+1$' spin is
 an A atom, a `$-1$' spin is a B atom, and the coupling between neighbouring
-spins plays the same role as the mixing enthalpy between neighbouring
-atoms. This equivalence is not a loose analogy -- it is the same
-Hamiltonian, and it means that a Monte Carlo simulation of the Ising model
-is, depending only on which move you let the simulation make, a simulation
-of two genuinely different physical situations:
+spins gives a lattice-gas representation of an idealised binary mixture.
+The same pair-energy expression can be read in either language, but a real
+alloy also has diffusion mechanisms, crystal structure, elastic effects and
+interactions missing here. Changing the allowed move creates two different
+kinetic models:
 
 \begin{itemize}
 \item If a ``move'' is flipping a single spin, nothing stops the total
 magnetisation from drifting. Physically, this is what happens when a
 non-conserved quantity orders itself out of a disordered state --
-magnetic domains forming as a thin film cools below its Curie point, or
-grains growing in a polycrystal as high-curvature boundaries shrink. This
+magnetic domains forming as a thin film cools below its Curie point. The
+curvature-driven growth mechanism is also relevant to grain growth, although
+two Ising states do not describe the many grain orientations in a real
+polycrystal. This
 is usually called \textbf{Model A} dynamics, in the naming scheme
 Hohenberg and Halperin set out for dynamic critical phenomena
 \cite{HohenbergHalperin1977}.
 \item If a ``move'' is instead exchanging two neighbouring spins, the total
 magnetisation cannot change at all -- it is conserved by construction.
-This is the correct description of \textbf{phase separation in a binary
-alloy}: atoms cannot be created or destroyed, they can only move around,
-so an A-rich region can only grow by atoms diffusing into it from
-elsewhere. This is \textbf{Model B} dynamics in the same scheme, and it
-is the microscopic picture behind spinodal decomposition and Ostwald
-ripening.
+This is a minimal conserved model for \textbf{phase separation in a binary
+mixture}: the numbers of A and B sites cannot change, so an A-rich region
+can only grow by material moving from elsewhere. This is \textbf{Model B}
+dynamics in the same scheme. Nearest-neighbour swaps do not reproduce an
+alloy's atomistic diffusion route, but they allow the conservation-limited
+coarsening mechanism to be studied.
 \end{itemize}
 
-The central claim of this project is that this single difference --
-whether the order parameter is conserved -- is enough by itself to change
-the \emph{rate} at which a microstructure coarsens, in a way that can be
-measured and compared directly. I built both simulations from scratch in
+The motivating theory is that conserving the order parameter can change
+the late-stage coarsening law. The historical Model A and anisotropic Model B
+baselines below use different sizes, couplings and quench conditions, so
+their numerical slopes alone are not a controlled measurement of the
+effect of conservation. I built both simulations from scratch in
 Python (accelerated with Numba, since a naive Python Monte Carlo loop is
 far too slow to reach interesting length and time scales), extended the
 conserved model to allow direction-dependent coupling as a simple model of
@@ -128,11 +133,9 @@ H = -J_x \sum_{\langle i,j\rangle_x} \sigma_i \sigma_j \;-\; J_y \sum_{\langle i
 where $\langle i,j\rangle_x$ and $\langle i,j\rangle_y$ are sums over
 horizontal and vertical nearest-neighbour bonds respectively, each counted
 once. Setting $J_x = J_y = J$ recovers the ordinary isotropic Ising model.
-Physically, $J_x \neq J_y$ is the simplest possible stand-in for a
-material whose interfacial energy depends on direction -- a rolled sheet
-metal, or a single-crystal superalloy with an elastically soft axis, does
-not cost the same energy to grow an interface along every direction, and
-neither does this model once $J_x \neq J_y$.
+Physically, $J_x \neq J_y$ is a simple stand-in for direction-dependent
+interfacial energy. It creates a directional bond cost, not a model of
+crystallographic elasticity or processing texture.
 
 \subsection{Equilibrium thermodynamics}
 
@@ -146,7 +149,8 @@ where $Z$ is the partition function (the normalising sum over every
 possible spin configuration). Equilibrium is the state that minimises the
 Helmholtz free energy $F = E - TS$, not the energy alone -- entropy
 matters, and it matters more as $T$ increases. At low temperature the
-energy term wins and the system prefers the ordered, all-aligned state; at
+energy term wins and an unconstrained system prefers an ordered, all-aligned
+state (while the conserved mixture must retain its fixed composition); at
 high temperature the entropy term wins and disorder is preferred, because
 there are astronomically more disordered configurations than ordered
 ones. In between, there is a temperature at which the two effects balance
@@ -159,7 +163,7 @@ T_c = \frac{2J}{\ln(1+\sqrt2)} \approx 2.269\ J/k_B.
 \end{equation}
 For the anisotropic case, $T_c$ is instead the root of
 \begin{equation}
-\sinh\!\left(\frac{2J_x}{T_c}\right)\sinh\!\left(\frac{2J_y}{T_c}\right) = 1,
+\sinh\!\left(\frac{2J_x}{k_B T_c}\right)\sinh\!\left(\frac{2J_y}{k_B T_c}\right) = 1,
 \label{eq:tc-aniso}
 \end{equation}
 which I solve numerically and which reduces to Eq.~\eqref{eq:tc} when
@@ -253,8 +257,8 @@ Eq.~\eqref{eq:detailed-balance} only needs
 \frac{W(a\to b)}{W(b\to a)} = \frac{P_{\text{accept}}(a\to b)}{P_{\text{accept}}(b\to a)} \stackrel{!}{=} \frac{P(b)}{P(a)} = e^{-\beta(H_b - H_a)} = e^{-\beta \Delta E}.
 \end{equation}
 The Metropolis rule, Eq.~\eqref{eq:metropolis}, satisfies this exactly:
-if $\Delta E \le 0$ the move up is accepted with probability 1 and the
-move back with probability $e^{-\beta\Delta E} < 1$, giving precisely the
+if $\Delta E < 0$ the forward move is accepted with probability 1 and the
+reverse move with probability $e^{\beta\Delta E} < 1$, giving precisely the
 required ratio, and the other sign works the same way by symmetry. So a
 rule that only ever looks at the energy change of one proposed move,
 with no knowledge of $Z$ or of any other configuration, is guaranteed to
@@ -387,9 +391,11 @@ quenching a $96\times96$ lattice with $J_x=1.0$, $J_y=0.5$ (so
 $T_c \approx 1.641$ by Eq.~\eqref{eq:tc-aniso}, giving
 $T_i\approx4.923\to T_f\approx1.067$) over 16 replicas and 10{,}000
 sweeps gives effective exponents $\alpha_x \approx 0.183$ and
-$\alpha_y \approx 0.138$ -- both clearly slower than Model A, but also
-both well short of the asymptotic prediction $1/3$. This is not a
-software bug: conserved-order-parameter coarsening is well known to have
+$\alpha_y \approx 0.138$ -- smaller than the separate Model A baseline,
+but not a clean measure of conservation's effect because the conditions
+differ. Both are also well short of the asymptotic prediction $1/3$.
+That discrepancy alone neither diagnoses a software bug nor rules one out;
+conserved-order-parameter coarsening is known to have
 much stronger and longer-lived corrections to its asymptotic growth law
 than the non-conserved case \cite{Bray1994}, and the domain sizes reached
 here are still a small fraction of the estimator's maximum range.
@@ -404,8 +410,9 @@ their respective theoretical predictions.
 \includegraphics[width=\textwidth]{../figures/fig_comparative_scaling.png}
 \caption{Domain size $L(t)$ vs. time on matching log-log axes for Model A
 (left) and Model B (right, $L_x$ and $L_y$ averaged), each against its
-own theoretical growth law. The visibly shallower slope on the right is
-the direct signature of conservation slowing down coarsening.}
+own theoretical growth law. The visibly shallower Model B slope is a
+descriptive comparison under different sizes, couplings and quench
+conditions, not a controlled estimate of conservation's causal effect.}
 \label{fig:comparative}
 \end{figure}
 
@@ -497,8 +504,9 @@ law $L(t)\propto t^{1/3}$ never referenced the minority-phase volume
 fraction in the first place. What \emph{does} depend on volume fraction is
 the \emph{scaling function} -- the detailed shape of the correlation
 function or the droplet-size distribution -- and, in the strict dilute
-limit, the classic Lifshitz--Slyozov--Wagner (LSW) theory gives that shape
-an exact closed form \cite{LifshitzSlyozov1961}. This is worth being
+limit, the classic three-dimensional Lifshitz--Slyozov--Wagner (LSW)
+theory gives a closed-form droplet-size reference under its assumptions
+\cite{LifshitzSlyozov1961}. This is worth being
 precise about, because it is also the point at which a popular but
 imprecise version of this story goes wrong: it is tempting to read
 ``bicontinuous network'' and ``isolated droplets'' as two different
@@ -595,11 +603,8 @@ long-lived \cite{Bray1994}, and there is every reason to expect those
 corrections to be strongest exactly where the fewest, most widely
 separated droplets have to communicate across the largest distances --
 i.e., in the most dilute regime, at fixed lattice size and run length.
-Within the simulated time and size window, the data do not show the more
-dramatic alternative: nowhere in this range does Model B's exponent jump
-towards a qualitatively different value (e.g.\ $1/2$ or $1/4$, both of which appear in the
-literature for phase separation with hydrodynamic flow, which this
-lattice model does not have \cite{Bray1994}). These finite-window measurements
+Within the simulated time and size window, the data do not show a clear
+jump to a different stable exponent plateau. These finite-window measurements
 are compatible with a shared asymptotic growth law, but do not establish it.
 A finite-size and longer-time study is required to distinguish
 composition-dependent transients, estimator effects and saturation from
@@ -616,7 +621,8 @@ microscopy for Fe--Cr alloys aged at 773\,K and reported an effective growth
 exponent of $0.16$ for the inverse SANS peak position (the decomposition
 wavelength) in their alloy labelled 35Cr; a Guinier particle-radius analysis gave
 $R\propto t^{0.27}$ \cite{Xu2016}. The present $c=0.35$ conserved-model run
-gives $\alpha=0.1676\pm0.0008$ as a fit standard error
+gives $\alpha=0.1676\pm0.0008$ as a fit standard error, not uncertainty
+from independent replicas or a choice of fitting window
 (Figure~\ref{fig:fecr-benchmark}). The experimental composition table uses
 weight percent, not the model's site fraction: these compositions are not
 matched, and proximity of the exponents is not evidence of agreement.
@@ -709,13 +715,16 @@ held at fixed temperature $T_f$, every accepted move that changes the
 system's energy by $\Delta E$ delivers heat $Q = -\Delta E$ to that bath,
 by simple conservation of energy. Summing the accepted $\Delta E$ within
 each time interval $dt$ (in sweeps) and averaging over replicas gives the
-per-spin bath entropy-flow rate,
+per-spin bath entropy-flow rate (in the code's $k_B=1$ units),
 \begin{equation}
-\dot S_{\mathrm{bath}}(t) = -\frac{1}{T_f}\,\frac{\langle \Delta E\rangle}{dt},
+\dot S_{\mathrm{bath}}(t) = -\frac{1}{N T_f}\,\frac{\langle \Delta E\rangle}{dt},
 \label{eq:entropy}
 \end{equation}
-which requires no simulation beyond the bookkeeping the Metropolis step
-is already doing. It is not, by itself, the total stochastic entropy
+where $N=L^2$ and $\Delta E$ is the total lattice-energy change over the
+checkpoint interval. The historical output field is named
+\texttt{entropy\_production} but stores this bath-flow proxy. Computing it
+requires no simulation beyond the bookkeeping the Metropolis step is
+already doing. It is not, by itself, the total stochastic entropy
 production $\dot S_{\mathrm{tot}}=\dot S_{\mathrm{sys}}+\dot
 S_{\mathrm{bath}}$: estimating the system's ensemble Shannon-entropy change
 would require an additional calculation. For Model A,
@@ -729,9 +738,9 @@ immediately after the quench the lattice is riddled with domain walls and
 misaligned spins, so a large fraction of proposed moves are strongly
 energetically favourable and get accepted; as coarsening proceeds and
 interfacial area shrinks, fewer moves are favourable, and dissipation
-falls in step with it. Every individual move used to produce this result
-satisfies detailed balance and is microscopically reversible in the
-statistical sense (Section~2.3); the observed positive, decaying
+falls in step with it. The transition rule used to produce this result
+obeys detailed balance at fixed temperature (Section~2.3); the observed
+positive, decaying
 $\dot S_{\mathrm{bath}}(t)$ is a property of the replica-averaged,
 coarse-grained relaxation trajectory, not of every single move
 -- a concrete illustration of how macroscopic irreversibility emerges
@@ -742,43 +751,37 @@ the language of stochastic thermodynamics \cite{Seifert2012}.
 
 \section{Implications for Materials Design, and Conclusion}
 
-The practical point behind all of this is that a materials engineer
-choosing between processing routes is, in a real sense, choosing which of
-these two universality classes their microstructure evolves in. A
-precipitation-hardened alloy relies on Ostwald ripening being genuinely
-slow ($t^{1/3}$, and slower still in the pre-asymptotic regime measured
-here) to keep its precipitates fine and its strengthening effect intact
-over a long service life; a magnetic recording medium relaxing by
-domain-wall motion instead coarsens at the faster $t^{1/2}$ rate, which
-matters directly for how long a written magnetic state stays stable.
-Modern computational alloy design tools -- phase-field models, in
-particular, which are the continuum-limit description of exactly the
-conserved dynamics simulated here -- are built on precisely this
-distinction, and the lattice-scale simulation in this report is a
-microscopic, first-principles complement to that continuum picture: the
-same Cahn--Hilliard-type diffusive coarsening \cite{CahnHilliard1958}
-that phase-field models solve as a partial differential equation is here
-instead an emergent, measured consequence of a large number of
-individually simple, conserved spin-exchange moves.
+The materials connection is useful because an alloy's properties depend
+partly on the size, spacing and shape of its phases. Conserving the
+composition makes the spin-exchange model a better starting point for
+thinking about binary phase separation than single-spin flips. It does
+not supply a processing recipe or a lifetime prediction. The familiar
+$t^{1/3}$ coarsening argument concerns a late-stage, diffusion-limited
+regime under specific assumptions; the lower slopes measured here are
+finite-window results, not evidence that a real alloy will age more
+slowly. Cahn--Hilliard phase-field models also use a conserved order
+parameter \cite{CahnHilliard1958}, but they can include thermodynamics and
+transport missing from this nearest-neighbour lattice. The useful
+comparison is the shared conservation constraint and the need to define
+the measured length carefully, not quantitative equivalence.
 
-To summarise: I built two Monte Carlo engines for the same underlying
-Ising Hamiltonian, differing only in whether their elementary move
-conserves the order parameter, and used them to measure directly how
-much that single difference changes microstructural coarsening kinetics.
+To summarise: I built two Monte Carlo engines in the Ising framework,
+one with a non-conserving elementary move and one with a conserving one.
+The historical baseline runs also differ in size, coupling and quench,
+so their slopes do not isolate the effect of that move rule.
 The non-conserved model coarsens close to the predicted $t^{1/2}$ rate;
 the conserved model coarsens more slowly, with an effective exponent below
 the diffusion-limited $t^{1/3}$ prediction. The present runs have not
-quantitatively accounted for that discrepancy. Making the conserved model's coupling anisotropic produces
-directionally elongated domains, a lattice-scale analogue of textured and
-stress-rafted real microstructures. Sweeping the initial concentration away
-from $50/50$ is consistent with the growth exponent being controlled
-primarily by the conservation law rather than morphology: Model B forms an
-approximately flat effective-exponent plateau down to $c=0.10$, followed by
-additional slowing at $c=0.06$, while
-the droplet-size distribution measured in the dilute regime shows the
-concentration-dependence the theory predicts belongs there instead,
-reproducing the qualitative shape of the closed-form Lifshitz--Slyozov--Wagner
-prediction along with physically explicable departures from it. Tracking
+quantitatively accounted for that discrepancy. Making the conserved model's
+coupling anisotropic produces directionally elongated domains through unequal
+bond costs; it does not model elastic rafting or measured crystallographic
+texture. The concentration sweep gives an approximately flat *effective*
+exponent down to $c=0.10$, followed by additional slowing at $c=0.06$.
+That finite-window pattern does not establish composition independence of
+the asymptotic exponent. The dilute droplet-size distribution has some
+qualitative resemblance to the closed-form Lifshitz--Slyozov--Wagner
+reference, but differs in shape and support; the reference is not an exact
+prediction for this finite, two-dimensional lattice. Tracking
 the heat exchanged with the thermal bath at every accepted move gives a
 consistently defined measurement of bath entropy flow in both cases, falling
 by several orders of magnitude as each system relaxes. Computing total
@@ -788,7 +791,7 @@ The source code, selected completed simulation archives, analysis outputs,
 and both interactive dashboard implementations are openly available
 \cite{CodeRepo}. The dashboards have not been deployed as research instruments.
 
-\begin{thebibliography}{9}
+\begin{thebibliography}{99}
 
 \bibitem{Onsager1944} L. Onsager, Crystal Statistics. I. A Two-Dimensional Model with an Order-Disorder Transition, Phys. Rev. \textbf{65}, 117 (1944).
 

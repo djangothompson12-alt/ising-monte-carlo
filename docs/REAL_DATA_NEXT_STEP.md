@@ -1,9 +1,17 @@
 # A real microstructure comparison that can actually be reviewed
 
-Working intake brief, 13 September 2026. No company data have been received or
-analysed. The five existing AlGe tomography slices are an image-quality
-feasibility case only; their changing reconstruction, incomplete calibration,
-specimen boundary and uncertain registration prevent a kinetics claim.
+Working intake brief, updated 18 September 2026. No company data have been
+received or analysed. The original five Al–Ge tomography slices were an
+image-quality feasibility case only. A later fixed-plane test used four public
+Al–Ge tomography stacks (15, 105, 195 and 315 minutes) with the same 44 slice
+indices at each time. It found that the proposed image measurement can fail on
+some planes and can change between times, but it still does not establish a
+coarsening law: these are correlated slices of one specimen, the segmented Ge
+phase includes distinct lamellar and precipitate features, and the initial
+cast structure and reconstruction/registration choices matter. See
+`docs/ALGE_REAL_IMAGE_AUDIT_2026-09-18.md` and
+`research/ALGE_STATIC_OPERATOR_PROTOCOL_2026-09-18.md` for the exact result
+and limits.
 
 ## The narrow contribution to propose
 
@@ -48,7 +56,7 @@ adjacent slices or arbitrary image crops.
   relevant independent specimens or a registered longitudinal design.
 - **Suitable only for a feasibility/audit note:** useful original images but
   unresolved registration, metadata or phase-labelling questions. This is the
-  current status of the AlGe subset.
+  current status of the Al–Ge work, including the later four-stack test.
 - **Do not measure:** uncertain permission, missing ageing times or physical
   scales, or an unidentifiable foreground phase.
 

@@ -1,0 +1,15 @@
+{
+  "status": "illustrative fixed first replica; not ensemble inference or experimental microscopy",
+  "source_sha256": "968c10d7784f1dae770962cedc3830cda95b869bfedc3e19ed07482b0d706387",
+  "raw_npz_sha256": {
+    "c0_L128_rep000.npz": "bd50a79c575d3d441a3d7f1cb3bba645193df44b98f46c420117813541eccc52",
+    "c1_L128_rep000.npz": "682ad2be74ec1b1eb0f8c6ca84878b2388c16051fe592d70f6a33abfe56179ce"
+  },
+  "selection": "replica 000 at both compositions; L=128; exact archived times 1069 and 200000",
+  "seed_by_composition": {
+    "0.5": 1089588965,
+    "0.15": 1601914697
+  },
+  "temperature_final": 1.4749704542384643,
+  "legend": "blue-grey is spin -1; amber is spin +1; no physical units or alloy phases implied"
+}

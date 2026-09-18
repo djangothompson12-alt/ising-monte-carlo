@@ -1,0 +1,33 @@
+{
+  "audit_source_sha256": "372b5526401207e62d96a98f64db1c824431a8f66890f5387995492b9d362abe",
+  "campaign_manifest_sha256": "24f71c117f8f7a54ee0d030c1804747c4e3734d091307e8b3479ef869aa24e0e",
+  "analysis_manifest_sha256": "c45934ccd0ab6719867e1e7b962f0a6809cdf18f71f504eda452674419343e6b",
+  "analysis_table_sha256": {
+    "ensemble_lengths.csv": "76727d1a50815c454ec673a6e7e0af738a9371157a7252df57ddc17c3af20b86",
+    "fit_windows.csv": "ad5e551e6dad35a4f95a3d3509b4ce93cb2caf284f07e6f7297fbbfa06076737",
+    "matched_size_ratios.csv": "6beb38d5d518a1ca7241af208c797b6115a585fd78a1eedf17f87eee41eb5f09"
+  },
+  "raw_files_checked": 128,
+  "ensemble_rows_checked": 600,
+  "fit_rows_checked": 80,
+  "matched_size_rows_checked": 450,
+  "maximum_absolute_differences": {
+    "mean_length_x": 0.0,
+    "mean_length_y": 0.0,
+    "mean_length": 1.7763568394002505e-15,
+    "standard_error": 5.551115123125783e-17,
+    "length_over_L": 2.7755575615628914e-17,
+    "alpha": 3.3306690738754696e-16,
+    "bootstrap_low": 2.220446049250313e-16,
+    "bootstrap_high": 3.885780586188048e-16,
+    "max_length_over_L": 0.0,
+    "mean_small": 1.7763568394002505e-15,
+    "mean_reference": 1.7763568394002505e-15,
+    "difference_sites": 1.7763568394002505e-15,
+    "ratio": 4.440892098500626e-16,
+    "ratio_low": 0.0,
+    "ratio_high": 0.0
+  },
+  "absolute_tolerance": 1e-10,
+  "boundary": "Independent table arithmetic and raw-byte identity only; not proof of a growth law, finite-size onset, or physical alloy validity."
+}

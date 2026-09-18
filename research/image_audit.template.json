@@ -1,0 +1,19 @@
+{
+  "source": "Replace with dataset citation or approved laboratory source",
+  "license": "Replace with image licence and any sharing restriction",
+  "phase_definition": "Replace with expert-defined foreground phase and imaging modality",
+  "records": [
+    {
+      "id": "unique-image-id",
+      "path": "relative/path/to/single-plane-image.tif",
+      "roi": [0, 128, 0, 128],
+      "roi_reason": "Replace with reason for this fixed rectangular field",
+      "thresholds": [20, 30, 40],
+      "threshold_reason": "Replace with how these candidate thresholds were set before reading outputs",
+      "foreground": "above",
+      "preview_threshold": 30,
+      "pixel_size": 0.06,
+      "length_unit": "um"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 """Read-only integrity and physical-contract audit of a completed campaign."""
 import argparse
 import json
+import re
 from pathlib import Path
 import numpy as np
 from research.imaging_benchmark import sha
@@ -19,8 +20,19 @@ def verify(folder, source_root=None):
         if sha(source_path)!=digest:raise ValueError(f'Simulation source changed: {name}')
     seeds=set();snapshots=0
     for path in paths:
+        match=re.fullmatch(r'c(\d+)_L(\d+)_rep(\d+)\.npz',path.name)
+        if match is None:raise ValueError(f'Unexpected replica filename: {path.name}')
+        ci,L,rep=(int(value) for value in match.groups())
+        li=plan['sizes'].index(L)
+        expected_seed=int(np.random.SeedSequence([plan['seed'],rep,ci,li]).generate_state(1)[0])
         with np.load(path,allow_pickle=False) as d:
             c=json.loads(str(d['config']));s=d['snapshots'];t=d['t']
+            expected_config=dict(L=L,concentration=plan['concentrations'][ci],
+                Jx=plan['Jx'],Jy=plan['Jy'],max_sweeps=plan['max_sweeps'],
+                n_time_samples=plan['time_samples'],eq_sweeps_initial=plan['equilibration'],
+                seed=expected_seed,n_replicas=1)
+            for key,value in expected_config.items():
+                if c.get(key)!=value:raise ValueError(f'{path.name}: config {key} does not match plan/filename')
             if c['seed'] in seeds:raise ValueError('Duplicate seed')
             seeds.add(c['seed'])
             if t[-1]!=plan['max_sweeps'] or not np.all(np.diff(t)>0):raise ValueError('Bad checkpoint times')
@@ -34,7 +46,8 @@ def verify(folder, source_root=None):
             np.testing.assert_allclose(np.diff(e),d['delta_energy'][1:],atol=1e-9)
             snapshots+=len(t)
     result=dict(replicas=len(paths),snapshots=snapshots,unique_seeds=len(seeds),
-        source_hashes_match=True,magnetisation_and_later_energy_intervals_checked=True,
+        source_hashes_match=True,plan_configs_and_seeds_match=True,
+        magnetisation_and_later_energy_intervals_checked=True,
         first_energy_interval_independently_checked=False)
     print(json.dumps(result,indent=2));return result
 

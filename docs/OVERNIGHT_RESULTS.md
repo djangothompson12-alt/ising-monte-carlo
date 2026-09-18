@@ -78,8 +78,10 @@ universality, and the amplitudes/morphologies can still differ.
   rounding is small but is not hidden by claiming exactly identical fractions.
 - Rechecked every raw replica: final checkpoint 200,000; snapshot magnetisation
   constant and equal to the saved value; successive Hamiltonian energy changes
-  equal the archived interval energy changes. This does not independently
-  recheck the first interval, whose initial lattice is not in the saved series.
+  equal the archived interval energy changes. A later seeded-preparation replay
+  matched the first recorded interval too; it reused the source-matched engine
+  and is not independent dynamics validation (see the
+  [audit note](ARCHIVED_OBSERVABLE_AUDIT_2026-09-17.md)).
 - The engine hash still matches the source frozen at launch. The campaign
   runner was subsequently extended for a different benchmark; the exact
   original runner and engine are archived in
@@ -121,16 +123,15 @@ The materials contribution is a careful study of interpreting microstructure
 growth under conservation, not a prediction of an alloy's ageing time or
 strength. The calculations remain 2D and uncalibrated to physical units.
 
-Next, apply the already documented exploratory four-observable comparison to
-this completed dataset, then decide whether a targeted measurement/temperature
-control or longer large-lattice runs is most informative. That secondary
-comparison has **not** been executed in this scheduled primary-analysis pass.
-No further simulation is started here. The [research design](../research/STUDY_DESIGN.md)
+The four-observable and image-observation comparisons were performed later on
+this completed dataset; see [measurement study results](MEASUREMENT_STUDY_RESULTS.md).
+They were **not** part of this scheduled primary-analysis pass. No further
+simulation was started by that pass. The [research design](../research/STUDY_DESIGN.md)
 sets out the choices and their limitations.
 
 This summary and the analysis were prepared by the coding assistant and await
 independent student review. At the time of the original report nothing had
 been emailed or published as a paper. The selected raw archives and summaries
 are now part of a public working-code snapshot; that does not amount to peer
-review or independent experimental validation. There is no continuing
-unattended computation.
+review or independent experimental validation. Any later campaign has its own
+status file; this dated report is not a live run-status page.

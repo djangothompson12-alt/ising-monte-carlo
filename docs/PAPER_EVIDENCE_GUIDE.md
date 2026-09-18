@@ -20,13 +20,17 @@ growth law, a universal correction or a prediction of alloy properties.
 
 | Section | Evidence | What you must explain |
 |---|---|---|
-| Thermodynamic setting | Existing regular-solution spinodal figure | Mean-field map, conserved composition, why this is not an exact 2D spinodal |
+| Thermodynamic setting | Regular-solution diagram plus exact-2D coexistence check | Mean-field binodal/spinodal versus exact coexistence; why neither is a real alloy diagram |
 | Simulation verification | Tests and verify_study outputs | Energy, conservation, seeds, limits of these checks |
-| Finite time / size | Overnight growth and window figures | Effective vs asymptotic slopes; unresolved L=32 values |
+| Morphology | [Fixed-selection snapshots](../figures/fig_archived_morphology_v1.png) | Why a 50:50 network and 15:85 patches look different; why one run is only illustrative |
+| Finite time / size | [Core window figure](../figures/fig_core_window_sensitivity_v1.png), [paired-window check](PAIRED_WINDOW_AUDIT_2026-09-18.md) and complete growth table | Effective vs asymptotic slopes; same-run paired uncertainty; unresolved L=32 values |
 | Observable dependence | Long-run four-estimator figure | Four definitions are not interchangeable particle radii |
-| Controlled observation | Operator images and ratio figures | Binning/blur/threshold are observation changes, not dynamics changes |
+| Controlled observation | [Core paired-shift figure](../figures/fig_core_observation_shift_v1.png) and operator images | Binning/blur/threshold are observation changes, not dynamics changes; the image length is not the periodic engine length |
 | Independent repeat | Original/fresh paired results | Different seeds, four fresh replicas, shorter time range |
-| Real-material feasibility | Original AlGe slices, histograms and headers | Not registered, background/scale inconsistency, no experimental exponent |
+| Known-input challenge | [Geometric control](SYNTHETIC_KNOWN_GROWTH_CONTROL_2026-09-18.md) | Its imposed one-third growth does not explain the Kawasaki shortfall or establish a universal imaging bias |
+| Earlier real-material feasibility | Five selected AlGe slices from a different Zenodo release | Not registered, background/scale inconsistency, no experimental exponent |
+| Fixed real-image observation test | [Four public segmented Al–Ge ROI stacks](ALGE_REAL_IMAGE_AUDIT_2026-09-18.md) and [44-row table](../research/results/alge_static_operator_2026-09-18/fixed_plane_measurements.csv) | Why early central regions have no Ge, why unresolved measurements stay in the result, and why late-stage static length ratios are not an ageing exponent |
+| Static experimental-mask audit | [All 42 published steel masks](METALDAM_REFERENCE_MASK_SCALE_RESULTS_2026-09-18.md) | Pixel-unit resolution sensitivity; no independent-specimen claim or alloy-ageing kinetics |
 | Discussion | Prior-art comparison and limitations | What was reproduced, what remains untested, who could use the benchmark |
 
 ## Methods facts you need to be able to defend
@@ -53,8 +57,18 @@ and which need help. Clearly describe AI assistance and your own contribution.
 - Read the 2011 paper, reconcile its observables and initial-length treatment
   with this study, and decide with a reviewer whether a matched reproduction is
   needed before claiming a publishable contribution.
-- Have a microscopist assess the AlGe data-quality findings. The software does
-  not replace phase identification, registration or a sound sampling design.
+- Read the [2013 Majumder–Das composition study](https://doi.org/10.1039/C3CP50612F)
+  and the [source comparison](LITERATURE_COMPARISON_2026-09-17.md). Composition
+  dependence and off-critical droplets are established prior work, not this
+  project's novelty by themselves.
+- Read the relevant results of [König et al. (2021)](https://doi.org/10.1039/D1CP03229A),
+  which finds off-critical sub-one-third fitted values in a different 2D
+  Cahn–Hilliard model. Identify its length definition and initial-time/length
+  fit before deciding what, if anything, your Kawasaki result can be compared
+  with.
+- Have a microscopist assess both AlGe data-quality findings and the newer
+  Al–Ge central-ROI failure. The software does not replace phase
+  identification, registration or a sound sampling design.
 - Approve every source, figure and claim before sharing. Current public prose
   and source manuscript remain drafts; the tracked PDF is stale.
 - Seek substantive criticism and revise. Only someone who has actually reviewed
@@ -73,11 +87,13 @@ benchmark should be reproduced before drawing a stronger conclusion?
 useful measurement problem? What segmentation, specimen masking and metadata
 checks are needed before applying it to the AlGe series?
 
-**Dataset author:** The central 195-minute reconstruction has a different image
-shape/intensity range, and the current parser did not recover its voxel size.
-Could you clarify its reconstruction metadata and whether the volumes are
-registered? Is there an existing segmented or registered ROI appropriate for
-an educational reproducibility study?
+**Dataset author or imaging specialist:** In Fell's segmented Al–Ge ROI
+stacks, the four TIFFs have different x/y extents; a fixed central 18-µm
+square contains no Ge on seven of eleven chosen early planes. Is the TIFF
+page order physically increasing z, and are features registered across
+stages? Since the published method separates lamellae from precipitates,
+is our combined all-Ge 2D correlation length useful for *any* decision,
+or should a pilot use a population-specific 3D measure and specimen region?
 
 Ask for feedback first. Do not ask someone to certify originality, endorse a
 student they do not know, or describe a methods demonstration as industrial

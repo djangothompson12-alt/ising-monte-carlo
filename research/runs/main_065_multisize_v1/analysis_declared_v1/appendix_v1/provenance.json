@@ -1,0 +1,11 @@
+{
+  "status": "presentation only; all declared rows, no new statistical analysis",
+  "source_sha256": "43ce80d284e4fc36c4eab846d05b0f5b8cc2cd2bdb808f977dfc584784a6047d",
+  "independent_table_audit_sha256": "47334d41f387c0c04c9b836a7e674244c26865bc59e01c2440a7b5bc6b9cc908",
+  "analysis_table_sha256": {
+    "ensemble_lengths.csv": "76727d1a50815c454ec673a6e7e0af738a9371157a7252df57ddc17c3af20b86",
+    "fit_windows.csv": "ad5e551e6dad35a4f95a3d3509b4ce93cb2caf284f07e6f7297fbbfa06076737",
+    "matched_size_ratios.csv": "6beb38d5d518a1ca7241af208c797b6115a585fd78a1eedf17f87eee41eb5f09"
+  },
+  "appendix_sha256": "27188f0ee2e76978cfa636f3adfa46887d960361682cc2fcd741bcc63232fa6e"
+}

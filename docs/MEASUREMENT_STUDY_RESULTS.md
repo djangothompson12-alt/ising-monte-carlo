@@ -1,6 +1,7 @@
 # Measurement study: results and claim boundaries
 
-10 September 2026. Computational work executed with AI assistance; student
+Started 10 September 2026; updated 17 September with explicitly labelled
+post-hoc follow-up. Computational work executed with AI assistance; student
 verification and external technical review are still required. This is an
 evidence note to write from, not a paper written in the student's voice.
 
@@ -56,6 +57,12 @@ The operator is **binning plus thresholding**, not resolution alone. Exact
 threshold ties are assigned to +1; this changes apparent phase fraction,
 which is retained in the raw measurement table. Gaussian blur uses reflecting
 image boundaries and is not an experimentally calibrated point-spread function.
+An exploratory [stage-by-stage follow-up](BINNING_DECOMPOSITION_RESULTS_2026-09-17.md)
+separated greyscale 4× block averaging from binary thresholding on the same
+snapshots. In the 1,000–20,000-sweep window, thresholding accounts for nearly
+all of the c=.50 `bin4` slope shift; at c=.15 both stages contribute. Over
+1,000–200,000 sweeps the balance changes, so neither stage is a universal
+explanation. The follow-up was designed after viewing this result.
 
 ### 3. Small-field behaviour is less robust than the binning result
 
@@ -107,6 +114,19 @@ and saved-file SHA-256 were checked instead.
 Files: `research/runs/alge_feasibility/manifest.json`, the five original TIFFs,
 and `qa/experimental_feasibility.png` / `qa/QA.json`.
 
+### Separate 18 September Al–Ge labelled-stack follow-up
+
+The older five-slice audit above is **not** the later
+[Mendeley segmented ROI series](https://doi.org/10.17632/hj9njz3rxp.1).
+The latter provided four 60-nm segmented stacks and was given a
+[fixed exploratory 4× observation test](ALGE_REAL_IMAGE_AUDIT_2026-09-18.md).
+Its central-region rule failed to produce a length on all planned planes
+at 15 and 105 minutes; the 195- and 315-minute stages gave descriptive
+within-image static length ratios. The new aggregate outputs, code and
+source hashes are in [small tracked results](../research/results/README.md),
+without redistributing the original volumes. Neither dataset yields a
+defensible experimental growth exponent or validates Kawasaki kinetics.
+
 ## Established literature versus possible contribution
 
 [Majumder & Das (2011)](https://arxiv.org/abs/1101.4524) already address noise,
@@ -114,6 +134,10 @@ length definitions, early-time behaviour and finite-size interpretation. Their
 processing and definitions differ from ours; a faithful reproduction remains
 an outstanding benchmark, not a result delivered here. Finding a low exponent
 or changing it through image processing is not itself a new physical discovery.
+[Their 2013 study](https://doi.org/10.1039/C3CP50612F) also treats temperature
+and composition variation, including off-critical droplets. The present
+composition sweep is therefore not a first demonstration of that question;
+see the [source comparison](LITERATURE_COMPARISON_2026-09-17.md).
 
 The present contribution is a reproducible controlled-observation case study
 with independent seeded repetition and an experimental feasibility audit.

@@ -1,5 +1,14 @@
 # Five-workstream research build: status on 13 September 2026
 
+**Historical snapshot, not live status.** By 18 September the 40-run
+reference campaign had completed and passed internal integrity checks (but
+not a student-approved paper-method comparison), the 128-run 0.65 Tc
+extension was in progress, and a separate
+[fixed public Al–Ge image audit](ALGE_REAL_IMAGE_AUDIT_2026-09-18.md)
+had produced both unresolved and resolved static measurements. No
+experimental growth exponent or external adoption followed. The table below
+records what was true **on 13–14 September**, not what is still pending now.
+
 Update on 14 September: the 0.6Tc literature campaign is paused after 7 of
 40 planned runs at its compute-budget boundary. It has not been analysed as a
 completed benchmark. The 0.65Tc extension has not begun.

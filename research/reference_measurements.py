@@ -29,10 +29,12 @@ def majority_filter_once(lattice: np.ndarray) -> np.ndarray:
     """Return one non-mutating 5-site majority-spin pass under periodic edges.
 
     Each output spin is the majority among itself and its four nearest
-    neighbours. Five values prevent ties. This mirrors the one-pass filter
-    used as thermal-noise post-processing in the selected reference work;
-    repeated passes are intentionally not provided because they change domain
-    morphology further and need a separately justified protocol.
+    neighbours. Five values prevent ties. This implements one pass of the
+    local rule described in the selected reference work; its exact pass count
+    is not unambiguously established by the paper, so this alone is not a
+    faithful reproduction. Repeated passes are intentionally not provided
+    because they change domain morphology further and need a separately
+    justified protocol.
     """
     spins = _binary_lattice(lattice)
     neighbourhood = spins.astype(np.int16)

@@ -5,7 +5,7 @@ visualizer.py
 Publication-quality figure generation for the 2D Ising Monte Carlo engine.
 
 Produces two figures:
-    fig1_phase_transitions.png -- |M|, E, Cv, chi vs. T (4-panel)
+    fig1_phase_transitions.png -- |M|, E, Cv, |M| fluctuation proxy vs. T (4-panel)
     fig2_spin_domains.png      -- lattice snapshots in the ferromagnetic,
                                    critical, and paramagnetic regimes
 """
@@ -52,7 +52,7 @@ def plot_phase_transitions(
     output_path: str | Path,
     T_c: float = T_CRITICAL,
 ) -> Path:
-    """Render the 4-panel phase-transition figure (|M|, E, Cv, chi vs. T).
+    """Render the 4-panel phase-transition figure (|M|, E, Cv, |M| proxy vs. T).
 
     Args:
         result: Output of `ising_engine.run_temperature_sweep`.
@@ -76,7 +76,7 @@ def plot_phase_transitions(
         (axes[1, 0], result.specific_heat, None,
          r"Specific Heat $C_v$", "#2e7d32"),
         (axes[1, 1], result.susceptibility, None,
-         r"Susceptibility $\chi$", "#6a1b9a"),
+         r"$|M|$ fluctuation proxy $\chi_{|M|}$", "#6a1b9a"),
     ]
 
     for ax, y, yerr, ylabel, color in panels:

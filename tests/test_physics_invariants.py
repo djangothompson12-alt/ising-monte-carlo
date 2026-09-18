@@ -23,7 +23,12 @@ from model_a import ising_engine as model_a
 from model_a import ising_3d_engine as model_a_3d
 from model_b import kawasaki_engine as model_b
 from model_b import kawasaki_3d_engine as model_b_3d
-from phase_diagram import regular_solution_omega, spinodal_temperature
+from phase_diagram import (anisotropic_critical_temperature, binodal_temperature,
+                           exact_coexistence_compositions,
+                           exact_spontaneous_magnetization,
+                           regular_solution_chemical_potential,
+                           regular_solution_free_energy, regular_solution_omega,
+                           spinodal_temperature)
 
 
 def anisotropic_energy(lattice: np.ndarray, Jx: float, Jy: float) -> float:
@@ -49,6 +54,32 @@ class TestPhysicsInvariants(unittest.TestCase):
         self.assertEqual(int(lattice.sum()), magnetization_before)
         measured_delta = anisotropic_energy(lattice, 1.0, 0.5) - energy_before
         self.assertAlmostEqual(reported_delta, measured_delta, places=10)
+
+    def test_every_nearest_neighbour_swap_energy_and_balance(self) -> None:
+        """Exercise both anisotropic bond directions, including periodic seams."""
+        beta, jx, jy = 0.8, 0.7, 1.3
+        for seed in range(5):
+            lattice = model_b._seed_and_init_lattice(4, 1200 + seed, 0.5)
+            before = anisotropic_energy(lattice, jx, jy)
+            for row in range(4):
+                for col in range(4):
+                    for dr, dc, bond in ((0, 1, jx), (0, -1, jx),
+                                          (1, 0, jy), (-1, 0, jy)):
+                        other = ((row + dr) % 4, (col + dc) % 4)
+                        if lattice[row, col] == lattice[other]:
+                            continue
+                        local_delta = (2 * lattice[row, col] *
+                                       (model_b._local_field(lattice, row, col, jx, jy)
+                                        - model_b._local_field(lattice, *other, jx, jy))
+                                       + 4 * bond)
+                        swapped = lattice.copy()
+                        swapped[row, col], swapped[other] = swapped[other], swapped[row, col]
+                        direct_delta = anisotropic_energy(swapped, jx, jy) - before
+                        self.assertAlmostEqual(local_delta, direct_delta, places=10)
+                        forward = min(1., np.exp(-beta * direct_delta))
+                        reverse = min(1., np.exp(beta * direct_delta))
+                        self.assertAlmostEqual(forward / reverse,
+                                               np.exp(-beta * direct_delta), places=10)
 
     def test_metropolis_tracks_hamiltonian_energy(self) -> None:
         lattice = model_a._seed_and_init_lattice(16, 20260910, 0.5)
@@ -108,6 +139,67 @@ class TestPhysicsInvariants(unittest.TestCase):
         self.assertAlmostEqual(regular_solution_omega(1.0, 1.0), 8.0)
         self.assertAlmostEqual(float(spinodal_temperature(0.5, 1.0, 1.0)), 4.0)
         self.assertAlmostEqual(float(spinodal_temperature(0.5, 1.0, 0.5)), 3.0)
+
+    def test_regular_solution_binodal_satisfies_common_tangent(self) -> None:
+        self.assertAlmostEqual(float(binodal_temperature(0.5, 1.0, 1.0)), 4.0)
+        self.assertAlmostEqual(float(binodal_temperature(0.0, 1.0, 1.0)), 0.0)
+        self.assertAlmostEqual(float(binodal_temperature(1.0, 1.0, 1.0)), 0.0)
+        for fraction in np.linspace(0.02, 0.48, 24):
+            temperature = float(binodal_temperature(fraction, 1.0, 1.0))
+            self.assertGreater(temperature, float(spinodal_temperature(fraction, 1.0, 1.0)))
+            self.assertAlmostEqual(float(regular_solution_chemical_potential(fraction, temperature, 1.0, 1.0)), 0.0, places=10)
+            left = float(regular_solution_free_energy(fraction, temperature, 1.0, 1.0))
+            right = float(regular_solution_free_energy(1.0-fraction, temperature, 1.0, 1.0))
+            self.assertAlmostEqual(left, right, places=10)
+            self.assertLess(left, float(regular_solution_free_energy(0.5, temperature, 1.0, 1.0)))
+            curvature = temperature / (fraction * (1.0-fraction)) - 2.0 * regular_solution_omega(1.0, 1.0)
+            self.assertGreater(curvature, 0.0)
+            grid = np.linspace(0.0, 1.0, 501)
+            self.assertGreaterEqual(float(np.min(regular_solution_free_energy(grid, temperature, 1.0, 1.0))),
+                                    left - 1e-4)
+
+    def test_dilute_quenches_are_metastable_only_in_mean_field(self) -> None:
+        final_temperature = 0.65 * anisotropic_critical_temperature(1.0, 1.0)
+        for fraction in (0.06, 0.10):
+            self.assertLess(float(spinodal_temperature(fraction, 1.0, 1.0)), final_temperature)
+            self.assertGreater(float(binodal_temperature(fraction, 1.0, 1.0)), final_temperature)
+        self.assertGreater(float(spinodal_temperature(0.15, 1.0, 1.0)), final_temperature)
+
+    def test_exact_2d_coexistence_limits_and_mass_balance(self) -> None:
+        tc = 2.0 / np.log(1.0 + np.sqrt(2.0))
+        temperatures = np.array([0.0, 0.65 * tc, tc, 1.2 * tc])
+        magnetizations = exact_spontaneous_magnetization(temperatures, 1.0, 1.0)
+        low, high = exact_coexistence_compositions(temperatures, 1.0, 1.0)
+        self.assertAlmostEqual(float(magnetizations[0]), 1.0)
+        self.assertAlmostEqual(float(magnetizations[1]), 0.9878880274703111, places=12)
+        np.testing.assert_allclose(magnetizations[2:], 0.0, atol=1e-14)
+        np.testing.assert_allclose(low + high, 1.0, atol=1e-14)
+        self.assertAlmostEqual(float(low[1]), 0.006055986264844437, places=12)
+        # Lever-rule arithmetic describes equilibrium area fractions only;
+        # it is not a claim that these finite-time trajectories equilibrated.
+        phase_fraction = (0.15 - low[1]) / (high[1] - low[1])
+        self.assertTrue(0.0 < phase_fraction < 1.0)
+        self.assertAlmostEqual(float((1-phase_fraction)*low[1] + phase_fraction*high[1]), 0.15)
+        self.assertTrue(all(low[1] < c < high[1] for c in (0.06, 0.10, 0.15, 0.25, 0.35, 0.50)))
+
+    def test_exact_2d_anisotropic_formula_has_the_right_critical_point(self) -> None:
+        tc = anisotropic_critical_temperature(1.0, 0.5)
+        self.assertAlmostEqual(float(exact_spontaneous_magnetization(tc, 1.0, 0.5)), 0.0)
+        self.assertGreater(float(exact_spontaneous_magnetization(0.65*tc, 1.0, 0.5)), 0.0)
+        for fraction in (0.2, 0.65, 0.95):
+            self.assertAlmostEqual(
+                float(exact_spontaneous_magnetization(fraction*tc, 1.0, 0.5)),
+                float(exact_spontaneous_magnetization(fraction*tc, 0.5, 1.0)), places=13)
+        with self.assertRaises(ValueError):
+            exact_spontaneous_magnetization(-1.0, 1.0, 1.0)
+        with self.assertRaises(ValueError):
+            exact_spontaneous_magnetization(1.0, 0.0, 1.0)
+
+    def test_composition_quenches_are_not_all_inside_mean_field_spinodal(self) -> None:
+        final_temperature = 0.65 * model_b.anisotropic_critical_temperature(1.0, 1.0)
+        self.assertLess(float(spinodal_temperature(0.06, 1.0, 1.0)), final_temperature)
+        self.assertLess(float(spinodal_temperature(0.10, 1.0, 1.0)), final_temperature)
+        self.assertGreater(float(spinodal_temperature(0.15, 1.0, 1.0)), final_temperature)
 
 
 if __name__ == "__main__":

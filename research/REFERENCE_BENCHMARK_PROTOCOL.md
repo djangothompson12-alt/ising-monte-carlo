@@ -1,8 +1,10 @@
 # Reference-benchmark pathway
 
-This module prepares a **separate** reproduction pathway for the older
-two-dimensional symmetric Kawasaki studies that used a one-pass majority-spin
-filter, chord-length distribution and first-zero raw correlation. It does not
+This module prepares a **separate** comparison pathway for older
+two-dimensional symmetric Kawasaki studies that used majority-spin filtering,
+chord-length distributions and correlation diagnostics. Our post-processing
+implementation uses **one simultaneous filter pass**; the precise pass
+schedule in the cited papers has not been established as identical. It does not
 change the primary engine, raw snapshots or off-critical connected-correlation
 analysis.
 
@@ -10,7 +12,8 @@ Before calling a new result a reproduction, freeze and record:
 
 1. the cited paper/version and every simulation parameter;
 2. isotropic coupling, symmetric concentration and temperature convention;
-3. the exact majority-filter pass count (one here), applied only after dynamics;
+3. the majority-filter pass count (one here), applied only after dynamics,
+   and whether that choice actually matches the paper;
 4. the chord, correlation and spectrum definitions; and
 5. replica count, time range, random-seed plan and all failed/unresolved cases.
 
@@ -29,6 +32,16 @@ Review E* **81**, 050102(R) (2010), DOI: 10.1103/PhysRevE.81.050102. It fixes
 post-quench sweeps. The count and time scale match their reported L=128
 conditions; the implementation, random-number generator, checkpoint schedule,
 and analysis remain independent.
+
+**17 September status:** all 40 raw trajectories completed. A separate
+[integrity audit](../docs/REFERENCE_RUN_INTEGRITY_2026-09-17.md) verifies stored
+states and observables. The paper-method declaration remains unverified and
+no comparison exponent or reproduction claim has been released. The plan has
+`equilibration=0`, so its random fixed-composition initial states must not be
+described as equilibrated at the listed `T_initial_over_tc` value.
+The [source-to-code crosswalk](../docs/MAJUMDER_DAS_METHOD_CROSSWALK_2026-09-18.md)
+sets out which choices are documented in the paper and which remain uncertain;
+it is not a substitute for the student's gated declaration.
 
 It deliberately contains **only L=128**. It can compare a long symmetric
 trajectory ensemble and its measurement convention, but cannot reproduce the

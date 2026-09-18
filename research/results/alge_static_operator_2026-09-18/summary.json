@@ -1,0 +1,67 @@
+{
+  "created_utc": "2026-09-18T01:25:50.816944+00:00",
+  "status": "exploratory within-image observation audit; not growth, strength or external use",
+  "dataset": "Fell 2023, DOI 10.17632/hj9njz3rxp.1, CC BY 4.0",
+  "source_url": "https://data.mendeley.com/datasets/hj9njz3rxp/1",
+  "protocol_sha256": "72d6671ae9fd8b4ab9c9649aa9c43328414359dd85aa6aea9c08b7db1cf11040",
+  "qa_manifest_sha256": "3cdb18e9a2dcb6df3e6ad126186fb71f1c86964dd267650756f64e980f2a9608",
+  "source_sha256": {
+    "research/alge_static_operator_test.py": "fd4b8b93e3c04e31162e966d1c5a03c1afaca35e343bd3bbaae332e140a8fd00",
+    "research/imaging.py": "46a28cedabc417d8d002628004637b05a0e61920cafb14f89446e4b058db95af"
+  },
+  "input_tiff_sha256": {
+    "ROI_15min.tif": "0d86052b4ea7e70fbfece3f78adc9440c4a750f389ed314d85d54c2744be0b45",
+    "ROI_105min.tif": "c902533697d0b6ff3350000dbe8eb99c3b1187ef0133b8313d4597d9df9ca9cc",
+    "ROI_195min.tif": "6ea208e3754ca60d1910e6cc36eb61bba9482dd0a040f000157848c469e393f8",
+    "ROI_315min.tif": "c75147d514e162b94de8fcdfaa9848c3acd8d68683098f07f5566363077ca153"
+  },
+  "plane_count": 44,
+  "independent_specimens": 1,
+  "uncertainty": "No inferential confidence interval; 11 correlated planes per stage",
+  "stages": [
+    {
+      "minutes": 15,
+      "planned_planes": 11,
+      "eligible_resolved_planes": 4,
+      "status": "stage unresolved: report all failures",
+      "median_ratio": null,
+      "min_ratio": null,
+      "max_ratio": null,
+      "median_ge_fraction_shift": null,
+      "max_abs_unknown_encoding_ratio_change": null
+    },
+    {
+      "minutes": 105,
+      "planned_planes": 11,
+      "eligible_resolved_planes": 10,
+      "status": "stage unresolved: report all failures",
+      "median_ratio": null,
+      "min_ratio": null,
+      "max_ratio": null,
+      "median_ge_fraction_shift": null,
+      "max_abs_unknown_encoding_ratio_change": null
+    },
+    {
+      "minutes": 195,
+      "planned_planes": 11,
+      "eligible_resolved_planes": 11,
+      "status": "all fixed planes resolved",
+      "median_ratio": 1.2004129336235816,
+      "min_ratio": 1.0735512642992646,
+      "max_ratio": 1.2922995193883662,
+      "median_ge_fraction_shift": -0.0005888888888888888,
+      "max_abs_unknown_encoding_ratio_change": 0.0
+    },
+    {
+      "minutes": 315,
+      "planned_planes": 11,
+      "eligible_resolved_planes": 11,
+      "status": "all fixed planes resolved",
+      "median_ratio": 1.082246977462046,
+      "min_ratio": 0.9897582170397712,
+      "max_ratio": 1.2606661501513807,
+      "median_ge_fraction_shift": -0.0004777777777777775,
+      "max_abs_unknown_encoding_ratio_change": 0.0
+    }
+  ]
+}

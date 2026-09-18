@@ -2,7 +2,7 @@
   "reference": "Complete bibliographic citation and stable DOI or URL; do not leave a placeholder.",
   "purpose": "State the narrow measurement comparison being attempted, not a desired conclusion.",
   "dynamics_match": "Record temperature convention, isotropic coupling, lattice size, update rule and initial condition differences.",
-  "postprocessing_match": "State whether the reference used one periodic 5-site majority pass and how this implementation differs, if at all.",
+  "postprocessing_match": "The paper specifies a local majority rule but not an unambiguous pass count; our implementation uses one simultaneous periodic five-site pass. Record this uncertainty and any other differences.",
   "observable_match": "State precisely which chord/correlation/spectral quantities are comparable and which are not.",
   "comparison_scope": "Restrict the comparison to c=0.5 unless a reviewer gives a reasoned exception.",
   "reviewer_status": "not_yet_reviewed",

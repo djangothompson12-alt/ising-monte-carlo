@@ -1,0 +1,37 @@
+{
+  "identity": {
+    "plan": {
+      "sizes": [
+        128
+      ],
+      "concentrations": [
+        0.5
+      ],
+      "replicas": 40,
+      "max_sweeps": 4500000,
+      "time_samples": 96,
+      "equilibration": 0,
+      "Jx": 1.0,
+      "Jy": 1.0,
+      "T_initial_over_tc": 3.0,
+      "T_final_over_tc": 0.6,
+      "seed": 20260913,
+      "purpose": "Predeclared L=128 symmetric Kawasaki benchmark against Majumder and Das (2010), DOI: 10.1103/PhysRevE.81.050102. It checks their reported L=128 time scale and ensemble size with a declared post-processing comparison; it cannot by itself reproduce their multi-size finite-size scaling analysis.",
+      "stop_rule": "Complete all 40 replicas unless an invariant or storage failure is documented. Do not alter parameters, discard replicas, or extend solely because a fitted slope is inconvenient. Analyse all completed replicas before deciding on any new plan."
+    },
+    "sources": {
+      "model_b/kawasaki_engine.py": "2452e882dc9acc217903d262215f0fa1ab6fa13d39f6db701de2e1b37ebeebf9",
+      "research/campaign.py": "4fad45d2c7ce4001f57edb20233b22f47f8d2b042d4f4989c7fd90c93261492b"
+    },
+    "versions": {
+      "numpy": "2.0.2",
+      "scipy": "1.17.1",
+      "numba": "0.60.0"
+    },
+    "python": "3.11.16"
+  },
+  "created_utc": "2026-09-13T17:13:11.744575+00:00",
+  "git_commit": "fb717d105af4644bb8bd8e5c64bd5dec1967f3df",
+  "git_status": " M .gitignore\n M CLAUDE.md\n M README.md\n M manuscript/main.tex\n M model_a/figures/fig3_kinetics_entropy.png\n M model_a/ising_engine.py\n M model_a/plot_kinetics.py\n M model_b/figures/fig_anisotropic_kinetics.png\n M model_b/kawasaki_engine.py\n M model_b/live_visualizer.py\n M model_b/plot_kawasaki_kinetics.py\n M model_b/solara_app.py\n?? .github/\n?? AI_USE_AND_CONTRIBUTIONS.md\n?? CITATION.cff\n?? EXTERNAL_REVIEW.md\n?? docs/\n?? experiments/\n?? fecr_literature_benchmark.py\n?? figures/fig_fecr_literature_benchmark.png\n?? figures/fig_regular_solution_spinodal.png\n?? manuscript/WRITING_GUIDE.md\n?? model_a/ising_3d_engine.py\n?? model_a/plot_3d.py\n?? model_b/kawasaki_3d_engine.py\n?? model_b/plot_3d.py\n?? model_b/research_export.py\n?? phase_diagram.py\n?? research/\n?? tests/\n",
+  "description": "Prospective finite-size study; hypotheses are not conclusions."
+}

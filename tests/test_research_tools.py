@@ -152,6 +152,10 @@ class CampaignTests(unittest.TestCase):
             declaration_path.write_text(json.dumps(dict(declaration, student_verified=False)))
             with self.assertRaises(ValueError):
                 load_declaration(declaration_path)
+            template = json.loads((Path(__file__).parents[1] / 'research/reference_benchmark.template.json').read_text())
+            declaration_path.write_text(json.dumps(dict(template, student_verified=True)))
+            with self.assertRaisesRegex(ValueError, 'template prompts'):
+                load_declaration(declaration_path)
 
 
 if __name__ == '__main__':
