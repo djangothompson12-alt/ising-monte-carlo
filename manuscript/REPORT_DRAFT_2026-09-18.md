@@ -1,11 +1,13 @@
-# What changes a measured coarsening rate in a conserved 2D lattice?
+# When does an image stop looking composition-conserving?
 
-*AI-assisted working-paper draft, updated 18 September 2026 after the
+## A paired measurement audit in a conserved 2D coarsening model
+
+*AI-assisted working-paper draft, updated 19 September 2026 after the
 million-sweep extension completed. This is **not** Django's final submitted
 prose or an accepted paper. Every numerical statement needs Django's own
 source check and wording decisions. The older `main.tex` remains a separate
-historical manuscript; its PDF is stale. The new extension outputs are local,
-not yet in the public GitHub snapshot.*
+historical manuscript; its PDF is stale. The extension raw data and declared
+analysis are now in the public GitHub snapshot, without peer review.*
 
 ## Provisional abstract — Django to rewrite after checking the results
 
@@ -30,7 +32,14 @@ system visibly flattened. A fixed new-seed image-operator test repeated the
 earlier negative shift in both compositions, but the operation also changed
 apparent phase fraction. These results show finite-run time, size and
 measurement sensitivity within this model, not a demonstrated asymptotic law
-or an alloy-ageing prediction.
+or an alloy-ageing prediction. A conservation-aware decomposition on the same
+new-seed images found that mean-preserving pixel integration and binary
+segmentation do not have the same effect: over 1,000–20,000 sweeps,
+segmentation contributed shifts of −0.054 at 50:50 and −0.044 at 15:85 after
+the integration stage. The binary images also no longer preserved the known
+phase fraction. This makes the central result a metrology test tied to a
+physical conservation law, while remaining a simulated case rather than an
+experimental validation.
 
 ## 1. Question and materials context
 
@@ -81,6 +90,15 @@ definition and growth-law fit differ from ours, but the broader point that
 image analysis can alter a fitted kinetic result is not new. A fuller
 [prior-art comparison](../docs/LITERATURE_COMPARISON_2026-09-17.md)
 sets out this limit.
+[Zabler et al. (2007)](https://doi.org/10.1016/j.actamat.2007.05.028)
+went further by plotting a fitted coarsening exponent against binarisation
+threshold, or apparent solid fraction, in Al–Ge radiographs. The present
+question therefore cannot be “does thresholding affect a coarsening fit?” Its
+narrower question is whether an observation pipeline applied to an exactly
+conserved field can be separated into a mean-preserving integration stage and
+a binary stage that changes the apparent conserved quantity. The bounded
+[literature and novelty map](../docs/LITERATURE_SCOPE_AND_NOVELTY_2026-09-19.md)
+records what this search found and why independent review is still required.
 
 The square-lattice interaction can also be translated into an approximate
 regular-solution free energy. The [checked mean-field binodal and spinodal](../docs/REGULAR_SOLUTION_BINODAL_2026-09-18.md)
@@ -258,9 +276,10 @@ composition and energy-accounting checks. The first archived heat interval
 was also replayed for every file from its seeded pre-quench state. These are
 internal implementation checks, not experimental validation. All 80 declared
 fit rows and 450 matched-size rows were independently recalculated; the
-[complete local appendix](../research/runs/main_065_multisize_v1/analysis_declared_v1/appendix_v1/APPENDIX.md)
-shows every window, including unresolved ones. Its underlying large raw
-archive and analysis have **not** yet been published to GitHub.
+[complete appendix](../research/runs/main_065_multisize_v1/analysis_declared_v1/appendix_v1/APPENDIX.md)
+shows every window, including unresolved ones. The underlying raw archive
+and declared analysis are in the public repository; their publication is
+not independent scientific review.
 
 For `L=128`, the primary unfiltered connected-correlation fits were:
 
@@ -355,6 +374,33 @@ is stronger repeatability evidence *within the simulation* than the earlier
 four-run repeat, but it remains neither a blind discovery nor a claim about
 a particular microscope or alloy.
 
+A final conservation-aware analysis separated the same fourfold operation
+into two stages. A `4×4` arithmetic mean retained a partial-volume image and
+preserved the field mean exactly; thresholding that image at zero produced the
+binary observation. In the primary 1,000–20,000-sweep window, integration
+minus native changed the effective slope by `−0.001` [−0.003, 0.001] at 50:50
+and `−0.030` [−0.034, −0.026] at 15:85. The subsequent segmentation stage
+changed it by a further `−0.054` [−0.056, −0.052] and `−0.044`
+[−0.047, −0.041], respectively. The intervals are paired whole-trajectory
+bootstrap percentiles over 16 trajectories and use one common resolved-time
+mask. Across all saved checkpoints, the mean binary +1 fractions were 0.5295
+and 0.0958 even though the native fractions were fixed at 0.5000 and 0.1500;
+the integrated field retained those native values. The direction of the
+segmentation-stage shift repeated at both compositions, as stated in the
+[protocol](../research/CONSERVATION_AWARE_HOLDOUT_PROTOCOL_2026-09-19.md),
+but this protocol was written after the broader image effect and an older
+decomposition were known. It is a mechanism audit, not a blind discovery.
+The [complete result](../research/runs/main_065_multisize_v1/conservation_aware_holdout_v2/REPORT.md)
+also shows the 1,000–200,000 sensitivity window and unresolved counts.
+
+The result does not show that grey-scale integration is harmless in general:
+it already contributed a clear negative shift in the off-critical morphology,
+and in both compositions over the longer window. Nor does it define a universal
+correction for a microscope. Its useful point is narrower: an image-derived
+growth result can be checked against the conservation law of the underlying
+quantity, and the stages that preserve or violate that check can be reported
+separately instead of being treated as one opaque “resolution” effect.
+
 ## 4. Real-image feasibility and engineering relevance
 
 The transfer question is whether a declared measurement-sensitivity check
@@ -391,6 +437,15 @@ segment a new material correctly. It reports the same field at native, 2×
 and 4× resolution, including unresolved measurements and the chosen tie rule.
 This is a tested workflow prototype, not a result from a partner laboratory;
 whether it answers a real measurement decision remains an open question.
+
+The word *conservation* cannot be transferred from the lattice to that mask
+without another check. In Model B, the +1 fraction is the species composition.
+In a real alloy, a binary phase-mask area fraction is normally a geometrical
+quantity: both phases can contain both elements, and their fractions may change
+while total solute is conserved. The current mask tool therefore cannot test
+chemical mass balance. The [external-pilot decision document](../docs/CONSERVATION_AWARE_EXTERNAL_PILOT_2026-09-19.md)
+keeps that mask route separate from a possible future test using calibrated,
+registered elemental-composition maps.
 
 A separate [Fe–Cr methods paper by Xu et al. (2016)](https://doi.org/10.1007/s11661-016-3800-4)
 reported an effective $t^{0.16}$ for the inverse SANS-peak wavelength and
@@ -456,12 +511,25 @@ repeated the earlier effect's direction on new seeds, but its phase-fraction
 changes limit any claim about resolution alone. The selected effect was
 already observed before this protocol, so this is not a blind first discovery.
 
+A later [four-observable robustness audit](../docs/OBSERVABLE_ROBUSTNESS_RESULTS_2026-09-19.md)
+remeasured all 9,600 extension states using the half-height correlation,
+positive-lobe area, full-spectrum first moment and inverse interface fraction.
+The exact finite-window exponent was strongly observable-dependent. However,
+at one million sweeps the 15:85 `L=32`/`L=128` length ratio remained below
+`0.68` under every definition, with every 95% whole-trajectory interval below
+one. This makes the late small-box departure more robust than the numerical
+exponent assigned to it. At 50:50, two correlation-derived measurements became
+unresolved under the strict all-trajectory rule; those failures were retained.
+The audit was designed after the primary result was known and is not an
+independent confirmation.
+
 ## Data, assistance and review status
 
-The code, plans, tests and selected completed main-study trajectories are in
-the repository; see [the data guide](../research/DATA_README.md). The new
-reference and extension data are local and not yet in a reviewed public
-release. This draft, its checks and much of the code were developed with
+The code, plans, tests, completed reference and extension trajectories, and
+declared extension analyses are in the public repository; see
+[the data guide](../research/DATA_README.md). This is a reproducible working
+data release, **not** a reviewed paper. This draft, its checks and much of
+the code were developed with
 generative-AI assistance, recorded in
 [AI use and contributions](../AI_USE_AND_CONTRIBUTIONS.md). Before sharing or
 submitting a paper, Django needs to verify the sources, rerun the results he

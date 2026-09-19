@@ -3,7 +3,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from research.build_extension_review_pack import (
-    REVIEW_DOCS, build, check_core_links, selected_files,
+    REVIEW_DOCS, REVIEW_PDF, build, check_core_links, selected_files,
 )
 
 
@@ -21,6 +21,9 @@ class ExtensionReviewPackTests(unittest.TestCase):
             required = (
                 "README.md", "CLAUDE.md", "EXTERNAL_REVIEW.md", "LICENSE", "CITATION.cff",
                 "requirements.txt", "AI_USE_AND_CONTRIBUTIONS.md",
+                "requirements-volume-audit.txt", "requirements-review-artifacts.txt",
+                REVIEW_PDF, REVIEW_PDF.replace('.pdf','.provenance.json'),
+                "index.html", "model_b/solara_app.py", "model_b/live_visualizer.py",
                 "model_a/ising_engine.py", "model_b/kawasaki_engine.py",
                 "phase_diagram.py", "comparative_analysis.py",
                 "manuscript/main.tex", "manuscript/WRITING_GUIDE.md",
@@ -30,6 +33,7 @@ class ExtensionReviewPackTests(unittest.TestCase):
                 "model_a/figures/fig2_spin_domains.png",
                 "model_a/figures/fig3_kinetics_entropy.png",
                 "docs/CLAIM_AUDIT_2026-09-17.md",
+                "docs/EXPECTED_VS_OBSERVED_2026-09-18.md",
                 "docs/PROGRESS_AND_LIMITS.md", "docs/review_brief.html",
                 "docs/LITERATURE_COMPARISON_2026-09-17.md",
                 "docs/MAJUMDER_DAS_METHOD_CROSSWALK_2026-09-18.md",
@@ -46,7 +50,7 @@ class ExtensionReviewPackTests(unittest.TestCase):
             expected.parent.mkdir(parents=True)
             expected.write_bytes(b"synthetic fixture")
             private = root / "output/private_contact_notes.md"
-            private.parent.mkdir()
+            private.parent.mkdir(exist_ok=True)
             private.write_text("not in the review packet")
             experimental = root / "research/runs/alge_time_series_source_v1/roi.tif"
             experimental.parent.mkdir(parents=True)
@@ -71,6 +75,10 @@ class ExtensionReviewPackTests(unittest.TestCase):
                 check_core_links(root)
             (root / "docs/result.md").write_text("result")
             self.assertEqual(check_core_links(root), 1)
+            with self.assertRaisesRegex(FileNotFoundError, "Broken review link"):
+                check_core_links(root, {root / "README.md"})
+            self.assertEqual(check_core_links(root, {
+                root / "README.md", root / "docs/result.md"}), 1)
 
 
 if __name__ == "__main__":

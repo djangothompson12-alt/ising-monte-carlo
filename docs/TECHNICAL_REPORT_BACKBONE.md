@@ -159,8 +159,9 @@ algebra, not newly inferred material properties.
 | `research/results/alge_static_operator_2026-09-18/fixed_plane_measurements.csv` and metadata QA | A fixed 4× observation step on Fell's segmented Al–Ge alloy ROI stacks produces unresolved early interior measurements and stage-specific static length shifts later. | [One-specimen exploratory audit](ALGE_REAL_IMAGE_AUDIT_2026-09-18.md); correlated planes, image motion and source-author 3D prior art. No growth exponent or outside use. |
 | `figures/fig_alge_fixed_plane_audit.png` | Displays every planned Al–Ge plane, including unresolved cases, and the within-plane 4×/native static ratios. | Its red medians appear only for stages with all 11 planes resolved. This is not a four-point kinetic curve, precipitate-size measure or hardness prediction. |
 | `research/runs/public_mask_pilot/reference_scale_v1/per_image.csv` | On published austenite annotations, 4× block averaging plus re-binarisation raised the measured static correlation length in all 42 images; median coarse/native ratio 1.050 for the predeclared tie rule. | Images may share specimens; label and scale limits remain. This is not an ageing exponent, physical feature radius, independent-use claim or inferential result. |
-| `research/runs/main_065_multisize_v1/analysis_declared_v1/` (local only) | Four-size million-sweep growth, local-slope and matched-time comparison figures; all 80 fit rows are in `appendix_v1/APPENDIX.md`. | Completed and internally checked, but not a public release. L32 at 15:85 flattens; L32 at 50:50 becomes unresolved late. Do not claim an onset or universal one-third plateau. |
-| `research/runs/main_065_multisize_v1/image_holdout_v1/` (local only) | Fixed new-seed 4× image-operator repeat on 16 width-128 trajectories per composition. | Selected after the earlier effect; altered operation changes apparent phase fraction and is not microscope validation. |
+| `research/runs/main_065_multisize_v1/analysis_declared_v1/` | Four-size million-sweep growth, local-slope and matched-time comparison figures; all 80 fit rows are in `appendix_v1/APPENDIX.md`. | Released and internally checked, but not externally reviewed. L32 at 15:85 flattens; L32 at 50:50 becomes unresolved late. Do not claim an onset or universal one-third plateau. |
+| `research/runs/main_065_multisize_v1/image_holdout_v1/` | Fixed new-seed 4× image-operator repeat on 16 width-128 trajectories per composition. | Released, but selected after the earlier effect; altered operation changes apparent phase fraction and is not microscope validation. |
+| `research/runs/main_065_multisize_v1/conservation_aware_holdout_v2/` | New-seed paired decomposition of native, mean-preserving 4× integration and binary segmentation on the same 32 width-128 trajectories. | Primary-window segmentation-stage shifts are −0.054 at 50:50 and −0.044 at 15:85; binary phase fractions no longer match the exactly conserved native values. Designed after the broader effect and older decomposition were known; not a blind discovery or microscope correction. |
 | The 40-run literature reference | Raw data passed integrity checks, but no paper-method-matched fit or figure has been approved. | Follow the student's literature-method declaration gate before calling it a benchmark result. |
 
 The exact completed numerical statements and caveats are in
@@ -202,6 +203,16 @@ across method choices are **not** interchangeable.
   dendrite length estimates compared with direct measurements. A future
   real-image extension must not claim this broad translation as new; its
   possible contribution is a narrower, predeclared observation-choice audit.
+- [Zabler et al. 2007](https://doi.org/10.1016/j.actamat.2007.05.028):
+  threshold-dependent coarsening exponents and apparent solid fractions were
+  already examined in Al–Ge radiographs. The defensible new question is the
+  conservation-aware stage decomposition, not the broad effect of threshold.
+- [Krzakala 2005](https://doi.org/10.1103/PhysRevLett.94.077204):
+  slow early Kawasaki growth and later recovery of the one-third law provide
+  prior art for finite-time/metastable explanations of a low effective slope.
+- [Ala-Nissila, Gunton & Kaski 1986](https://doi.org/10.1103/PhysRevB.33.7583):
+  anisotropic conserved coarsening and generalized scaling are established;
+  the interactive `Jx/Jy` control is not itself a novelty or a rafting model.
 - [Onsager 1944](https://doi.org/10.1103/PhysRev.65.117): exact 2D
   square-lattice critical-temperature reference, not the Bragg–Williams
   spinodal maximum.

@@ -1,0 +1,9 @@
+{
+  "sizes": [128], "concentrations": [0.5, 0.15], "replicas": 8,
+  "max_sweeps": 20000, "time_samples": 80, "equilibration": 200,
+  "Jx": 1.0, "Jy": 1.0, "T_initial_over_tc": 3.0,
+  "T_final_over_tc": 0.65, "seed": 2026091937,
+  "purpose": "New-seed short-window validation of frozen observation diagnostics, not a finite-size saturation study.",
+  "stop_rule": "Complete all 16; preserve failures and unresolved cases. No result-driven extension, replacement, threshold or fitting-window adjustment.",
+  "protocol": "research/GROWTH_RELIABILITY_PROTOCOL_2026-09-19.md"
+}

@@ -6,6 +6,19 @@ quickly getting a Claude session productive in the code.
 
 ## Repository shape
 
+Latest addition (20 September): `research/geometry_controls.py` and
+`tests/test_geometry_controls.py` provide synthetic checkerboard controls,
+not new Monte Carlo dynamics. Protocol: `research/GEOMETRY_CONTROL_PROTOCOL_2026-09-20.md`.
+Current numerical/rendered output: `research/results/geometry_controls_2026-09-20_v3`;
+480 stage observations, 192 fits (20 unresolved). Analytic periodic reference
+and finite-image estimator are explicitly different. Do not call artificial
+scale coordinates Monte Carlo sweeps. Start reviewers with
+`docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md`. The full three-descriptor published
+baseline remains unimplemented; `docs/RESOLUTION_METHOD_CROSSWALK_2026-09-20.md`
+records that gap. Frozen 19 September sources and outputs were not changed.
+Full local test suite after the public-navigation checks: 168 tests passed. This is an
+internal software check, not human academic review or validated outside use.
+
 Two independent Ising-model implementations share this repo, each fully
 self-contained in its own directory:
 
@@ -380,6 +393,61 @@ tree, reactive wiring, and Plotly figure specs are structurally correct. Flag
 that limitation rather than claiming visual confirmation that wasn't done.
 
 ## Dependencies
+
+### Separate 3D real-image companion (19 September 2026)
+
+`research/volume_audit.py` reads explicit two-phase 3D NPY/TIFF regions and
+produces a local interactive HTML measurement report. The nonperiodic
+measurements live in `research/volume_metrology.py`; known-answer checks are
+in `tests/test_volume_audit.py`. This does not extend either simulation
+engine to 3D. See `docs/THREE_DIMENSIONAL_AUDIT.md` for usage and
+`docs/ALGE_VOLUME_RESULTS_2026-09-19.md` for the exploratory public-data result.
+The fixed-region protocol is `research/VOLUME_AUDIT_PROTOCOL_2026-09-19.md`.
+Do not fit growth exponents across those real scans or treat their sparse
+fixed regions as representative volumes. No outside pilot is yet validated.
+
+### Fraction-matched observation control (19 September 2026)
+
+The current narrower question and corrected closest-prior-art map are in
+`docs/ORIGINALITY_AND_NEXT_QUESTION_2026-09-19.md`. Generic resolution and
+thresholding effects are not novel; Ledesma-Alonso et al. (2018) is close
+prior art missed in an earlier map. No originality guarantee is supported.
+
+`research/fraction_matching.py` implements mean integration and nearest-count
+rank matching with five fixed spatial tie orderings. The completed paired
+benchmark is `research/results/fraction_matched_benchmark_2026-09-19_v1`;
+results and limits are in `docs/FRACTION_MATCHED_RESULTS_2026-09-19.md`.
+It reuses 32 L=128 extension trajectories, not newly launched simulations.
+At factor 4 the fraction-matched exponent differences remain negative;
+at factor 2 matching helps. Do not claim that fraction matching always fails.
+
+`research/fraction_matched_external.py` supplies the standalone real-mask
+companion under the SAME observation operators. Its output is a static
+length ratio, not an experimental exponent or a 2D-to-alloy validation.
+Usage is in `docs/FRACTION_MATCHED_EXTERNAL_TOOL.md`. It uses project numerical
+dependencies, unlike the earlier NumPy/Pillow-only volume companion.
+Internal numerical verification is in `research/verify_fraction_matched_control.py`;
+480 sampled lengths agree and the full suite passes 151 tests. The earlier
+review PDF/pack predates this follow-up and must not be called current.
+
+### Runtime
+
+Latest follow-up: `docs/GROWTH_RELIABILITY_RESULTS_2026-09-19.md` and the
+HTML brief in `research/results/growth_reliability_summary_2026-09-19_v1/`.
+The hash-frozen `research/GROWTH_RELIABILITY_PROTOCOL_2026-09-19.md` was run
+on 32 development and 16 new short-window trajectories (8 per composition,
+L128, max20k). New raw data are local in
+`research/runs/growth_reliability_holdout_v1` (selected for the 20 September
+public snapshot despite the general new-run ignore rule).
+`growth_reliability.py` and `audit_growth_reliability.py` test log-ratio
+accounting, two observables, four grid origins and two fixed warning screens.
+The effect repeats; both screens have zero acceptance coverage. Do not call
+the accounting identity a discovery or the screen a useful validated method.
+The Eq34 algebra uses only directional covariance input: a PARTIAL ADAPTATION,
+not a reproduction or falsification of the full Ledesma-Alonso criterion.
+Do not edit frozen analysis sources/protocol and relabel the result prospective.
+The new static companion is `research/external_length_reliability.py`; it
+does not infer experimental ageing kinetics. Full suite: 157 tests pass.
 
 `requirements.txt` covers both Model A and Model B. Notable pins/notes live
 as inline comments there (e.g. numba's dropped x86_64 macOS wheels past

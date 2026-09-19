@@ -1,0 +1,4 @@
+# Minimal dependencies for the standalone phase-mask audit, not the MC engines.
+# Tested combinations are recorded in the reviewer verification notes.
+numpy>=2.0,<3
+Pillow>=12.3,<13

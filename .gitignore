@@ -16,6 +16,7 @@ experiments/recordings/
 # Select any future public audit output deliberately from research/results/;
 # do not sweep this working directory into a broad git add.
 output/
+tmp/pdfs/
 
 # LaTeX build artifacts (manuscript/main.tex -> manuscript/main.pdf is tracked)
 manuscript/*.aux
@@ -27,3 +28,16 @@ manuscript/*.fls
 manuscript/*.fdb_latexmk
 manuscript/*.synctex.gz
 manuscript/*Notes.bib
+
+# Personal planning and correspondence: kept locally, not part of the research release.
+docs/admissions_and_external_validation_strategy.md
+docs/OUTREACH_DRAFTS.md
+docs/CURRENT_CRITICISM_EMAIL_DRAFT.md
+docs/RELEASE_CHECKLIST.md
+docs/RESEARCH_LOG_2026-09-14.md
+docs/STUDENT_DRAFT_MODEL_A_2026-09-14.md
+docs/SECOND_ASSISTANT_AUDIT_TASK.md
+
+# Earlier local renderings; v3 has the same numerical results and portable provenance.
+research/results/geometry_controls_2026-09-20_v1/
+research/results/geometry_controls_2026-09-20_v2/

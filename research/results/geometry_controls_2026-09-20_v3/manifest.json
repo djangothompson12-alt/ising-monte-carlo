@@ -1,0 +1,20 @@
+{
+  "created_utc": "2026-09-19T23:43:20.427744+00:00",
+  "source_sha256": {
+    "research/geometry_controls.py": "f4bd3d60a032a3ee20a65cf1a381013c5e7375809cccde99f49bac412cd80081",
+    "research/GEOMETRY_CONTROL_PROTOCOL_2026-09-20.md": "ebca8abd4cd555b0baf54f903f90aa49f4e27269f6b348051c4ceac1d4260882",
+    "research/fraction_matching.py": "c48496316ac3735af385bdec4cff7e4bde5d07333f1e62cf827cb4e2f1ed4278",
+    "research/growth_reliability.py": "ff08b04ef83fa3dad2d1dee3168bc19e262995867ca351402b89e251fa423600",
+    "research/imaging.py": "46a28cedabc417d8d002628004637b05a0e61920cafb14f89446e4b058db95af",
+    "research/metrology.py": "2413cc5b09074e12933999b202c03bd1dbcd0a37cc81d2675b1b58eb96907991"
+  },
+  "output_sha256": {
+    "aliasing.png": "40e5940355cd6498eacbcbd058c0197879cf2138e70c9ba48a081fef53e6061f",
+    "length_controls.png": "65406d0f8f4b26a87f2eedcdb61a87e28bca9bd8ad9057d1e390dec9e396bb45",
+    "report.html": "4a07ebb5b78c98bc6919fa3f3500c6482306add61d143a8886014e61d89b8c3e",
+    "results.json": "a197b6fbb41ab8b666a2931d0f7448bd9b8fb88c71cf62638d8cea5793c88046"
+  },
+  "numpy_version": "2.0.2",
+  "observations": 480,
+  "fits": 192
+}

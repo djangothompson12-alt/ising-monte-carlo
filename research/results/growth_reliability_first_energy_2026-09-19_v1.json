@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "meaning": "seeded pre-quench state replay plus independent Hamiltonians; not an independent dynamics implementation",
+  "campaign": "research/runs/growth_reliability_holdout_v1",
+  "replicas": 16,
+  "first_interval_max_absolute_energy_difference": 0.0,
+  "source_sha256": "4d27c58eeb6e7eea9c9031130c4bba2ed252c5cdc85eb1c85398aaffbc93d320",
+  "engine_sha256": "2452e882dc9acc217903d262215f0fa1ab6fa13d39f6db701de2e1b37ebeebf9",
+  "raw_npz_sha256": {
+    "c0_L128_rep000.npz": "8d81510433da566d3ead28dc9940894969d1cc5c88ecf9f60a0e2454f49cc775",
+    "c0_L128_rep001.npz": "ba3568e828caceb3fefde0d604b82d8af43420668f9ab2217ef75d09df08d8c8",
+    "c0_L128_rep002.npz": "7a132aa0a34084308a8f32f1a6628c869ebc15a077876aed3012318c1e016ef4",
+    "c0_L128_rep003.npz": "ac7e6b68dce3264d2f994f2df52c3a873e54faa086d6bf78d45a09ab78bf6e11",
+    "c0_L128_rep004.npz": "5c33d72fa53b8fba3ba30ec9eb8cf6c78fb2891d48be2d68951d6614cf13f56a",
+    "c0_L128_rep005.npz": "883060817f6bffa0d2087bfef6d354b9674fbc1009da74601d3df28a0c8b5455",
+    "c0_L128_rep006.npz": "e9d62a276d0a0f7f55bccd730b421b71de1aa1c0e7e9d1ab4f409c8013cdb775",
+    "c0_L128_rep007.npz": "8bd1983872d2caa43bd535bfedef3d269d700f54a5a07f3348eb1a7f4429d784",
+    "c1_L128_rep000.npz": "c590bb0fa0b9d4133250ad561fec0b1d3e595270efec6146497f93fa5a47a7da",
+    "c1_L128_rep001.npz": "f3422a85ce41b21b78f3896856063da0b07fb5d6d0a78c300b855b3157de34af",
+    "c1_L128_rep002.npz": "e4b444ae6cb54e6f85c028bfdf6c5b5ad7d85bd62af1ceb7ee6809f75595df82",
+    "c1_L128_rep003.npz": "14d7c9aa8296270f1807feecf511305663032b49ec8c0e1a9760961b7f47a333",
+    "c1_L128_rep004.npz": "15ff4272226fe9f8ebf9e57670e9693e222b5a425fb191ef0e66539fc7ee164e",
+    "c1_L128_rep005.npz": "884661f6d860f2c45638908520bf6f2455e349a0e6b057b36997bdc603a8d54a",
+    "c1_L128_rep006.npz": "445586dea520790b9bb98c7e2a1e32bf63112fdd6d95a6329a54e63490bb36de",
+    "c1_L128_rep007.npz": "5ca9a3ea47612a2f0ca68bbb0c5bad87135f6c5cc3bd432078fb1809f982ee9d"
+  }
+}

@@ -31,14 +31,18 @@ import solara
 import solara.lab
 from plotly.graph_objs._figurewidget import FigureWidget as PlotlyFigureWidget
 
-sys.path.insert(0, str(Path(__file__).parent))
-from kawasaki_engine import (  # noqa: E402
+# Import through the package's canonical name. Importing the same cached Numba
+# function once as ``model_b.kawasaki_engine`` and later as bare
+# ``kawasaki_engine`` can make cache deserialization look for the wrong module
+# when Start is first pressed in a Solara process.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from model_b.kawasaki_engine import (  # noqa: E402
     _axis_correlation_xy,
     _kawasaki_sweep,
     domain_size_from_correlation,
     anisotropic_critical_temperature,
 )
-from research_export import export_zip  # noqa: E402
+from model_b.research_export import export_zip  # noqa: E402
 
 # --- Display constants ---
 _SPIN_DOWN_COLOR = "#1f4e79"
@@ -288,7 +292,7 @@ def build_domain_figure(
                 marker=dict(symbol="square", size=5),
                 line=dict(color=_DOMAIN_LY_COLOR, width=1.8, dash="dash"),
             ),
-            # Theoretical Lifshitz-Slyozov reference slope, L(t) ~ t^(1/3).
+            # Illustrative conserved-coarsening reference slope, L(t) ~ t^(1/3).
             # Precomputed over a wide, fixed x-domain (well beyond any
             # reachable x_max) rather than per-tick, since it's a static
             # curve for visual slope comparison, not live data -- the
@@ -296,7 +300,7 @@ def build_domain_figure(
             # across every direct widget-trait update.
             go.Scatter(
                 x=_REFERENCE_SLOPE_X, y=_REFERENCE_SLOPE_Y,
-                mode="lines", name="t^(1/3) ref", uid="domain-ref-slope",
+                mode="lines", name="t^(1/3) slope guide", uid="domain-ref-slope",
                 line=dict(color="#999999", width=1.2, dash="dash"), hoverinfo="skip",
             ),
         ]
@@ -343,7 +347,7 @@ def build_entropy_figure(
     )
     fig.update_yaxes(
         type="log", range=_log_range(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX),
-        title_text="Ṡbath(t) [k<sub>B</sub> / sweep]", showgrid=True, gridcolor="#eeeeee",
+        title_text="positive −ΔE/(N T Δt) [k<sub>B</sub> / sweep]", showgrid=True, gridcolor="#eeeeee",
         # automargin: Plotly expands the figure's own margin as needed to
         # fit the axis title and SI-prefixed tick labels (100μ, 1μ, ...)
         # rather than clipping them against a fixed-width margin -- the
@@ -357,7 +361,7 @@ def build_entropy_figure(
         # y-axis title plus SI-prefixed tick labels need more room than the
         # domain-growth chart's shorter "Domain size"), and automargin
         # above still expands past this if a given label needs even more.
-        margin=dict(l=85, r=20, t=30, b=40),
+        margin=dict(l=110, r=20, t=30, b=40),
         height=_CHART_HEIGHT, showlegend=False,
     )
     return fig
@@ -493,9 +497,9 @@ def _slider_label(text: str, markdown: bool = False) -> None:
 
 
 _MATERIALS_SCIENCE_MARKDOWN = """
-- **Spinodal Phase Separation**: Models how a two-component mixture un-mixes over time while total concentration stays constant. I'm measuring domain size growth over time L(t) to verify whether it matches theoretical Lifshitz-Slyozov scaling L(t) ~ t^(1/3).
-- **Directional Precipitate Rafting**: Setting unequal horizontal and vertical couplings (J_x != J_y) forces domains to align into parallel bands, mimicking directional gamma-prime precipitate rafting in nickel superalloys under stress.
-- **Bath Entropy-Flow Proxy**: Tracks heat delivered to the bath during spin swaps. It falls as the lattice relaxes and interfaces disappear. Total stochastic entropy production would additionally require the system-entropy change.
+- **Conserved phase separation:** The two site populations remain fixed while domains reorganise. This is a minimal 2D analogy for composition-conserving demixing, not a calibrated alloy prediction. The grey t^(1/3) line is only a slope guide; one live trajectory cannot verify a growth law.
+- **Anisotropic interfacial energetics:** Unequal horizontal and vertical couplings make differently oriented interfaces cost different amounts and can produce elongated domains. This can illustrate the idea of directional microstructure, but it does not include elastic stress and therefore is not a simulation of gamma-prime rafting.
+- **Bath heat-flow proxy:** The chart displays positive heat delivered to the bath per spin and sweep, divided by temperature, with a small log-scale display floor. The raw export keeps signed values and unresolved lengths. Total stochastic entropy production would also require the system-entropy change.
 """
 
 
@@ -575,7 +579,7 @@ def LiveDashboard(state: SimState, Jx: float, Jy: float) -> None:
         _metric("Energy E", f"{metrics.energy:,.0f}")
         _metric("Concentration", f"{metrics.concentration:.4f}")
         _metric("$J_x / J_y$", f"{Jx / Jy:.2f}", markdown=True)
-        _metric("Local slope $\\alpha$", f"{metrics.alpha:.3f}" if np.isfinite(metrics.alpha) else "—", markdown=True)
+        _metric("Single-run local slope $\\alpha$", f"{metrics.alpha:.3f}" if np.isfinite(metrics.alpha) else "—", markdown=True)
         _metric("Interfacial Density", f"{metrics.interfacial_density:.4f}")
 
     # Bottom dashboard: fixed-size square lattice heatmap in the left
@@ -595,12 +599,19 @@ def LiveDashboard(state: SimState, Jx: float, Jy: float) -> None:
                 _LiveFigure(state, initial_domain_fig, on_ready=lambda w: setattr(state, "domain_widget", w))
 
             with solara.Card(style=f"height: {_CHART_HEIGHT + 60}px;"):
-                solara.Markdown("### Bath Entropy-Flow Rate")
+                solara.Markdown("### Positive Bath Heat-Flow Proxy")
                 _LiveFigure(state, initial_entropy_fig, on_ready=lambda w: setattr(state, "entropy_widget", w))
 
     solara.Text(
         "Status: running" if state.running.value else "Status: paused",
         style={"font-weight": "600", "margin-top": "8px"},
+    )
+    solara.Text(
+        "Display note: unresolved domain crossings are drawn at 1 lattice site, and "
+        "non-positive heat-flow intervals at the log-scale floor. Pause and export to "
+        "retain raw NaN lengths and signed heat. This is one exploratory trajectory, not "
+        "the replica ensemble used for fitted paper results.",
+        style={"color": "#666", "font-size": "0.78rem", "max-width": "950px"},
     )
 
 
@@ -800,6 +811,11 @@ def Page() -> None:
                 "Conserved order-parameter phase separation with independent horizontal "
                 "and vertical spin exchange.",
                 style={"color": "#666"},
+            )
+            solara.Text(
+                "Interactive demonstration only — quantitative claims in the report come "
+                "from seeded, fixed-checkpoint replica campaigns.",
+                style={"color": "#8a4b20", "font-weight": "600", "font-size": "0.85rem"},
             )
 
             LiveDashboard(state, Jx, Jy)

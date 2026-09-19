@@ -1,0 +1,42 @@
+{
+  "frozen_utc": "2026-09-19T19:43:39.945036+00:00",
+  "sources": {
+    "research/audit_growth_reliability.py": "31edb1a09b38adaecb471ea8f173eeeb00ee618bdefff1e3c4e17e60e64f7a9e",
+    "research/growth_reliability.py": "ff08b04ef83fa3dad2d1dee3168bc19e262995867ca351402b89e251fa423600",
+    "research/imaging.py": "46a28cedabc417d8d002628004637b05a0e61920cafb14f89446e4b058db95af",
+    "research/metrology.py": "2413cc5b09074e12933999b202c03bd1dbcd0a37cc81d2675b1b58eb96907991",
+    "research/fraction_matching.py": "c48496316ac3735af385bdec4cff7e4bde5d07333f1e62cf827cb4e2f1ed4278",
+    "research/GROWTH_RELIABILITY_PROTOCOL_2026-09-19.md": "8128b9ae5a5f98891f51755fefac5d206b3151a3b99960020397cebe085e1026",
+    "research/plans/growth_reliability_holdout_v1.json": "fd97ca19c1ecc41ed850106ff9d1a16ea8625b6eb7a5e6a80d0237d5e8151722",
+    "research/campaign.py": "4fad45d2c7ce4001f57edb20233b22f47f8d2b042d4f4989c7fd90c93261492b",
+    "model_b/kawasaki_engine.py": "2452e882dc9acc217903d262215f0fa1ab6fa13d39f6db701de2e1b37ebeebf9"
+  },
+  "new_seeds": [
+    574995507,
+    2039281682,
+    770770544,
+    2801754560,
+    1092998636,
+    3306096041,
+    4275224518,
+    525522349,
+    2271968588,
+    3123414437,
+    821390011,
+    52002599,
+    1542678293,
+    1409463023,
+    1816689671,
+    465213861
+  ],
+  "checked_prior_seed_count": 265,
+  "checked_campaigns": [
+    "research/runs/smoke",
+    "research/runs/pilot",
+    "research/runs/overnight",
+    "research/runs/imaging_validation",
+    "research/runs/main_065_multisize_v1",
+    "research/runs/majumder_das_2010_l128"
+  ],
+  "boundary": "Frozen before generation; exact old-source papers not replicated by directional adaptation."
+}

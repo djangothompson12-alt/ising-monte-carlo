@@ -1,0 +1,39 @@
+{
+  "identity": {
+    "plan": {
+      "sizes": [
+        128
+      ],
+      "concentrations": [
+        0.5,
+        0.15
+      ],
+      "replicas": 8,
+      "max_sweeps": 20000,
+      "time_samples": 80,
+      "equilibration": 200,
+      "Jx": 1.0,
+      "Jy": 1.0,
+      "T_initial_over_tc": 3.0,
+      "T_final_over_tc": 0.65,
+      "seed": 2026091937,
+      "purpose": "New-seed short-window validation of frozen observation diagnostics, not a finite-size saturation study.",
+      "stop_rule": "Complete all 16; preserve failures and unresolved cases. No result-driven extension, replacement, threshold or fitting-window adjustment.",
+      "protocol": "research/GROWTH_RELIABILITY_PROTOCOL_2026-09-19.md"
+    },
+    "sources": {
+      "model_b/kawasaki_engine.py": "2452e882dc9acc217903d262215f0fa1ab6fa13d39f6db701de2e1b37ebeebf9",
+      "research/campaign.py": "4fad45d2c7ce4001f57edb20233b22f47f8d2b042d4f4989c7fd90c93261492b"
+    },
+    "versions": {
+      "numpy": "2.0.2",
+      "scipy": "1.17.1",
+      "numba": "0.60.0"
+    },
+    "python": "3.11.16"
+  },
+  "created_utc": "2026-09-19T19:43:51.461931+00:00",
+  "git_commit": "8506e05ad208bff4104a229b9154b9953b768b3f",
+  "git_status": " M .gitignore\n M AI_USE_AND_CONTRIBUTIONS.md\n M CLAUDE.md\n M EXTERNAL_REVIEW.md\n M README.md\n M docs/CLAIM_AUDIT_2026-09-17.md\n M docs/MASK_AUDIT_PILOT_RECORD.template.md\n M docs/MASK_RESOLUTION_AUDIT.md\n M docs/METALDAM_STATIC_PILOT_2026-09-17.md\n M docs/TECHNICAL_REPORT_BACKBONE.md\n M docs/review_brief.html\n M index.html\n M manuscript/REPORT_DRAFT_2026-09-18.md\n M model_b/live_visualizer.py\n M model_b/solara_app.py\n M research/DATA_DICTIONARY.md\n M research/build_extension_review_pack.py\n M research/mask_resolution_audit.py\n M tests/test_build_extension_review_pack.py\n M tests/test_mask_resolution_audit.py\n?? docs/ALGE_VOLUME_RESULTS_2026-09-19.md\n?? docs/CONSERVATION_AWARE_EXTERNAL_PILOT_2026-09-19.md\n?? docs/CURRENT_CRITICISM_EMAIL_DRAFT.md\n?? docs/FRACTION_MATCHED_EXTERNAL_TOOL.md\n?? docs/FRACTION_MATCHED_RESULTS_2026-09-19.md\n?? docs/LITERATURE_SCOPE_AND_NOVELTY_2026-09-19.md\n?? docs/OBSERVABLE_ROBUSTNESS_RESULTS_2026-09-19.md\n?? docs/ORIGINALITY_AND_NEXT_QUESTION_2026-09-19.md\n?? docs/OUTREACH_DRAFTS.md\n?? docs/RELEASE_CHECKLIST.md\n?? docs/RESEARCH_LOG_2026-09-14.md\n?? docs/REVIEWER_START_HERE.md\n?? docs/REVIEW_DAY_AUDIT_2026-09-19.md\n?? docs/SECOND_ASSISTANT_AUDIT_TASK.md\n?? docs/SECOND_ASSISTANT_METALDAM_AUDIT_2026-09-19.md\n?? docs/STUDENT_DRAFT_MODEL_A_2026-09-14.md\n?? docs/THREE_DIMENSIONAL_AUDIT.md\n?? docs/admissions_and_external_validation_strategy.md\n?? requirements-review-artifacts.txt\n?? requirements-volume-audit.txt\n?? research/CONSERVATION_AWARE_HOLDOUT_PROTOCOL_2026-09-19.md\n?? research/FRACTION_MATCHED_PROTOCOL_2026-09-19.md\n?? research/FULL_EXTENSION_OBSERVABLE_ROBUSTNESS_PROTOCOL_2026-09-19.md\n?? research/GROWTH_RELIABILITY_PROTOCOL_2026-09-19.md\n?? research/VOLUME_AUDIT_PROTOCOL_2026-09-19.md\n?? research/analyse_conservation_aware_holdout.py\n?? research/analyse_extension_observable_robustness.py\n?? research/audit_growth_reliability.py\n?? research/build_reviewer_brief_pdf.py\n?? research/build_reviewer_figures.py\n?? research/check_review_portability.py\n?? research/fraction_matched_benchmark.py\n?? research/fraction_matched_external.py\n?? research/fraction_matching.py\n?? research/freeze_growth_validation.py\n?? research/growth_reliability.py\n?? research/plans/growth_reliability_holdout_v1.json\n?? research/prepare_alge_volume_audit.py\n?? research/results/alge_volume_audit_2026-09-19_v1/\n?? research/results/alge_volume_audit_2026-09-19_v2/\n?? research/results/alge_volume_audit_2026-09-19_v3/\n?? research/results/fraction_matched_benchmark_2026-09-19_v1/\n?? research/results/fraction_matched_external_2026-09-19_v1/\n?? research/results/fraction_matched_summary_2026-09-19_v1/\n?? research/results/fraction_matched_verification_2026-09-19_v1/\n?? research/results/growth_reliability_development_2026-09-19_v1/\n?? research/results/growth_reliability_freeze_2026-09-19_v1.json\n?? research/results/reviewer_figures_2026-09-19_v1/\n?? research/results/reviewer_figures_2026-09-19_v2/\n?? research/results/reviewer_numerical_audit_2026-09-19_v1/\n?? research/reviewer_numerical_audit.py\n?? research/summarise_fraction_matched_benchmark.py\n?? research/verify_fraction_matched_control.py\n?? research/volume_audit.py\n?? research/volume_metrology.py\n?? tests/test_conservation_aware_holdout.py\n?? tests/test_extension_observable_robustness.py\n?? tests/test_fraction_matched_benchmark.py\n?? tests/test_fraction_matched_external.py\n?? tests/test_fraction_matching.py\n?? tests/test_growth_reliability.py\n?? tests/test_live_visualizer_contracts.py\n?? tests/test_volume_audit.py\n",
+  "description": "Prospective finite-size study; hypotheses are not conclusions."
+}

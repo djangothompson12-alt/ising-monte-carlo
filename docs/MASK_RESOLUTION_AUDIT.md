@@ -11,6 +11,17 @@ mask is **not** the same experiment as collecting a lower-resolution
 micrograph and segmenting it again: instrument noise, contrast and
 classification errors are deliberately held out of this test.
 
+There is a second boundary that matters for this project. The fraction of a
+binary image labelled as one **phase** is not generally the alloy's conserved
+chemical composition. Real phases can have different solute concentrations,
+and their area or volume fractions can change during a transformation even
+though the total amount of each element in a closed specimen is conserved.
+Therefore the `phase_fraction` column is only a geometrical check on the
+supplied mask. It must not be described as a chemical mass-balance test. A
+calibrated elemental-composition map would be needed for that different
+question; even then, its field, registration and calibration would have to be
+checked separately.
+
 The reason for this route is empirical: on the published MetalDAM steel
 images, simple raw-image thresholding failed to recover the producer-mask
 length reliably. A mask supplied and checked by the problem owner is a more
@@ -23,7 +34,7 @@ To try the workflow without sharing or preparing any real image, run the
 [deterministic synthetic demo](../research/make_mask_resolution_demo.py):
 
 ```bash
-.venv311/bin/python -m research.make_mask_resolution_demo \
+python -m research.make_mask_resolution_demo \
   --output output/my-new-synthetic-mask-demo
 ```
 
@@ -43,12 +54,18 @@ pixel size and unit. The ROI must be at least 16 pixels per axis, and its
 width and height must divide exactly by four;
 the program will not silently trim a specimen field. Choose whether exact
 50:50 blocks become foreground or background **before** viewing the output.
+Multi-frame TIFF stacks are rejected: explicitly select and save one plane
+first, so the tool cannot silently analyse the wrong slice.
 Optional time metadata is retained but never used to fit kinetics.
+The one-number pixel scale assumes **square pixels** with the same physical
+spacing in x and y. Do not use it on anisotropic pixels or oblique sections
+by entering an average spacing; that needs a separately checked estimator.
 
-From the repository root, with the working environment installed:
+From the repository root, with the dependencies installed in an active
+virtual environment (see the root README):
 
 ```bash
-.venv311/bin/python -m research.mask_resolution_audit \
+python -m research.mask_resolution_audit \
   path/to/approved-mask-plan.json --output output/new-mask-audit
 ```
 
@@ -56,9 +73,10 @@ The new folder contains `report.html`, `measurements.csv` and `manifest.json`.
 The manifest hashes each input mask and the analysis source and records the
 declared labels, field, physical pixel size and time for each image without
 copying the input file path. No mask pixels or image previews are embedded in
-the report. The HTML shows each image's time and length unit explicitly; the
-CSV includes all three resolutions, directional lengths, scale, phase fraction
-and unresolved status. Ratios are to each image's own native measurement;
+the report. The HTML shows each image's mask authority, ROI, time, pixel
+spacing and length unit explicitly; the CSV includes all three resolutions,
+directional lengths, scale, phase fraction and unresolved status. Ratios are
+to each image's own native measurement;
 do not compare raw lengths if their units or phase definitions differ.
 The report and manifest do retain the supplied specimen IDs, source and
 description, even though they omit mask pixels and file paths. Keep the
@@ -76,8 +94,9 @@ length of 0.13456 µm and a 4×-reduced length of 0.16064 µm (ratio 1.19388).
 These match the earlier table exactly because the same length estimator and
 field are used. The replay is therefore a **workflow/units check**, not a new
 independent result or a second specimen. The derived mask and HTML stay in
-ignored local `output/alge_mask_tool_replay_2026-09-18_v2/`; a fresh replay
-after the report/provenance update again matched the earlier numerical table.
+ignored local `output/alge_mask_tool_replay_2026-09-19_v5/`; a fresh replay
+after adding the explicit report context and single-plane input check again
+matched the earlier numerical table.
 The [replay script](../research/replay_alge_mask_tool.py) checks the public source
 hash, fixed field and earlier table before making that local report. The
 published source is Jonas Fell's
@@ -96,3 +115,7 @@ checks, or was misleading. Record their actual criticism and any revision.
 Do not call a download, conversation, or unapproved demonstration
 "deployment" or "endorsement." Multiple slices from one specimen remain
 correlated; they are not independent experimental repeats.
+
+The full boundary between a binary phase-mask pilot and a quantitative
+composition-map pilot is set out in the
+[external-pilot decision document](CONSERVATION_AWARE_EXTERNAL_PILOT_2026-09-19.md).

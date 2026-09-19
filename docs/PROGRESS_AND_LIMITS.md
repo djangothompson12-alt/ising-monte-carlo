@@ -1,6 +1,19 @@
 # What this project has done so far
 
-*Working research snapshot, updated 18 September 2026. This is not a peer-reviewed paper or a validated alloy model.*
+*Working research snapshot, updated 20 September 2026. This is not a peer-reviewed paper or a validated alloy model.*
+
+## Latest step
+
+After finding image-processing sensitivity, the next check forced coarse binary
+images to retain the native species fraction. The short-window exponent shift
+remained. A frozen-method repeat on 16 fresh trajectories reproduced that
+effect, including a second length definition and different grid origins.
+Two conservative warning rules accepted no comparisons, so neither has been
+shown to be a useful diagnostic. Known-geometry controls now check the
+measurement pipeline separately from the dynamics.
+
+The [current summary](ACADEMIC_REVIEW_BRIEF_2026-09-20.md) gives the main result
+and open questions. The history below explains how the project reached it.
 
 ## The question
 

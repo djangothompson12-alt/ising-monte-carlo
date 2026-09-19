@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "independence": "Separately coded arithmetic; same AI assistant, not external review",
+  "selected_snapshots": 96,
+  "directional_length_checks": 576,
+  "max_absolute_length_difference": 3.552713678800501e-15,
+  "fit_rows_checked": 12,
+  "original_draws": 500,
+  "sensitivity_draws": 5000,
+  "primary_analysis_unchanged": true,
+  "python": "3.11.16",
+  "numpy": "2.0.2",
+  "audit_source_sha256": "ed0434738df5ac4cc5b4f648c6ed4e72269c062fae828587b392d658a1dc8f67",
+  "input_analysis_manifest_sha256": "9628122ef657df049650033012f52fa6282580d59fc0abc77e0e3a9e1fc8ef80",
+  "analysis_table_sha256": {
+    "per_checkpoint.csv": "5590406646cdb1d8f7adfa6c7622759bb7759edcaca00c7ba66e56d168d74193",
+    "paired_fits.csv": "ec32fa96d98897e8cf6be27fcd4bc45924753e85e5c43b1555046088867f7d63"
+  },
+  "output_sha256": {
+    "fit_checks.csv": "3111cdcf5b9dd612a3e40d461a75bafc5aa62dd040d5f07a096d3fb19443d0af"
+  }
+}

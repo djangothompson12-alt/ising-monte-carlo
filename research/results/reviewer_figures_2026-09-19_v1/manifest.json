@@ -1,0 +1,15 @@
+{
+  "builder_sha256": "239ef3d3dfdc5cab19ee85076d11b3f3815ed6d6eeb28dc9276a7168584de642",
+  "inputs": {
+    "research/runs/main_065_multisize_v1/conservation_aware_holdout_v2/paired_fits.csv": "ec32fa96d98897e8cf6be27fcd4bc45924753e85e5c43b1555046088867f7d63",
+    "research/runs/main_065_multisize_v1/conservation_aware_holdout_v2/per_checkpoint.csv": "5590406646cdb1d8f7adfa6c7622759bb7759edcaca00c7ba66e56d168d74193",
+    "research/results/alge_volume_audit_2026-09-19_v3/measurements.csv": "adeb93e6f69882360342af6157208c63563c20ef078182ca251d6c785f00c720"
+  },
+  "outputs": {
+    "figure3_real_volume_sensitivity.png": "d8059522f42f00cc2fe2502e3ce27b96fad3bfdfc4c7ed23f23048c5992b04a5",
+    "figure2_apparent_fraction.png": "7cef2df9831ebd0911b0e84d952276269a7806defbffc2e263ef2ac5dc7d4bee",
+    "figure1_stage_differences.png": "3780b8b98b35fbaffe16b57e2623d89c672a73a51563f1ba8ac2c129264d0964"
+  },
+  "figure2_intervals": "Pointwise, 500 complete-trajectory resamples; not simultaneous bands",
+  "real_data_attribution": "Jonas Fell (2023), Mendeley Data v1, doi:10.17632/hj9njz3rxp.1, CC BY 4.0; derived crop and resolution measurements."
+}

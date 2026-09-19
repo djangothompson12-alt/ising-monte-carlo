@@ -18,6 +18,11 @@ check the problem definition and sharing terms before using their files.*
 - Source, licence / written sharing permission, and any export limits:
 - Specimen or experiment IDs; which records are truly independent?
 - Imaging method; original physical pixel size and its source:
+- Is this a binary **phase mask** or a calibrated quantitative **composition
+  map**? A phase area fraction is not normally bulk chemical composition; the
+  current tool accepts only the former and cannot test elemental mass balance.
+- Are pixels square (equal calibrated x/y spacing)? If not, stop: the current
+  one-scale estimator does not support that image.
 - Who produced and checked the binary masks? What exactly is foreground?
 - If there are multiple times: are the same features/fields registered, and
   is the physical scale the same? If not, do **not** fit a growth rate.
@@ -31,7 +36,7 @@ check the problem definition and sharing terms before using their files.*
 - Handling of a missing half-height crossing: report *unresolved*, not zero.
 - Partner's existing reference method, if any; whether it measures the same
   feature as this 2D correlation length:
-- Stop criterion if phase fraction, field coverage, units or segmentation
+- Stop criterion if phase area fraction, field coverage, units or segmentation
   are not trustworthy:
 - What result would count as useful, unhelpful or misleading **to the owner**?
 
@@ -49,3 +54,5 @@ his own words. AI-assisted code and report preparation must be disclosed.
 One specimen with many slices is still one specimen; a public-image replay
 is still not independent laboratory use. Do not call this a validated alloy
 predictor, a commercial deployment or an academic endorsement.
+Use the [external-pilot decision document](CONSERVATION_AWARE_EXTERNAL_PILOT_2026-09-19.md)
+before interpreting any phase-fraction change as a conservation result.

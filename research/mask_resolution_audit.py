@@ -1,9 +1,9 @@
 """Audit resolution sensitivity of declared, expert-supplied 2D phase masks.
 
 This is a local measurement check, not a segmentation algorithm, an ageing
-kinetics fit, an alloy-property predictor, or evidence of laboratory adoption.
-Masks and physical scale are supplied by the user; no image pixels are copied
-into the HTML or CSV output.
+kinetics fit, an alloy-property predictor, a chemical mass-balance test, or
+evidence of laboratory adoption. Masks and physical scale are supplied by the
+user; no image pixels are copied into the HTML or CSV output.
 """
 
 from __future__ import annotations
@@ -32,6 +32,8 @@ def load_mask(path: Path, foreground_value: int, background_value: int) -> np.nd
         array = np.load(path, allow_pickle=False)
     else:
         with Image.open(path) as image:
+            if getattr(image, "n_frames", 1) != 1:
+                raise ValueError(f"{path}: select and save one 2D mask plane; multi-frame images are not accepted")
             array = np.asarray(image)
     if array.ndim != 2 or min(array.shape) < 16:
         raise ValueError(f"{path}: mask must be a single 2D plane at least 16 pixels wide")
@@ -59,16 +61,19 @@ def measure(mask: np.ndarray, factor: int, pixel_size: float,
 
 def render_html(document: dict, rows: list[dict]) -> str:
     header = "".join(f"<th>{escape(name)}</th>" for name in
-                     ("Image", "Specimen", "Time", "Factor", "Phase fraction",
-                      "Tie fraction", "Length", "Unit", "Length/native", "Status"))
+                     ("Image", "Specimen", "Mask authority", "ROI", "Time",
+                      "Factor", "Pixel spacing", "Phase fraction", "Tie fraction",
+                      "Length", "Unit", "Length/native", "Status"))
     body = []
     for row in rows:
         def number(value: float) -> str:
             return f"{value:.5g}" if np.isfinite(value) else "—"
         time = (f'{row["time"]} {row["time_unit"]}'
                 if row["time"] != "" else "—")
-        values = (escape(row["id"]), escape(row["specimen_id"]), escape(time),
-                  f'{row["factor"]}×', number(row["phase_fraction"]),
+        values = (escape(row["id"]), escape(row["specimen_id"]),
+                  escape(row["mask_authority"]), escape(row["roi"]), escape(time),
+                  f'{row["factor"]}×', number(row["pixel_size"]),
+                  number(row["phase_fraction"]),
                   number(row["tie_block_fraction"]), number(row["length"]),
                   escape(row["length_unit"]), number(row["length_ratio"]),
                   escape(row["status"]))
@@ -87,7 +92,12 @@ th,td{{text-align:left;padding:8px;border-bottom:1px solid #dce5e4;white-space:n
 masks. Downsampling a mask is not the same as re-imaging and re-segmenting a
 specimen at lower instrumental resolution. This does not validate segmentation,
 infer a particle radius, fit an ageing law, predict strength, or establish
-independent specimens or lab use.</p>
+independent specimens or lab use. The supplied physical pixel size is assumed
+equal in the horizontal and vertical directions; non-square pixels need a
+different measurement implementation. A binary phase-mask area fraction is
+not generally the alloy's conserved chemical composition: the phases can have
+different compositions and their area fractions can change while total solute
+is conserved. Do not use this report as a chemical mass-balance test.</p>
 <p><b>Source:</b> {escape(document["source"])}<br>
 <b>Rights:</b> {escape(document["license"])}<br>
 <b>Foreground phase:</b> {escape(document["phase_definition"])}<br>
@@ -139,7 +149,7 @@ def audit(manifest_path: Path, output: Path) -> Path:
             raise ValueError("Declare integer foreground_value and background_value")
         mask = load_mask(path, foreground, background)
         y0, y1, x0, x1 = _roi_bounds(record.get("roi"), mask.shape)
-        _nonempty(record.get("roi_reason"), "ROI reason")
+        roi_reason = _nonempty(record.get("roi_reason"), "ROI reason")
         if min(y1 - y0, x1 - x0) < 16:
             raise ValueError("The ROI must leave at least four pixels at 4× reduction")
         if (y1 - y0) % 4 or (x1 - x0) % 4:
@@ -160,7 +170,7 @@ def audit(manifest_path: Path, output: Path) -> Path:
         input_settings.append(dict(
             id=identifier, specimen_id=specimen_id,
             mask_authority=mask_authority, roi=[y0, y1, x0, x1],
-            roi_reason=record["roi_reason"], pixel_size=pixel_size,
+            roi_reason=roi_reason, pixel_size=pixel_size,
             length_unit=length_unit, foreground_value=foreground,
             background_value=background, time=time, time_unit=time_unit,
         ))
@@ -172,7 +182,7 @@ def audit(manifest_path: Path, output: Path) -> Path:
                      if np.isfinite(item["length"]) and np.isfinite(native) else float("nan"))
             rows.append(dict(id=identifier, specimen_id=specimen_id,
                              mask_authority=mask_authority, roi=json.dumps([y0, y1, x0, x1]),
-                             roi_reason=record["roi_reason"], time=time, time_unit=time_unit,
+                             roi_reason=roi_reason, time=time, time_unit=time_unit,
                              pixel_size=pixel_size * item["factor"], length_unit=length_unit,
                              foreground_value=foreground, background_value=background,
                              tie_rule=tie_rule, length_ratio=ratio, **item))
@@ -185,7 +195,9 @@ def audit(manifest_path: Path, output: Path) -> Path:
         phase_definition=document["phase_definition"], tie_rule=tie_rule,
         input_settings=input_settings,
         source_sha256={name: sha(Path(__file__).with_name(name)) for name in SOURCE_FILES},
-        interpretation="Static 2D mask-resolution sensitivity, not kinetic or alloy validation",
+        interpretation=("Static 2D phase-mask resolution sensitivity; phase area "
+                        "fraction is not a chemical-composition mass balance; "
+                        "not kinetic or alloy validation"),
     ), indent=2) + "\n")
     (output / "report.html").write_text(render_html(document, rows))
     return output / "report.html"

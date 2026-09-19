@@ -1,0 +1,146 @@
+{
+  "source": "Jonas Fell (2023), Microstructural evolution of an Al-Ge alloy revealed by nano-CT, Mendeley Data v1, doi:10.17632/hj9njz3rxp.1; https://data.mendeley.com/datasets/hj9njz3rxp/1",
+  "license": "CC BY 4.0; attribution and source DOI must accompany reuse.",
+  "records": [
+    {
+      "id": "AlGe_15min",
+      "specimen": "Al\u2013Ge source time series",
+      "sha256": "0d86052b4ea7e70fbfece3f78adc9440c4a750f389ed314d85d54c2744be0b45",
+      "roi_zyx": [
+        [
+          41,
+          297
+        ],
+        [
+          401,
+          657
+        ],
+        [
+          406,
+          662
+        ]
+      ],
+      "spacing_zyx": [
+        0.06,
+        0.06,
+        0.06
+      ],
+      "unit": "um",
+      "foreground": 3,
+      "background": 2,
+      "tie_rule": "foreground",
+      "roi_reason": "Fixed 256-cube at page 169 and solid centroid on that page; no outcome-based relocation.",
+      "phase_definition": "Ge label 3 versus Al label 2; other labels invalidate the box.",
+      "mask_authority": "Depositor segmentation; no independent accuracy validation."
+    },
+    {
+      "id": "AlGe_105min",
+      "specimen": "Al\u2013Ge source time series",
+      "sha256": "c902533697d0b6ff3350000dbe8eb99c3b1187ef0133b8313d4597d9df9ca9cc",
+      "roi_zyx": [
+        [
+          41,
+          297
+        ],
+        [
+          397,
+          653
+        ],
+        [
+          408,
+          664
+        ]
+      ],
+      "spacing_zyx": [
+        0.06,
+        0.06,
+        0.06
+      ],
+      "unit": "um",
+      "foreground": 3,
+      "background": 2,
+      "tie_rule": "foreground",
+      "roi_reason": "Fixed 256-cube at page 169 and solid centroid on that page; no outcome-based relocation.",
+      "phase_definition": "Ge label 3 versus Al label 2; other labels invalidate the box.",
+      "mask_authority": "Depositor segmentation; no independent accuracy validation."
+    },
+    {
+      "id": "AlGe_195min",
+      "specimen": "Al\u2013Ge source time series",
+      "sha256": "6ea208e3754ca60d1910e6cc36eb61bba9482dd0a040f000157848c469e393f8",
+      "roi_zyx": [
+        [
+          41,
+          297
+        ],
+        [
+          540,
+          796
+        ],
+        [
+          490,
+          746
+        ]
+      ],
+      "spacing_zyx": [
+        0.06,
+        0.06,
+        0.06
+      ],
+      "unit": "um",
+      "foreground": 3,
+      "background": 2,
+      "tie_rule": "foreground",
+      "roi_reason": "Fixed 256-cube at page 169 and solid centroid on that page; no outcome-based relocation.",
+      "phase_definition": "Ge label 3 versus Al label 2; other labels invalidate the box.",
+      "mask_authority": "Depositor segmentation; no independent accuracy validation."
+    },
+    {
+      "id": "AlGe_315min",
+      "specimen": "Al\u2013Ge source time series",
+      "sha256": "c75147d514e162b94de8fcdfaa9848c3acd8d68683098f07f5566363077ca153",
+      "roi_zyx": [
+        [
+          41,
+          297
+        ],
+        [
+          404,
+          660
+        ],
+        [
+          382,
+          638
+        ]
+      ],
+      "spacing_zyx": [
+        0.06,
+        0.06,
+        0.06
+      ],
+      "unit": "um",
+      "foreground": 3,
+      "background": 2,
+      "tie_rule": "foreground",
+      "roi_reason": "Fixed 256-cube at page 169 and solid centroid on that page; no outcome-based relocation.",
+      "phase_definition": "Ge label 3 versus Al label 2; other labels invalidate the box.",
+      "mask_authority": "Depositor segmentation; no independent accuracy validation."
+    }
+  ],
+  "input_plan_sha256": "d6be1ce4dc233437792a5f1bff9342f24be6f1da7dc9f565c44e348d9fc02574",
+  "sources": {
+    "fraction_matched_external.py": "49918001dc667eb6845f517f37666c73cb637e48ac33b99f4174737c11943821",
+    "fraction_matched_benchmark.py": "7b8d78bce1571f195a938d4829a94db939321fd0574d64c59645d7d9b4e20330",
+    "fraction_matching.py": "c48496316ac3735af385bdec4cff7e4bde5d07333f1e62cf827cb4e2f1ed4278",
+    "volume_metrology.py": "f1bd02c855f41d732584ca2ff9f28cd908265a594dbf87575a8c33321f944014",
+    "volume_audit.py": "9a0fa6e8ed93c61f9b83f5d40db3bf3d32844bea11f7b05cf679de504da23ed9",
+    "metrology.py": "2413cc5b09074e12933999b202c03bd1dbcd0a37cc81d2675b1b58eb96907991",
+    "imaging.py": "46a28cedabc417d8d002628004637b05a0e61920cafb14f89446e4b058db95af"
+  },
+  "rows": 96,
+  "outputs": {
+    "observations.csv": "6060c8dd442079c0f12ece2cccf9d0c7e9bbd254afabc6c9b03ac86f22737061",
+    "report.html": "3b71bd006254bd5aff76924a44fdeca5ee8a0016b883151eab83e7dc1f456d9b"
+  },
+  "boundary": "Static oracle-control audit, not kinetics or independent experimental validation"
+}

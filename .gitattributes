@@ -1,0 +1,3 @@
+# Preserve the exact bytes of hashed scientific CSV outputs on every platform.
+# Python's CSV writer uses CRLF; this is not accidental trailing whitespace.
+*.csv -text whitespace=cr-at-eol

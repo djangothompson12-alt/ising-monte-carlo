@@ -19,10 +19,13 @@ The completed public main study has 64 files (`research/runs/overnight/`):
 four widths, two nominal compositions, eight replicas each. The fresh
 observation repeat has eight more files (`research/runs/imaging_validation/`),
 four per composition at width 128. The 40-run 0.6 Tc literature-reference
-archive is complete **locally but not Git-tracked**. The 0.65 Tc extension is
-still running as of this note; use its live `status.json`, not this paragraph,
-for the count. Do not combine the campaigns as though they share temperature,
-length method, duration or sampling grid.
+archive and the 128-run 0.65 Tc extension are complete and deliberately
+Git-tracked. The latter has 16 new runs for each of eight size/composition
+groups and reached one million sweeps per run. See each archived `status.json`
+and the [data guide](DATA_README.md) for the inventory and replay instructions.
+Do not combine the campaigns as though they share temperature, length method,
+duration or sampling grid. The 40-run archive is raw data, **not** a
+student-approved reproduction of the 2010 paper's measurement method.
 
 ## Fields in a raw NPZ trajectory
 
@@ -57,6 +60,8 @@ never be removed without checking the recorded process.
 | `overnight/analysis/ensemble_lengths.csv` | Mean directional-average length and replica standard error at each saved time for each composition/width. | `n` is the number of trajectories, not pixels or snapshots. Any unresolved direction makes that trajectory's mean missing; the analysis does not silently use a changing subset. |
 | `overnight/analysis/exponents.csv` | Log–log slope of the **ensemble mean** length in stated nominal windows, with 500 whole-trajectory bootstrap percentiles. | It is an effective finite-window exponent. Different windows reuse the same trajectories. `n_points` and actual first/last retained times need checking before comparing rows, particularly `L=32`. |
 | `overnight/estimator_analysis_v1/paired_fits.csv` | Four defined observables measured on the same saved lattice sequence. | They are not four interchangeable physical radii. Paired intervals resample trajectories, not timepoints. |
+| `main_065_multisize_v1/observable_robustness_v1/paired_fits.csv` | All 160 full-extension estimator/window rows under one all-observable, all-replica checkpoint mask. | Post-result robustness audit; nominal windows can have shorter actual ranges when any estimator is unresolved. |
+| `main_065_multisize_v1/observable_robustness_v1/matched_size_ratios.csv` | All 48 estimator-specific size ratios at 207,231 and 1,000,000 sweeps. | Ratios compare finite systems at matched times; they do not define a universal finite-size onset. |
 | `{overnight,imaging_validation}/imaging_v1/paired_fits.csv` | Treatment-minus-reference image-length slopes over matched checkpoints inside each ensemble. | The finite-image estimator and observation operators differ from the engine estimator. `bin4` includes block averaging **and** re-thresholding. The two ensembles have different time grids and replica counts. |
 | `overnight/analysis/analysis_manifest.json` and corresponding later manifests | Analysis-source and input-file hashes. | A hash proves which bytes were analysed, not whether a scientific interpretation is correct. |
 

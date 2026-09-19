@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 import numpy as np
+from PIL import Image
 
 from research.mask_resolution_audit import audit, load_mask, measure
 from research.metaldam_reference_mask_scale import measure_factor
@@ -48,6 +49,15 @@ class MaskResolutionAuditTests(unittest.TestCase):
             self.assertEqual(rows[0]["length_unit"], "um")
             html = report.read_text()
             self.assertIn("Repeated slices from one", html)
+            self.assertIn("non-square pixels need a", html)
+            self.assertIn("not generally the alloy's conserved chemical composition", html)
+            self.assertIn("Do not use this report as a chemical mass-balance test", html)
+            self.assertIn("<th>Mask authority</th>", html)
+            self.assertIn("<td>synthetic known mask</td>", html)
+            self.assertIn("<th>ROI</th>", html)
+            self.assertIn("<td>[8, 56, 8, 56]</td>", html)
+            self.assertIn("<th>Pixel spacing</th>", html)
+            self.assertIn("<td>0.06</td>", html)
             self.assertIn("<th>Unit</th>", html)
             self.assertIn("<td>um</td>", html)
             self.assertIn("<td>15 min</td>", html)
@@ -57,6 +67,8 @@ class MaskResolutionAuditTests(unittest.TestCase):
             self.assertEqual(len(provenance["mask_sha256"]["first"]), 64)
             self.assertEqual(provenance["input_settings"][0]["roi"], [8, 56, 8, 56])
             self.assertEqual(provenance["input_settings"][0]["pixel_size"], .06)
+            self.assertIn("not a chemical-composition mass balance",
+                          provenance["interpretation"])
             self.assertNotIn("mask_path", provenance["input_settings"][0])
             self.assertTrue(np.array_equal(np.load(folder / "expert_mask.npy"), original))
             with self.assertRaises(FileExistsError):
@@ -101,6 +113,21 @@ class MaskResolutionAuditTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "divide exactly by 4"):
                 audit(manifest, folder / "bad_roi")
             self.assertFalse((folder / "bad_roi").exists())
+
+    def test_multiframe_tiff_requires_an_explicit_single_plane(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            manifest, document = self.fixture(folder)
+            frame = Image.fromarray(np.zeros((64, 64), dtype=np.uint8))
+            stack_path = folder / "stack.tif"
+            frame.save(stack_path, save_all=True, append_images=[frame.copy()])
+            document["records"][0]["mask_path"] = stack_path.name
+            document["records"][0]["foreground_value"] = 1
+            document["records"][0]["background_value"] = 0
+            manifest.write_text(json.dumps(document))
+            with self.assertRaisesRegex(ValueError, "multi-frame images are not accepted"):
+                audit(manifest, folder / "bad_stack")
+            self.assertFalse((folder / "bad_stack").exists())
 
     def test_html_escapes_declared_source(self):
         with tempfile.TemporaryDirectory() as name:

@@ -29,8 +29,8 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.colors import ListedColormap
 
-sys.path.insert(0, str(Path(__file__).parent))
-from kawasaki_engine import (  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from model_b.kawasaki_engine import (  # noqa: E402
     _axis_correlation_xy,
     _kawasaki_sweep,
     domain_size_from_correlation,
@@ -60,8 +60,8 @@ _DOMAIN_AXIS_MIN, _DOMAIN_AXIS_MAX = 0.3, L / 2.0
 _ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX = 1e-5, 1.0
 _ENTROPY_FLOOR = 1e-7  # internal floor so S_dot=0 samples don't hit log(0); below the visible axis range
 
-# Simple moving-average window (in frames) applied to S_dot(t) before plotting.
-# Late-time bath entropy flow is a tiny per-sweep energy-change average over
+# Simple moving-average window (in frames) applied to the positive displayed
+# bath heat-flow proxy before plotting. Late-time heat flow is a tiny per-sweep energy-change average over
 # only SWEEPS_PER_FRAME sweeps, so it's dominated by shot noise once the true
 # rate drops near the floor; smoothing turns that noise into a readable
 # asymptotic baseline without touching the underlying (still exact) data.
@@ -227,9 +227,16 @@ def build_dashboard(state: LiveKawasakiState):
     ax_entropy.set_xlim(_T_AXIS_MIN, _T_AXIS_MAX)
     ax_entropy.set_ylim(_ENTROPY_AXIS_MIN, _ENTROPY_AXIS_MAX)
     ax_entropy.set_xlabel("Time $t$ (sweeps)")
-    ax_entropy.set_ylabel(r"$\dot{S}_{\rm bath}(t)$ (per spin, $k_B$)")
-    ax_entropy.set_title("Interfacial Dissipation")
+    ax_entropy.set_ylabel(r"positive $-\Delta E/(N T\Delta t)$ (display)")
+    ax_entropy.set_title("Positive Bath Heat-Flow Proxy")
     ax_entropy.grid(True, which="both", alpha=0.3, linestyle="--")
+
+    fig.text(
+        0.5, 0.015,
+        "Exploratory single trajectory: unresolved lengths and non-positive heat-flow intervals "
+        "use display floors; use the seeded batch pipeline for quantitative fits.",
+        ha="center", va="bottom", fontsize=8, color="#666666",
+    )
 
     artists = (im, line_Lx, line_Ly, line_S, hud_text)
 

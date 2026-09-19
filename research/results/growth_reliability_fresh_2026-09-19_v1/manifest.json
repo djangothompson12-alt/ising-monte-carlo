@@ -1,0 +1,44 @@
+{
+  "cohort": "fresh",
+  "status": "complete",
+  "sources": {
+    "research/audit_growth_reliability.py": "31edb1a09b38adaecb471ea8f173eeeb00ee618bdefff1e3c4e17e60e64f7a9e",
+    "research/growth_reliability.py": "ff08b04ef83fa3dad2d1dee3168bc19e262995867ca351402b89e251fa423600",
+    "research/imaging.py": "46a28cedabc417d8d002628004637b05a0e61920cafb14f89446e4b058db95af",
+    "research/metrology.py": "2413cc5b09074e12933999b202c03bd1dbcd0a37cc81d2675b1b58eb96907991",
+    "research/fraction_matching.py": "c48496316ac3735af385bdec4cff7e4bde5d07333f1e62cf827cb4e2f1ed4278",
+    "research/GROWTH_RELIABILITY_PROTOCOL_2026-09-19.md": "8128b9ae5a5f98891f51755fefac5d206b3151a3b99960020397cebe085e1026",
+    "research/plans/growth_reliability_holdout_v1.json": "fd97ca19c1ecc41ed850106ff9d1a16ea8625b6eb7a5e6a80d0237d5e8151722",
+    "research/campaign.py": "4fad45d2c7ce4001f57edb20233b22f47f8d2b042d4f4989c7fd90c93261492b",
+    "model_b/kawasaki_engine.py": "2452e882dc9acc217903d262215f0fa1ab6fa13d39f6db701de2e1b37ebeebf9"
+  },
+  "input_sha256": {
+    "c0_L128_rep000.npz": "8d81510433da566d3ead28dc9940894969d1cc5c88ecf9f60a0e2454f49cc775",
+    "c0_L128_rep001.npz": "ba3568e828caceb3fefde0d604b82d8af43420668f9ab2217ef75d09df08d8c8",
+    "c0_L128_rep002.npz": "7a132aa0a34084308a8f32f1a6628c869ebc15a077876aed3012318c1e016ef4",
+    "c0_L128_rep003.npz": "ac7e6b68dce3264d2f994f2df52c3a873e54faa086d6bf78d45a09ab78bf6e11",
+    "c0_L128_rep004.npz": "5c33d72fa53b8fba3ba30ec9eb8cf6c78fb2891d48be2d68951d6614cf13f56a",
+    "c0_L128_rep005.npz": "883060817f6bffa0d2087bfef6d354b9674fbc1009da74601d3df28a0c8b5455",
+    "c0_L128_rep006.npz": "e9d62a276d0a0f7f55bccd730b421b71de1aa1c0e7e9d1ab4f409c8013cdb775",
+    "c0_L128_rep007.npz": "8bd1983872d2caa43bd535bfedef3d269d700f54a5a07f3348eb1a7f4429d784",
+    "c1_L128_rep000.npz": "c590bb0fa0b9d4133250ad561fec0b1d3e595270efec6146497f93fa5a47a7da",
+    "c1_L128_rep001.npz": "f3422a85ce41b21b78f3896856063da0b07fb5d6d0a78c300b855b3157de34af",
+    "c1_L128_rep002.npz": "e4b444ae6cb54e6f85c028bfdf6c5b5ad7d85bd62af1ceb7ee6809f75595df82",
+    "c1_L128_rep003.npz": "14d7c9aa8296270f1807feecf511305663032b49ec8c0e1a9760961b7f47a333",
+    "c1_L128_rep004.npz": "15ff4272226fe9f8ebf9e57670e9693e222b5a425fb191ef0e66539fc7ee164e",
+    "c1_L128_rep005.npz": "884661f6d860f2c45638908520bf6f2455e349a0e6b057b36997bdc603a8d54a",
+    "c1_L128_rep006.npz": "445586dea520790b9bb98c7e2a1e32bf63112fdd6d95a6329a54e63490bb36de",
+    "c1_L128_rep007.npz": "5ca9a3ea47612a2f0ca68bbb0c5bad87135f6c5cc3bd432078fb1809f982ee9d"
+  },
+  "campaign_manifest_sha256": "dba04c09d8a24e08536c1c34c2a117780386af0ee92bb5a2f4d6e636ec93ce41",
+  "freeze_sha256": "30c79ff980d180bf688c0e7c70d7012ce5a03a94d197e76eb36693009ea6ebc8",
+  "observations": 36864,
+  "fit_rows": 144,
+  "independent_replica_count": 16,
+  "max_identity_error": 1.6653345369377348e-16,
+  "outputs": {
+    "observations.csv": "4e5f8f1cd7815ad722d792b27a8726c07b39c1a99e32904b65825d4b8395325b",
+    "fits.csv": "f55f4d2f35fac5631f3eb491305dcb2a95897602b2a988f5285038433fbec4af",
+    "report.html": "f437093ee17ad6d2f4b0b9e325563dc906e9e6be23d09c0dbc37f4a232d2e31c"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "campaign": "research/runs/growth_reliability_holdout_v1",
+  "manifest_sha256": "dba04c09d8a24e08536c1c34c2a117780386af0ee92bb5a2f4d6e636ec93ce41",
+  "replicas": 16,
+  "snapshots_checked": 1120,
+  "directional_lengths_checked": 2240,
+  "unresolved_saved": 0,
+  "unresolved_recomputed": 0,
+  "threshold_rounding_ambiguities": 0,
+  "maximum_absolute_correlation_difference": 2.220446049250313e-16,
+  "maximum_absolute_length_difference": 1.3322676295501878e-15,
+  "maximum_absolute_interface_difference": 0.0,
+  "maximum_absolute_direct_pair_difference": 2.220446049250313e-16,
+  "tolerance": 1e-10,
+  "conclusion": "All stored correlations and interface fractions match independent recomputation within tolerance. Stored lengths match an independent crossing of stored correlations; any fresh-FFT length differences occur only at the strict 0.5 boundary and are counted above. This does not validate the model against a material."
+}

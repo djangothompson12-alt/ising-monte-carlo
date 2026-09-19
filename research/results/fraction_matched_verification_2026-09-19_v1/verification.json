@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "description": "Separately reconstruct the new control and its primary paired statistics.\n\nUses full sorting instead of the production partition/cutoff method, explicit\nblock loops, direct pair products instead of FFT correlations, and the separate\nreviewer arithmetic. Internal AI-assisted verification, not external review.\n",
+  "selected_mask_measurements": 480,
+  "max_absolute_length_difference": 3.552713678800501e-15,
+  "primary_fit_checks": [
+    {
+      "composition": 0.5,
+      "delta_alpha": -0.05632007193167801,
+      "draws5000_low": -0.05913441551843931,
+      "draws5000_high": -0.05324452398261681,
+      "leave_one_out_min": -0.057166442092550035,
+      "leave_one_out_max": -0.05563156408151562
+    },
+    {
+      "composition": 0.15,
+      "delta_alpha": -0.07841340513128409,
+      "draws5000_low": -0.08236534981809476,
+      "draws5000_high": -0.0741727907348015,
+      "leave_one_out_min": -0.07960349278323756,
+      "leave_one_out_max": -0.07769048880054363
+    }
+  ],
+  "input_manifest_sha256": "00345ad1ee11ba267e7d47b98dd1db7baf6ba71ebc81b7ebf04af37152c6e00a",
+  "source_sha256": "e06b9d44c10cb9514056b6c3c00856ce75028fef0858a707ccdf2e8b33508017",
+  "separate_arithmetic_sha256": "ed0434738df5ac4cc5b4f648c6ed4e72269c062fae828587b392d658a1dc8f67"
+}

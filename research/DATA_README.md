@@ -13,6 +13,7 @@ an NPZ array means.
 |---|---|---|
 | `runs/overnight/` | 64 raw NPZ trajectories, plan/manifest/status, growth summaries, estimator and image-operation analyses | Complete to 200,000 sweeps |
 | `runs/imaging_validation/` | Eight fresh raw NPZ trajectories and image-operation repeat | Complete to 20,000 sweeps |
+| [`runs/growth_reliability_holdout_v1/`](runs/growth_reliability_holdout_v1/) | 16 further L=128 trajectories, eight per composition, for the frozen fraction-matching/measurement check | Complete to 20,000 sweeps; separate from the older eight-run repeat |
 | `runs/pilot/` | Earlier 24-replica exploratory campaign and summaries | Pilot; not an independent confirmation |
 | `runs/measurement_reliability_map_v1/` | Compact comparison of original and fresh image-operation results | Exploratory |
 | [`runs/majumder_das_2010_l128/`](runs/majumder_das_2010_l128/) | 40 new 0.6 Tc, L=128 trajectories to 4.5 million sweeps; raw manifest and integrity audit | Complete raw archive; no student-approved paper-method fit or multi-size reproduction |
@@ -46,6 +47,30 @@ experimental coarsening rate. No physical tennis-string measurements exist
 yet.
 
 From the repository root, with dependencies installed:
+
+## Reproduce the latest short-window check
+
+The 16-run dataset above is selected for the 20 September public snapshot.
+Its original manifest and NPZ files are unchanged. The pre-generation source
+hashes are in `results/growth_reliability_freeze_2026-09-19_v1.json`.
+The fresh analysis uses those hashes rather than silently changing its method.
+
+```bash
+python -m research.verify_study research/runs/growth_reliability_holdout_v1 --source-root .
+python -m research.audit_growth_reliability \
+  research/runs/growth_reliability_holdout_v1 \
+  --output output/fresh_measurement_recheck \
+  --cohort fresh \
+  --freeze research/results/growth_reliability_freeze_2026-09-19_v1.json
+```
+
+The output directory must be new. Compare `fits.csv` and `observations.csv`
+with `results/growth_reliability_fresh_2026-09-19_v1/`. The analysis is longer
+than the small geometry example but does not rerun the simulation dynamics.
+Exact-byte comparison is appropriate in the recorded environment; different
+numerical-library versions can introduce floating-point differences.
+
+## Earlier datasets and checks
 
 ```bash
 python -m unittest discover -s tests -v

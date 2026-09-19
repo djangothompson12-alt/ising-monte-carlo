@@ -30,7 +30,7 @@ its three channels carry identical 0/1 class codes; the code checks this
 before using the first channel. This inconsistency was found by running the
 pilot, not silently ignored.
 
-An independent code/data audit found that the release's raw class counts do
+A separate AI adversarial code/data audit found that the release's raw class counts do
 not reproduce the producer README's percentages for matrix and austenite:
 the raw labels give 34.6325% and 55.4855%, rather than 31.86% and 58.26%.
 The separate producer metadata asset also has two faulty entries: image 8's
