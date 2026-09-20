@@ -46,6 +46,11 @@ New known-geometry controls reproduce an analytic checkerboard correlation and
 show that forcing the right fraction cannot reconstruct boundaries erased by
 averaging. These are synthetic sanity checks, not novel physics.
 
+A [complete fresh-measurement arithmetic audit](CALCULATION_AUDIT_2026-09-20.md)
+found a zero-crossing roundoff issue in 37 factor-eight secondary lengths.
+Direct recalculation changed four secondary fits but not the factor-four
+results above or any tolerance classification. Original outputs are preserved.
+
 Two predeclared conservative resolution screens accepted zero of 18 comparisons,
 including five within the chosen exponent-error tolerance. They therefore
 have no demonstrated acceptance coverage here. Thresholds were not relaxed

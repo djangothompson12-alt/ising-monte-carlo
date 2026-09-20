@@ -18,7 +18,7 @@ def measure(field,spacing): return correlation_measures(axis_correlations(field)
 
 
 def render(plan,rows):
-    columns=('id','factor','stage','half','lobe','half_ratio','lobe_ratio','fraction_error','min_half_pixels','three_pixel_warning')
+    columns=('id','unit','factor','stage','half','lobe','half_ratio','lobe_ratio','fraction_error','min_half_pixels','three_pixel_warning')
     def fmt(value):
         if isinstance(value,float):return f'{value:.5g}' if np.isfinite(value) else 'unresolved'
         return str(value)
@@ -27,7 +27,9 @@ def render(plan,rows):
         for factor in (2,4,8):
             for stage in ('native','integrated','fixed','matched'):
                 group=[r for r in rows if r['id']==case and r['factor']==factor and r['stage']==stage]
-                out=dict(id=case,factor=factor,stage=stage)
+                units={r['unit'] for r in group}
+                if len(units)!=1:raise ValueError('Each summary requires one declared length unit')
+                out=dict(id=case,unit=units.pop(),factor=factor,stage=stage)
                 for key in ('half','lobe','half_ratio','lobe_ratio','fraction_error'):
                     out[key]=float(np.mean([r[key] for r in group]))
                 out['min_half_pixels']=float(np.min([r['min_half_pixels'] for r in group]))

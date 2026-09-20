@@ -501,5 +501,17 @@ diagnostic or established publication contribution was claimed.
   not a neutral substitution between these two analyses.
 - Record every external review comment and the resulting change.
 
+## Numerical-boundary audit, 20 September 2026
+
+At the student's request, Codex added a separate direct-pixel-pair audit of
+the fresh-run measurements and separate least-squares/bootstrap calculations.
+It identified an FFT-rounding issue at an exact correlation zero, implemented
+an opt-in direct-pair boundary refinement and regression tests, and preserved
+the original frozen analysis. It also corrected missing unit labels in the
+static external-image report without changing its underlying measurements.
+The expanded test suite passed 178 tests. The detailed audit note records
+the scope and outcome; these are substantive AI-assisted checking, coding
+and drafting contributions, not an independent academic review.
+
 This document is a transparency record, not proof that those checks have all
 been completed. Release notes should state which checks were actually run.

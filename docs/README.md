@@ -17,6 +17,7 @@ developed; they are not separate papers or extra independent experiments.
 - [Fresh-run check](GROWTH_RELIABILITY_RESULTS_2026-09-19.md) — two compositions, two length definitions and grid-origin sensitivity.
 - [Fraction-matching experiment](FRACTION_MATCHED_RESULTS_2026-09-19.md) — whether preserving composition recovers the fitted exponent.
 - [Controlled images](GEOMETRY_CONTROLS_2026-09-20.md) — known-length checks and an information-loss example.
+- [Calculation audit](CALCULATION_AUDIT_2026-09-20.md) — direct-pair checks, numerical boundaries and uncertainty checks.
 - [Literature and originality](ORIGINALITY_AND_NEXT_QUESTION_2026-09-19.md) — closest work and the limits of the novelty claim.
 - [Published-method comparison](RESOLUTION_METHOD_CROSSWALK_2026-09-20.md) — what has and has not been reproduced.
 

@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import numpy as np
-from research.external_length_reliability import run
+from research.external_length_reliability import run,render
 
 
 class ExternalReliabilityTests(unittest.TestCase):
@@ -19,9 +19,15 @@ class ExternalReliabilityTests(unittest.TestCase):
             self.assertEqual(m['rows'],24)
             self.assertNotIn('path',m['records'][0])
             self.assertIn('sphere &lt;test&gt;',(root/'out/report.html').read_text())
+            self.assertIn('<th>unit</th>',(root/'out/report.html').read_text())
+            self.assertIn('<td>um</td>',(root/'out/report.html').read_text())
             with self.assertRaises(FileExistsError):run(p,root/'out')
             a[0,0,0]=2;np.save(root/'mask.npy',a)
             with self.assertRaises(ValueError):run(p,root/'bad')
+
+    def test_mixed_units_cannot_be_silently_averaged(self):
+        rows=[dict(id='one',unit=u,factor=2,stage='native') for u in ('um','nm')]
+        with self.assertRaisesRegex(ValueError,'unit'):render(dict(source='test',license='test'),rows)
 
 
 if __name__=='__main__':unittest.main()

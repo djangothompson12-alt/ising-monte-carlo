@@ -2,6 +2,12 @@
 
 ## Outcome
 
+**20 September numerical addendum:** the [direct-pair audit](CALCULATION_AUDIT_2026-09-20.md)
+found a first-zero rounding issue in 37 factor-eight, fraction-matched 50:50
+positive-lobe lengths. Four secondary fits change after recalculation; no
+factor-four result or tolerance classification changes. Frozen outputs below
+are retained, with the corrections recorded separately in the audit.
+
 The factor-4 fraction-matched exponent shift repeated in a fresh simulation
 ensemble, survived four grid origins, and remained present with a second
 length definition. This strengthens the numerical evidence for the effect.

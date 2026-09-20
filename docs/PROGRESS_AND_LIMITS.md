@@ -12,6 +12,11 @@ Two conservative warning rules accepted no comparisons, so neither has been
 shown to be a useful diagnostic. Known-geometry controls now check the
 measurement pipeline separately from the dynamics.
 
+A subsequent [direct-pair calculation audit](CALCULATION_AUDIT_2026-09-20.md)
+found and bounded a zero-crossing roundoff issue in the most heavily reduced
+images. The primary results survived recalculation. The software now includes
+an opt-in numerical safeguard; frozen results retain a visible correction record.
+
 The [current summary](ACADEMIC_REVIEW_BRIEF_2026-09-20.md) gives the main result
 and open questions. The history below explains how the project reached it.
 

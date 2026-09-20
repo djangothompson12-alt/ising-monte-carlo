@@ -13,7 +13,8 @@ because it appears here; read its protocol and limitations before citing it.
 | Fresh 16-run measurement check | [Interpretation](../../docs/GROWTH_RELIABILITY_RESULTS_2026-09-19.md), [fits](growth_reliability_fresh_2026-09-19_v1/fits.csv) and [figures](growth_reliability_summary_2026-09-19_v1/) |
 | Fraction-matched control on 32 earlier trajectories | [Results](../../docs/FRACTION_MATCHED_RESULTS_2026-09-19.md) and [data](fraction_matched_benchmark_2026-09-19_v1/) |
 | Known-geometry checks | [Explanation](../../docs/GEOMETRY_CONTROLS_2026-09-20.md) and [all observations](geometry_controls_2026-09-20_v3/results.json) |
-| Static 3D Al–Ge image check | [Scope and limits](../../docs/ALGE_VOLUME_RESULTS_2026-09-19.md) and [two-observable follow-up](external_length_reliability_2026-09-19_v1/) |
+| Direct-pair and uncertainty audit | [Findings and correction record](../../docs/CALCULATION_AUDIT_2026-09-20.md) and [all checks](fresh_arithmetic_audit_2026-09-20_v1/verification.json) |
+| Static 3D Al–Ge image check | [Scope and limits](../../docs/ALGE_VOLUME_RESULTS_2026-09-19.md) and [two-observable follow-up with visible units](external_length_reliability_2026-09-20_v2/) |
 
 HTML reports are intended to be opened locally after cloning. GitHub normally
 shows their source; the Markdown notes above are the readable online entry points.

@@ -452,3 +452,20 @@ does not infer experimental ageing kinetics. Full suite: 157 tests pass.
 `requirements.txt` covers both Model A and Model B. Notable pins/notes live
 as inline comments there (e.g. numba's dropped x86_64 macOS wheels past
 0.62.1 on Intel Macs; the Solara version this was tested against).
+
+### Numerical-boundary audit, 20 September
+
+Read `docs/CALCULATION_AUDIT_2026-09-20.md` before citing the fresh-run
+secondary positive-lobe results. `audit_fresh_measurements.py` directly
+recomputed all 36,864 retained measurement rows and all 144 fits. It found
+37 factor-eight, matched 50:50 positive-lobe discrepancies from first-zero
+FFT rounding. Four secondary fits change (maximum delta change 0.001841);
+the factor-four results and all tolerance labels remain unchanged.
+Results are in `research/results/fresh_arithmetic_audit_2026-09-20_v1`.
+The status is deliberately `discrepancies_found`, not a clean pass.
+`stable_image_metrology.py` is an opt-in boundary-refinement implementation;
+it does not overwrite frozen sources, engine observables or the 3D method.
+The primary empirical bootstrap distribution was fully enumerated, without
+changing the conclusions or removing small-ensemble limitations. The full
+suite now passes 178 tests. External report v2 only adds visible units;
+its observations are byte-identical to v1. No external review is implied.
