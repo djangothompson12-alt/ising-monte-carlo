@@ -6,6 +6,25 @@ quickly getting a Claude session productive in the code.
 
 ## Repository shape
 
+### Current review entry point as of 4 October 2026
+
+Start with `review/README.md`, `docs/RESEARCH_SCOPE_2026-09-26.md`,
+`docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md` and
+`docs/CALCULATION_AUDIT_2026-09-20.md`. The PDF and deliberately selected,
+redacted evidence archive are in `review/`. This GitHub snapshot is authorised
+for criticism; it does not imply student approval of every draft claim,
+independent review, publication acceptance or outside adoption.
+
+The primary question is whether fraction matching after resolution reduction
+preserves the **native finite-window exponent**, not whether it recovers 1/3.
+The fresh primary experiment has 16 trajectories in total, eight per composition.
+The exploratory chord/majority comparison is supporting analysis of the same
+known cohort, not a new holdout or an exact Majumder–Das replication.
+Keep long-run physics campaigns, static public-materials masks and image-processing
+tests separate. The historical manuscript/PDF is not the current report.
+Dates and test counts in the sections below describe earlier snapshots.
+Private planning, outreach, essay handoff and original microscopy files remain local.
+
 Latest addition (20 September): `research/geometry_controls.py` and
 `tests/test_geometry_controls.py` provide synthetic checkerboard controls,
 not new Monte Carlo dynamics. Protocol: `research/GEOMETRY_CONTROL_PROTOCOL_2026-09-20.md`.
@@ -469,3 +488,17 @@ The primary empirical bootstrap distribution was fully enumerated, without
 changing the conclusions or removing small-ensemble limitations. The full
 suite now passes 178 tests. External report v2 only adds visible units;
 its observations are byte-identical to v1. No external review is implied.
+
+Further local audit: `research/results/comprehensive_recheck_2026-09-20_v1`
+contains metadata/heat checks for 248 existing trajectories (18,160 snapshots),
+48 original and 80 extension fit recalculations, and selected legacy-number
+checks. `verify_study.py` now also verifies temperatures, checkpoint grids
+and nominal rounded species counts. Model A `simulate_temperature` now seeds
+Numba's updates as well as its NumPy hot start; the prior path did not replay
+from its stated seed. Quench dynamics/correlations and frozen Model B sources
+are unchanged. Historical aggregate data and their uncertainty limitations
+are preserved. Full suite: 186 tests. Selected old manuscript equations and
+claims were corrected, but its PDF remains stale. User explicitly declined
+public publication of the prepared update on 20 September; do not push it
+without renewed authorization. That authorization was given on 4 October for
+the research update, excluding private and redistribution-restricted material.

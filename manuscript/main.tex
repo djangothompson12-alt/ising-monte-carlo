@@ -22,6 +22,12 @@ analysis, figures and draft prose received substantial generative-AI
 assistance; the contribution record is in the repository. The tracked PDF is
 older than this source.}
 
+\noindent\textit{Numerical audit addendum, 20 September 2026: this historical
+draft is not the current measurement-study report. Selected baseline numbers
+were recalculated from the saved aggregate tables; original per-replica
+uncertainties cannot be reconstructed from those tables alone. See the
+repository's calculation-audit notes before reusing the results.}
+
 \begin{abstract}
 Microstructures evolve differently depending on whether the quantity that
 defines them is free to change locally or is fixed globally. I built two
@@ -158,7 +164,7 @@ so finely that the transition between them is sharp rather than gradual.
 For the isotropic square-lattice Ising model this critical temperature is
 known exactly, from Onsager's 1944 solution \cite{Onsager1944}:
 \begin{equation}
-T_c = \frac{2J}{\ln(1+\sqrt2)} \approx 2.269\ J/k_B.
+T_c = \frac{2J}{k_B\ln(1+\sqrt2)} \approx 2.269\ J/k_B.
 \label{eq:tc}
 \end{equation}
 For the anisotropic case, $T_c$ is instead the root of
@@ -304,7 +310,7 @@ frame through the framework's normal state-update mechanism.
 
 Quenching either model from a disordered state at $T_i \gg T_c$ to an
 ordered state at $T_f < T_c$ does not relax the system to equilibrium
-instantly. Instead, small ordered patches nucleate all over the lattice
+instantly. Instead, small ordered patches develop across the lattice
 and then grow and merge over time -- this is phase-ordering kinetics, and
 the two dynamics grow their domains at genuinely different rates.
 
@@ -384,7 +390,10 @@ $T_f=1.5$ and averaging over 16 replicas gives a fitted growth exponent
 \begin{equation}
 \alpha_A = 0.4999,
 \end{equation}
-within 0.02\% of the theoretical prediction $1/2$. For Model B, with
+about 0.02\% below the theoretical prediction $1/2$. This is a fit to 19
+retained points from 3 to 489 sweeps, using the historical length cutoff
+$L(t)\le19.2$ lattice spacings; numerical proximity is not an uncertainty
+estimate or proof of an asymptotic regime. For Model B, with
 independent horizontal and vertical domain sizes $L_x(t)$ and $L_y(t)$
 extracted from the correlation function along each axis separately,
 quenching a $96\times96$ lattice with $J_x=1.0$, $J_y=0.5$ (so
@@ -452,14 +461,14 @@ the same microstructure -- for an isotropic, statistically self-similar
 domain pattern, $S(\mathbf{k},t)$ forms a ring at $|\mathbf{k}|\sim
 1/L(t)$, shrinking towards the origin as domains coarsen. Under
 anisotropic coupling this ring is expected to distort into an ellipse,
-elongated along the axis with the \emph{weaker} coupling (since a smaller
-$|\mathbf{k}|$ there corresponds to a larger real-space domain size along
-that direction). I have not built a dedicated visualisation of this ring
+elongated along the axis with the \emph{weaker} coupling: a larger real-space
+length along the stronger-coupling direction corresponds to a narrower
+reciprocal-space width in that direction. I have not built a dedicated visualisation of this ring
 into the software -- doing so is a natural next step -- but the
-equivalent, and physically identical, information is already captured
-directly in the anisotropic domain sizes $L_x(t) \neq L_y(t)$ plotted in
-Fig.~\ref{fig:modelb}, which is the real-space cross-section through
-exactly that ellipse along its two principal axes.
+directional real-space lengths $L_x(t) \neq L_y(t)$ in
+Fig.~\ref{fig:modelb} already quantify one aspect of the anisotropy.
+Two crossing lengths do not reconstruct the full structure factor or
+establish that its contours form an ellipse.
 
 The physical picture here is directional coarsening: the horizontal domains
 grow roughly twice as fast as the vertical ones by the end of the run
@@ -518,13 +527,15 @@ report rather than in the continuum limit Bray's argument is stated in.
 \subsection{A methodological subtlety: choosing a correlation observable for each model}
 
 Extracting $L(t)$ off-critical exposed a real bug in the correlation-based
-method used everywhere above. Equation~\eqref{eq:autocorr} assumes the two
-phases are equally represented; away from $50/50$ the raw correlation
-function no longer decays to zero at large separation but instead
-plateaus at $m^2$, where $m$ is the mean magnetization -- and once
-$m^2 > 0.5$ (roughly $c \lesssim 0.15$ or $c \gtrsim 0.85$), it never
-crosses the $0.5$ threshold Eq.~\eqref{eq:autocorr}'s extraction method
-looks for, and every domain-size measurement silently returns \texttt{NaN}.
+method used above. Equation~\eqref{eq:autocorr} remains a valid raw statistic,
+but its half-height need not be a useful domain-size measure away from
+$50/50$. At large separation the raw correlation can approach a composition
+background $m^2$ rather than zero, where $m$ is the mean magnetization.
+When $m^2 > 0.5$ (roughly $c \lesssim 0.15$ or $c \gtrsim 0.85$), decay
+towards that background need not cross the extraction threshold.
+A missing crossing returns \texttt{NaN}; a finite-size or oscillatory
+correlation can still cross, so the background alone does not determine
+every individual outcome.
 The standard fix is the \emph{connected} correlation function,
 \begin{equation}
 g(r,t) = \frac{\langle \sigma_i(t)\,\sigma_{i+r}(t)\rangle - m(t)^2}{1 - m(t)^2},
@@ -584,8 +595,9 @@ predict.}
 For Model A the fitted exponent averages $\alpha = 0.495$, with a
 spread of $\pm0.009$ (standard deviation) across all six concentrations
 (individual values $0.502$, $0.488$, $0.510$, $0.488$, $0.488$, $0.496$
-from $c=0.50$ down to $c=0.06$) -- indistinguishable from $1/2$ at every
-concentration tested, well within run-to-run Monte Carlo noise. This is the expected control result given Section 3.1's
+from $c=0.50$ down to $c=0.06$). These values cluster near $1/2$, but the
+saved regression errors are not a full assessment of replica or fitting-window
+uncertainty. This is a qualitative control comparison given Section 3.1's
 argument: curvature-driven wall motion does not care which phase is in
 the minority, so as long as \emph{some} interface is present to move,
 Model A coarsens at the same rate regardless of composition. For Model B

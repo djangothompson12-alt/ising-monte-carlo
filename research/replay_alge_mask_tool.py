@@ -64,6 +64,19 @@ def run(source: Path, qa_manifest: Path, reference_csv: Path, output: Path) -> P
         license="CC BY 4.0; local derived-mask usability replay only",
         phase_definition="all Ge labels (3), not isolated precipitates",
         tie_rule="foreground",
+        materials_context=dict(
+            material_system=("Al-Ge two-phase microstructure from one published "
+                             "cast specimen"),
+            processing_condition=("published 315-minute heat-treatment stage; "
+                                  "temperature as documented by the source study"),
+            imaging_method="producer-segmented X-ray nanotomography",
+            section_geometry=("single transverse 2D plane at z = 12.0 um from "
+                              "the fixed 3D region of interest"),
+            calibration_source="published reconstruction voxel spacing of 0.06 um",
+            measurement_purpose=("post-hoc check of how numerical resolution "
+                                 "changes an all-Ge correlation half-height length"),
+        ),
+        decision_tolerance_fraction=None,
         records=[dict(id="315min_z12um", specimen_id="published single cast specimen",
                       mask_path=mask_path.name, foreground_value=1, background_value=0,
                       mask_authority="producer-supplied segmented tomography",

@@ -170,7 +170,7 @@ def plot_kinetics_and_entropy(
     ax_bottom.set_xlabel(r"Time $t$ (Monte Carlo sweeps)")
     ax_bottom.set_ylabel(r"Bath entropy-flow rate $\dot{S}_{\rm bath}(t)$ (per spin, $k_B$ units)")
     ax_bottom.set_title(
-        r"Interfacial Dissipation: $\dot{S}_{\rm bath}(t) = -\dfrac{1}{T}\dfrac{\langle \Delta E \rangle}{dt}$"
+        r"Bath flow per spin: $\dot{S}_{\rm bath}(t) = -\dfrac{1}{NT}\dfrac{\langle \Delta E \rangle}{dt}$"
     )
 
     fig.suptitle(

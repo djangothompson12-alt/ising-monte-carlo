@@ -236,6 +236,12 @@ def _total_magnetization(lattice: np.ndarray) -> float:
 
 
 @njit(cache=True)
+def _seed_temperature_dynamics(seed: int) -> None:
+    """Seed Numba's RNG separately from the NumPy hot-start generator."""
+    np.random.seed(seed)
+
+
+@njit(cache=True)
 def _run_at_temperature(
     lattice: np.ndarray,
     beta: float,
@@ -292,6 +298,10 @@ def simulate_temperature(
     beta = 1.0 / T
 
     lattice = init_lattice(config.L, seed)
+    # NumPy's default_rng only seeds the initial lattice, not Numba's RNG.
+    # Historical temperature CSVs predate this replayability fix; quench
+    # replicas already seed their own dynamics and are unchanged.
+    _seed_temperature_dynamics(seed)
     energies, magnetizations = _run_at_temperature(
         lattice, beta, config.J, config.eq_sweeps, config.mc_sweeps, config.sample_interval
     )

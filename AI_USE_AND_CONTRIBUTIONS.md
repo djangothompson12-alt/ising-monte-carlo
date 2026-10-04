@@ -1,5 +1,39 @@
 # AI use and contribution record
 
+## Research sharing preparation on 4 October 2026
+
+Django explicitly authorised updating and pushing the research repository for
+another AI review. Codex selected the current research changes, added a short
+review entry point, and copied the unchanged two-page PDF and redacted focused
+evidence ZIP into `review/`. Private application/outreach/essay notes and
+original microscopy files were excluded. Public sharing permission does not
+establish student approval of every draft claim or academic endorsement.
+
+The full numerical-environment suite passed 225 tests in 28.134 seconds. The
+navigation tests were separately rerun after documentation changes. A targeted
+credential/private-filename scan of publication candidates and ZIP members
+found no matches; this is not a comprehensive security certification. No Monte
+Carlo campaign, scientific source freeze or original data was changed during
+this packaging task. Git history records whether the prepared update was committed;
+external reviewer responses are not implied by repository availability.
+
+The review guide and these packaging notes are AI-authored. The older dated
+records below retain their historical publication and approval status.
+
+On 26 September, at Django's request to progress the existing project, the
+assistant prepared a two-page fraction-matching criticism brief from the
+fresh-cohort evidence and visually checked both PDF pages. A separate AI
+worker independently implemented direct-pair covariance, rank segmentation,
+regression and paired resampling; it reproduced the headline factor-four
+measurements and intervals from the saved raw snapshots. Another AI worker
+prepared a small, allowlisted evidence-copy builder with explicit metadata
+redaction and provenance records. These actions used existing data, not new
+Monte Carlo runs or experimental evidence. The historical factor-eight
+secondary discrepancy remains disclosed. This is internal AI-assisted
+checking and drafting, not human academic review, a student-authored final
+paper, laboratory adoption or endorsement. Student approval is still required;
+no commit, push, submission or outreach was authorized by this work.
+
 Later on 20 September, at the student's request, the assistant simplified the
 public README and navigation, moved the longer reference text into a guide,
 and prepared the latest code, aggregate results and 16-run raw archive for
@@ -513,5 +547,146 @@ The expanded test suite passed 178 tests. The detailed audit note records
 the scope and outcome; these are substantive AI-assisted checking, coding
 and drafting contributions, not an independent academic review.
 
+A further local pass verified metadata and energy bookkeeping across 248
+existing trajectories, recalculated the original and extension tables and
+recovered selected older numerical claims from aggregate CSVs. Codex found
+and fixed incomplete RNG seeding in Model A's temperature-sweep entry point
+(not its quench or the Kawasaki engine), strengthened the archive checker,
+added regression tests, and corrected selected equations and overstatements
+in the historical manuscript. It documented the inability to reconstruct
+legacy replica errors from summary tables. The expanded suite passed 186
+tests. These remain internal AI-assisted contributions; no academic review
+or external validation occurred. The student chose to keep this update local.
+
 This document is a transparency record, not proof that those checks have all
 been completed. Release notes should state which checks were actually run.
+
+## Bounded observation/length comparison, 26 September 2026
+
+At Django's request to compare more observation and length-measurement methods,
+Codex proposed a bounded exploratory appendix, wrote its local protocol,
+implemented a finite foreground-chord measurement and one-pass majority
+observation wrapper, and reanalysed sixteen already-known L=128 trajectories.
+It compared two length definitions and three observation operators on the
+same 24 times per run. Codex wrote synthetic/counting/inference tests, ran the
+analysis, prepared the figures and results notes, and used a second AI agent
+to check the design and implementation. These are substantive AI-assisted
+design, software, analysis and drafting contributions, not independent student
+implementation or external academic review.
+
+The result was not uniformly large: fraction matching changed chord-based
+exponents less than half-height exponents, majority filtering shifted the two
+definitions in opposite directions, and one processed cross-definition
+comparison was consistent with no resolved difference. All eighteen planned
+contrasts, uncertainty intervals, composition histories and edge-censoring
+diagnostics were retained. The known cohort was not described as a new holdout.
+
+The existing primary half-height results reproduced to within 6e-17 using the
+original measurement functions. Input/source hashes and local report links
+were verified. The two scientific figures were visually inspected. The final
+complete unittest suite passed **222 tests**, including seventeen new tests.
+The first analysis output was retained; a v2 rerun clarified wording and
+equivalent mask indexing without changing the design. Its measurement table
+was byte-identical to v1. The existing reviewer PDF and evidence pack were not
+changed. Nothing was committed, pushed, published or sent to an academic.
+
+The readable appendix is in
+`research/results/chord_observation_sensitivity_2026-09-26_v2/report.html`;
+interpretation and limitations are in
+`docs/CHORD_OBSERVATION_RESULTS_2026-09-26.md`. Django still needs to review and
+understand the interpretation before adopting it as his report text.
+
+## Academic feedback brief consolidation, 1 October 2026
+
+Codex updated the existing review brief and reviewer navigation to distinguish
+the short fraction-matching experiment, the completed longer physics campaigns
+and the applied static mask tool. It extended the existing PDF builder to read
+the long-run fit table and FeM summaries, verify the FeM measurement hashes and
+recompute the cited median changes from field-level rows. The fresh primary
+table and ratio figure still come from the hash-checked frozen analysis.
+The two-page PDF adds the missing long-run context, the 81-field FeM example,
+the smaller exploratory chord effects and clearer prior-work boundaries.
+
+Five focused brief-builder tests passed, including the new context check.
+Both pages of the final v2 PDF were rendered and visually inspected. This was
+an evidence-extraction, document and presentation check, not a fresh rerun of
+the full numerical suite, all simulations or all archived analyses. The PDF
+builder depends on local contextual outputs and is not yet included with all
+those dependencies in a portable review bundle. No frozen result was changed.
+
+The local draft is `output/pdf/kawasaki_academic_feedback_draft_2026-10-01_v2.pdf`.
+Student approval, an updated accessible evidence copy, recipient selection,
+external review and any outside pilot remain outstanding. No contact, commit,
+push, submission or publication occurred. The new prose and document changes
+are AI-assisted and must not be described as independently student-authored.
+
+## Portable evidence update, 1 October 2026
+
+Codex extended the focused evidence builder to include only allowlisted
+contextual tables from the long-run study, FeM static-mask tests and exploratory
+chord appendix alongside the primary 16 raw trajectories. Original microscopy
+pixels and private notes remain excluded. The contextual narrative distinguishes
+field-level descriptive statistics, simulation kinetics and the primary paired
+measurement test. The added tables are not an independent rerun of the long-run
+campaign or original microscopy measurements.
+
+Sixteen focused packaging/brief tests passed. A clean unpacked first copy
+successfully loaded every input needed by the revised PDF builder and reran
+the frozen fresh-cohort analysis. All observations were byte-identical; all
+144 fits agreed numerically, with maximum field difference 1.95e-16. The final
+v2 package includes that reproduction record, passed 23 navigation-link checks
+and 64 file-integrity checks, and was independently unpacked and checked again.
+The same installed numerical environment was used: this is portability within
+that environment, not validation on a second machine or by another researcher.
+
+Current local evidence ZIP:
+`output/focused_review_evidence_2026-10-01_v2.zip`.
+Student approval, accessible external delivery, expert criticism, an owner-led
+pilot and any venue-specific submission decision remain pending. Nothing was
+sent, committed, pushed, published or submitted.
+
+## Publication and pilot planning check, 1 October 2026
+
+Codex checked primary venue policy pages and updated the release checklist:
+JEI remains incompatible with the recorded AI use; JOSS has public-history,
+research-use and human-contribution gates; Young Scientists Journal's age range
+fits but AI eligibility remains unresolved; a critical-realist paper would need
+a separate original philosophical argument and venue-specific scope approval.
+An inaccessible SoftwareX page was recorded as unresolved, not inferred from
+third-party guidance. These are AI-assisted policy interpretations, not editor
+approval or evidence that a submission is ready. Codex also shortened the
+initial owner-led pilot request in the existing template. No message was sent
+and no outside data transfer, endorsement or adoption occurred.
+
+## Focused outreach preparation, 1 October 2026
+
+Codex checked institutional profiles and prepared optional, AI-written requests
+for materials-image and materials-interpretation criticism in OUTREACH_DRAFTS.
+A direct coarsening-theory contact remains conditional on verification of the
+current address. The old strategy was labelled historical to avoid treating
+proposed alloy validation or earlier publication routes as completed work.
+Django must check the sources, approve the claims and revise the messages
+before use. No messages were sent and no willingness to review is assumed.
+
+## Full local test and feedback-readiness check, 1 October 2026
+
+Codex reran the complete current unittest discovery: 225 tests passed, with
+no skips, using the existing Intel Mac Python 3.11 numerical environment.
+The release checklist records the command, dependency versions, log path and
+SHA-256. This is an internal software regression check, not an external review
+or a repetition of all Monte Carlo campaigns. Codex corrected the stale brief
+page count and separated immediate feedback gates from later manuscript
+release work. Student comprehension, factual and contribution approval,
+recipient choice, external delivery and send permission remain outstanding.
+
+## Application period plan and report scope alignment
+
+On 1 October, at Django's request, Codex drafted a dated plan through the US
+application period in the existing private strategy document. Official
+application dates were checked, and the plan separates controllable writing
+and verification from outside replies, pilot participation and publication.
+The older report was labelled historical and the writing guide was aligned
+with the existing fraction-matching question; this does not constitute a
+completed report rewrite. Essay/EPQ text and status have not been verified for
+inclusion. A short philosophical reflection is proposed, not a new result or
+proof of critical realism. No external action was taken.

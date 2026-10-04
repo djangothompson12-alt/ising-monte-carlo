@@ -1,0 +1,16 @@
+{
+  "status": "complete",
+  "unchanged_verified": true,
+  "completed_at": "2026-09-26T13:19:12.355131+00:00",
+  "outputs": {
+    "contrasts.csv": "ffe62bb50e09a2ba0a8ad2905a4687e2323c4220290094dbb335d562b3856a34",
+    "freeze.json": "83927c78e0c5589ab4902ab123c4ad8d138d4d045ce27505a6b699d141c5f22d",
+    "growth_curves.png": "eb1c033eef3b324d381e5e979c9a5b5c54f27cc11d76cdd33cf254e189593403",
+    "histories.csv": "715d8d905f2ec5e0843efc7f3e65ae1f3b511b5d3ad0695a059b873c08c25037",
+    "observations.csv": "4afdcb63aed44f4f6552cba164bf02bb2e91b465f6764222620ab8a2a504c34f",
+    "processing_shifts.png": "fd94d4c4c69e83a1bde839701a89f44ae16b85b91ecda3864725814b784d305a",
+    "protocol.md": "394644cc6fe61ee76e2be03e7b2f7b75430f6c83cb87694fd34ff407462c21eb",
+    "report.html": "8b9ab8de47e79c065496142f906a477c02c983d686e22720d513c2e9b7221e41",
+    "summary.json": "150cec7fcc072d79371d4a661fdf56f71edc7499584e12258c055dce895115b6"
+  }
+}

@@ -47,13 +47,23 @@ units are a usability check, not a materials experiment or a validation set.
 
 Copy [the template](../research/mask_resolution_audit.template.json) to a
 private working folder and fill in its source, licence, phase definition,
-specimen IDs and mask records. Every mask must be a single 2D array with
+materials context, specimen IDs and mask records. For a materials pilot, state
+the material system, processing or ageing condition, imaging method, section or
+acquisition geometry, spatial-calibration source and the measurement's intended
+use. The program rejects a partly completed `materials_context` block rather
+than displaying an apparently complete materials result with missing context.
+Every mask must be a single 2D array with
 exactly two declared integer values, such as 0/1 or 0/255. State who made the
 mask and what the foreground means. Give the rectangular ROI, its reason,
 pixel size and unit. The ROI must be at least 16 pixels per axis, and its
 width and height must divide exactly by four;
 the program will not silently trim a specimen field. Choose whether exact
 50:50 blocks become foreground or background **before** viewing the output.
+If the problem owner can state what relative change in measured length would
+matter to their comparison, record it as `decision_tolerance_fraction` and
+explain it in `decision_tolerance_reason` before running the audit. Otherwise
+leave the tolerance null. The report will then show the measurements without
+inventing an acceptable/unacceptable classification after seeing the result.
 Multi-frame TIFF stacks are rejected: explicitly select and save one plane
 first, so the tool cannot silently analyse the wrong slice.
 Optional time metadata is retained but never used to fit kinetics.
@@ -77,6 +87,11 @@ the report. The HTML shows each image's mask authority, ROI, time, pixel
 spacing and length unit explicitly; the CSV includes all three resolutions,
 directional lengths, scale, phase fraction and unresolved status. Ratios are
 to each image's own native measurement;
+the table also reports phase-fraction change, percentage length change, a
+directional X/Y geometry ratio and the minimum measured length in coarse-pixel
+units. The X/Y ratio describes the selected mask, not mechanical anisotropy or
+crystallographic texture. The three-pixel screen is a conservative warning,
+not a validated materials standard.
 do not compare raw lengths if their units or phase definitions differ.
 The report and manifest do retain the supplied specimen IDs, source and
 description, even though they omit mask pixels and file paths. Keep the
@@ -96,11 +111,44 @@ field are used. The replay is therefore a **workflow/units check**, not a new
 independent result or a second specimen. The derived mask and HTML stay in
 ignored local `output/alge_mask_tool_replay_2026-09-19_v5/`; a fresh replay
 after adding the explicit report context and single-plane input check again
-matched the earlier numerical table.
+matched the earlier numerical table. The materials-context update was replayed
+locally in `output/alge_mask_tool_replay_2026-09-22_v6/`. It also flags the
+selected measurement as poorly resolved: the smaller native directional length
+spans about 2.15 pixels and the 4x result about 0.63 coarse pixels. A numerical
+half-height crossing can still be interpolated in that situation, but it should
+not be presented as recovered sub-pixel microstructural information.
 The [replay script](../research/replay_alge_mask_tool.py) checks the public source
 hash, fixed field and earlier table before making that local report. The
 published source is Jonas Fell's
 [CC BY 4.0 Al–Ge dataset](https://doi.org/10.17632/hj9njz3rxp.1).
+
+A second, independent public-sample check used the heat-treated optical
+metallography Si-particle mask from
+[MicroAl-Dataset](https://github.com/neulmc/MicroAl-Dataset), with its stated
+0.1 micrometres-per-pixel scale. The whole 256x256 field was fixed before the
+run, black Si-particle pixels were foreground and exact block ties went to
+background. The native, 2x and 4x mean lengths were 0.832499, 0.832193 and
+0.851150 micrometres. The 4x row was flagged because its smaller directional
+length occupied only 1.94 coarse pixels. This is a useful independent workflow
+stress test, not evidence that numerical downsampling recreates a lower
+resolution microscope acquisition. The source restricts the data to academic
+research and prohibits unauthorised redistribution, so its raw pixels remain
+outside this repository. Full limitations and dataset screening are recorded
+in [the validation record](MASK_RESOLUTION_AUDIT_VALIDATION_2026-09-22.md) and
+[public-data scope](PUBLIC_MASK_DATA_SCOPE_2026-09-22.md).
+
+The most extensive public-data check uses all 81 registered fields in the
+[FeM iron-ore dataset](https://doi.org/10.5281/zenodo.5014700). Each producer
+reference separates ore from embedding resin at 1.05 micrometres per pixel.
+Using a fixed field and ties to background, the median length changed by
+-0.898% at 2x and +1.610% at 4x; all 81 fields remained resolved and none
+triggered the three-pixel warning. A clearly labelled post-hoc opposite-tie
+sensitivity changed the median shifts to +1.925% and +2.530%. Thus the sign of
+the small 2x effect depends on how exactly balanced blocks are classified.
+Nine directional measurements were also reproduced by a separate direct
+real-space calculation to `1e-10`. See the
+[full FeM record](FEM_PUBLIC_MASK_AUDIT_2026-09-22.md). The 81 fields come from
+one mounted sample and must not be presented as independent specimens.
 
 ## The first outside test
 

@@ -1,5 +1,11 @@
 # When does an image stop looking composition-conserving?
 
+**Historical working draft.** The current primary question and fresh
+fraction-matched evidence are in the
+[1 October brief](../docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md).
+This longer draft retains the earlier broader framing and must be consolidated
+before it is shared as the current report. It has not been student-approved.
+
 ## A paired measurement audit in a conserved 2D coarsening model
 
 *AI-assisted working-paper draft, updated 19 September 2026 after the

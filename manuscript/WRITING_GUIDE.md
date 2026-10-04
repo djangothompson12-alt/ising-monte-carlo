@@ -1,13 +1,27 @@
 # Write a paper you can defend
 
-Start with one question: **When can a finite 2D Kawasaki run appear to coarsen
-slower because of time/size limits or the way its domains are measured?**
+Start with the [current question](../docs/RESEARCH_SCOPE_2026-09-26.md):
+**After reducing image resolution, is matching the native species-site
+fraction sufficient to preserve the fitted finite-window coarsening exponent?**
+The earlier below-one-third puzzle explains the project's motivation; the
+current comparison is with the native finite-window fit, not forced recovery
+of the asymptotic exponent. The older report needs restructuring to reflect
+this distinction before it is called the current full report.
 Composition is a controlled comparison, not by itself a novelty claim. Keep
 the tennis study separate until it has
 its own data and a clear result. The two projects can share a motivation without
 claiming to share a physical model.
 
 ## A workable paper structure
+
+The outline below is the broader historical framework. In the current report,
+lead with paired fraction-matched methods and results. Keep Model A, phase
+diagrams and long campaigns as supporting context or appendices. Include the
+fresh-cohort limitations, failed screens, exploratory chord result and static
+mask audit described in the [current brief](../docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md).
+An optional short philosophy reflection may describe intellectual motivation,
+but does not establish a scientific result. The essay and EPQ must be checked
+and cited with their actual status before inclusion.
 
 1. **Question.** Explain phase separation, conservation of composition and why
    a measured short-time exponent need not be the asymptotic exponent. Use a

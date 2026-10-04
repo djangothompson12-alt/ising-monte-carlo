@@ -29,6 +29,8 @@ def make(output: Path) -> Path:
         license="Synthetic demonstration generated in this repository",
         phase_definition="white artificial circles, not physical precipitates",
         tie_rule="background",
+        materials_context=None,
+        decision_tolerance_fraction=None,
         records=[
             dict(id="synthetic_circles", specimen_id="first artificial image",
                  mask_path="synthetic_mask.npy", foreground_value=1,

@@ -90,14 +90,16 @@ def measure_campaign(folder: Path, declaration_path: Path, output: Path, concent
     rows: list[dict] = []
     for path in paths:
         with np.load(path, allow_pickle=False) as data:
-            snapshots, sweeps = data["snapshots"], data["t"]
-            if len(snapshots) != len(sweeps):
+            snapshots, sweeps, directional_lengths = data["snapshots"], data["t"], data["lengths"]
+            if len(snapshots) != len(sweeps) or len(directional_lengths) != len(sweeps):
                 raise ValueError(f"Snapshot/time mismatch in {path}")
-            for snapshot_index, (sweep, lattice) in enumerate(zip(sweeps, snapshots)):
+            for snapshot_index, (sweep, lattice, lengths) in enumerate(zip(sweeps, snapshots, directional_lengths)):
                 metrics = reference_measurements(lattice)
+                native_length = float(np.mean(lengths)) if np.all(np.isfinite(lengths)) else float("nan")
                 rows.append(dict(
                     input_file=path.name, snapshot_index=snapshot_index,
-                    L=int(lattice.shape[0]), concentration=concentration, sweep=int(sweep), **metrics,
+                    L=int(lattice.shape[0]), concentration=concentration, sweep=int(sweep),
+                    native_connected_half_height=native_length, **metrics,
                 ))
     with table_path.open("x", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=tuple(rows[0]))

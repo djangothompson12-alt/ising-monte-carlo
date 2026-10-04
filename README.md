@@ -7,6 +7,10 @@ the result.
 
 [Research summary](docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md) · [Live Model A demo](https://djangothompson12-alt.github.io/ising-monte-carlo/) · [Notes and methods](docs/README.md)
 
+**Review snapshot, 4 October 2026:** start with the [review guide](review/README.md)
+for the two-page PDF, reproducible evidence download and suggested checks.
+This is a working research draft shared for criticism, not a finished or peer-reviewed paper.
+
 ## The models
 
 - **Model A:** Metropolis single-spin flips. Magnetisation can change.

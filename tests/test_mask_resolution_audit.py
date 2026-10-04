@@ -45,6 +45,14 @@ class MaskResolutionAuditTests(unittest.TestCase):
             self.assertEqual([int(row["factor"]) for row in rows], [1, 2, 4])
             self.assertEqual([float(row["pixel_size"]) for row in rows], [.06, .12, .24])
             self.assertEqual(float(rows[0]["length_ratio"]), 1)
+            self.assertEqual(float(rows[0]["length_change_percent"]), 0)
+            self.assertEqual(float(rows[0]["phase_fraction_change"]), 0)
+            self.assertGreater(float(rows[0]["direction_ratio_x_over_y"]), 0)
+            self.assertIn(rows[0]["three_pixel_warning"], ("flag", "no flag"))
+            self.assertGreater(float(rows[0]["minimum_pixels_per_length"]), 0)
+            self.assertEqual(rows[0]["decision_status"], "native reference")
+            self.assertEqual(rows[1]["decision_status"],
+                             "not classified: no owner tolerance")
             self.assertTrue(all(row["specimen_id"] == "one synthetic specimen" for row in rows))
             self.assertEqual(rows[0]["length_unit"], "um")
             html = report.read_text()
@@ -57,6 +65,15 @@ class MaskResolutionAuditTests(unittest.TestCase):
             self.assertIn("<th>ROI</th>", html)
             self.assertIn("<td>[8, 56, 8, 56]</td>", html)
             self.assertIn("<th>Pixel spacing</th>", html)
+            self.assertIn("<th>X length</th>", html)
+            self.assertIn("<th>Y length</th>", html)
+            self.assertIn("<th>Fraction change</th>", html)
+            self.assertIn("<th>X/Y geometry ratio</th>", html)
+            self.assertIn("<th>Min pixels/length</th>", html)
+            self.assertIn("not a universal accuracy threshold", html)
+            self.assertIn("Materials context not declared", html)
+            self.assertIn("not a mechanical-property anisotropy", html)
+            self.assertIn("No owner-defined tolerance was declared", html)
             self.assertIn("<td>0.06</td>", html)
             self.assertIn("<th>Unit</th>", html)
             self.assertIn("<td>um</td>", html)
@@ -65,6 +82,11 @@ class MaskResolutionAuditTests(unittest.TestCase):
             self.assertNotIn("expert_mask.npy", html)
             provenance = json.loads((folder / "audit" / "manifest.json").read_text())
             self.assertEqual(len(provenance["mask_sha256"]["first"]), 64)
+            self.assertEqual(len(provenance["output_sha256"]["measurements.csv"]), 64)
+            self.assertEqual(len(provenance["output_sha256"]["report.html"]), 64)
+            self.assertIn("created_utc", provenance)
+            self.assertIsNone(provenance["materials_context"])
+            self.assertIsNone(provenance["decision_tolerance_fraction"])
             self.assertEqual(provenance["input_settings"][0]["roi"], [8, 56, 8, 56])
             self.assertEqual(provenance["input_settings"][0]["pixel_size"], .06)
             self.assertIn("not a chemical-composition mass balance",
@@ -138,6 +160,68 @@ class MaskResolutionAuditTests(unittest.TestCase):
             html = audit(manifest, folder / "audit").read_text()
             self.assertIn("&lt;script&gt;", html)
             self.assertNotIn('<script>alert("x")</script>', html)
+
+    def test_optional_declared_hash_locks_the_input(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            manifest, document = self.fixture(folder)
+            document["records"][0]["sha256"] = "0" * 64
+            manifest.write_text(json.dumps(document))
+            with self.assertRaisesRegex(ValueError, "mask changed"):
+                audit(manifest, folder / "changed")
+            self.assertFalse((folder / "changed").exists())
+
+    def test_materials_context_is_complete_and_escaped(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            manifest, document = self.fixture(folder)
+            context = dict(
+                material_system="Al-Ge <binary alloy>",
+                processing_condition="aged 315 min at a declared temperature",
+                imaging_method="segmented X-ray nanotomography plane",
+                section_geometry="one transverse 2D plane from a 3D ROI",
+                calibration_source="reconstruction metadata",
+                measurement_purpose="screen resolution sensitivity of Ge-phase spacing",
+            )
+            document["materials_context"] = context
+            manifest.write_text(json.dumps(document))
+            report = audit(manifest, folder / "materials")
+            html = report.read_text()
+            self.assertIn("Declared materials context", html)
+            self.assertIn("Al-Ge &lt;binary alloy&gt;", html)
+            provenance = json.loads(
+                (folder / "materials" / "manifest.json").read_text()
+            )
+            self.assertEqual(provenance["materials_context"], context)
+
+            document["materials_context"].pop("calibration_source")
+            manifest.write_text(json.dumps(document))
+            with self.assertRaisesRegex(ValueError,
+                                        "materials_context.calibration_source"):
+                audit(manifest, folder / "incomplete")
+
+    def test_owner_tolerance_must_be_predeclared_and_explained(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            manifest, document = self.fixture(folder)
+            document["decision_tolerance_fraction"] = 0.10
+            manifest.write_text(json.dumps(document))
+            with self.assertRaisesRegex(ValueError, "decision_tolerance_reason"):
+                audit(manifest, folder / "missing_reason")
+
+            document["decision_tolerance_reason"] = (
+                "A ten-percent change would alter the owner's comparison"
+            )
+            manifest.write_text(json.dumps(document))
+            report = audit(manifest, folder / "classified")
+            with (folder / "classified" / "measurements.csv").open(newline="") as stream:
+                rows = list(csv.DictReader(stream))
+            self.assertEqual(rows[0]["decision_status"], "native reference")
+            self.assertTrue(all(row["decision_status"] in {
+                "native reference", "within owner tolerance",
+                "outside owner tolerance", "unresolved",
+            } for row in rows))
+            self.assertIn("10% relative-length tolerance", report.read_text())
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ from research.reference_measurements import (majority_filter_once, periodic_chor
     raw_axis_correlations, reference_measurements)
 from model_b.kawasaki_engine import _axis_correlation_xy, domain_size_from_correlation
 from research.dynamic_scaling import overlap_rms, radial_structure
-from research.analyse_reference_benchmark import _slopes
+from research.analyse_reference_benchmark import _paired_observable_slopes, _slopes
 
 
 class MetrologyTests(unittest.TestCase):
@@ -89,6 +89,16 @@ class MetrologyTests(unittest.TestCase):
         raw=_slopes(t,values,1000,4500000,None)
         self.assertAlmostEqual(adjusted[0],1/3,places=12)
         self.assertLess(raw[0],1/3)
+
+    def test_paired_reference_comparison_uses_shared_replica_draws(self):
+        t=np.array([20,1000,5000,20000,100000,200000,1000000,4500000])
+        amplitudes=np.array([.8,.9,1.,1.1,1.2])[:,None]
+        native=amplitudes*t**.25
+        chord=amplitudes*t**.30
+        result=_paired_observable_slopes(t,native,chord,1000,4500000,None)
+        self.assertAlmostEqual(result['alpha_native'],.25,delta=.01)
+        self.assertAlmostEqual(result['alpha_chord'],.30,delta=.01)
+        self.assertAlmostEqual(result['chord_minus_native'],.05,delta=.015)
 
 
 if __name__=='__main__':

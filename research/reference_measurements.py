@@ -103,4 +103,6 @@ def reference_measurements(lattice: np.ndarray) -> dict[str, float]:
         mean_chord_length=float(np.mean(chords)) if len(chords) else float("nan"),
         first_zero_correlation=float(np.mean(zeros)) if np.all(np.isfinite(zeros)) else float("nan"),
         spectral_moment=inverse_first_moment(filtered),
+        native_plus_fraction=float(np.mean(np.asarray(lattice) == 1)),
+        filtered_plus_fraction=float(np.mean(filtered == 1)),
     )

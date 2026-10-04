@@ -4,6 +4,23 @@
 deployment or a prediction from the Kawasaki model. Ask the image owner to
 check the problem definition and sharing terms before using their files.*
 
+## First conversation before any data transfer
+
+Start with one public or owner-approved binary mask, not a request for a large
+confidential dataset. Ask whether the owner actually uses a correlation-based
+feature length, and whether changing numerical image resolution is a relevant
+decision. If not, record that answer rather than asking for a favourable quote.
+
+The initial request can be limited to: “Would this comparison answer a useful
+measurement question for you? If so, could we agree one mask, its calibration
+and a meaningful comparison before I run it?” This is a discussion draft, not
+permission to contact anyone. Student approval is required before sending.
+
+Keep the first deliverable small: one report with all native/2x/4x rows, the
+declared choices and one paragraph of limitations. Do not ask for endorsement
+as a condition of helping. Ask permission separately before recording a
+person's name, quoting their assessment or including their files in a release.
+
 ## The problem the image owner actually has
 
 - Organisation / contact (keep private unless they approve naming):

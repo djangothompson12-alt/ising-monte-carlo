@@ -14,6 +14,7 @@ from model_b.kawasaki_engine import KawasakiConfig
 from research.campaign import one_replica, config_from_plan
 from research.analyse_campaign import fit_slope, bootstrap_slope
 from research.reference_benchmark import load_declaration, measure_campaign
+from research.analyse_reference_benchmark import analyse as analyse_reference_benchmark
 from research.analyse_main_extension import analyse as analyse_main_extension
 
 
@@ -73,6 +74,40 @@ class StringTests(unittest.TestCase):
 
 
 class CampaignTests(unittest.TestCase):
+    def test_reference_analysis_writes_paired_observable_result(self):
+        times = np.array([20, 1000, 5000, 20000, 100000, 200000, 1000000, 4500000])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            measured = root / 'measured'; measured.mkdir()
+            plan = dict(sizes=[128], concentrations=[.5], replicas=4, max_sweeps=4_500_000)
+            provenance = dict(
+                declaration=dict(student_verified=True), plan=plan,
+            )
+            (measured / 'provenance.json').write_text(json.dumps(provenance))
+            rows = []
+            for replica, amplitude in enumerate((.9, 1.0, 1.1, 1.2)):
+                for sweep in times:
+                    rows.append(dict(
+                        input_file=f'c0_L128_rep{replica:03d}.npz', sweep=int(sweep),
+                        mean_chord_length=amplitude * sweep ** .30,
+                        native_connected_half_height=amplitude * sweep ** .25,
+                    ))
+            with (measured / 'reference_measurements.csv').open('w', newline='') as stream:
+                writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+                writer.writeheader(); writer.writerows(rows)
+            output = root / 'analysis'
+            analyse_reference_benchmark(measured, output)
+            with (output / 'reference_fits.csv').open(newline='') as stream:
+                fits = list(csv.DictReader(stream))
+            with (output / 'reference_observable_comparison.csv').open(newline='') as stream:
+                comparisons = list(csv.DictReader(stream))
+            self.assertEqual(len(fits), 12)
+            self.assertEqual(len(comparisons), 6)
+            self.assertEqual({row['observable'] for row in fits}, {
+                'native_connected_half_height', 'majority_filtered_mean_chord'
+            })
+            self.assertGreater((output / 'reference_chord_growth.png').stat().st_size, 1000)
+
     def test_main_extension_refuses_incomplete_inventory(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -147,6 +182,8 @@ class CampaignTests(unittest.TestCase):
                 rows = list(csv.DictReader(stream))
             self.assertEqual(len(rows), len(result['t']))
             self.assertEqual({int(row['sweep']) for row in rows}, set(result['t']))
+            self.assertIn('native_connected_half_height', rows[0])
+            self.assertIn('filtered_plus_fraction', rows[0])
             with self.assertRaises(FileExistsError):
                 measure_campaign(campaign, declaration_path, root/'output')
             declaration_path.write_text(json.dumps(dict(declaration, student_verified=False)))

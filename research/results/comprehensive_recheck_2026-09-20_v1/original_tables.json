@@ -1,0 +1,15 @@
+{
+  "campaign": "research/runs/overnight",
+  "campaign_manifest_sha256": "398c39d581e15c4f24368ff99f2e12ede790025d9a6f76023e4ad842006adbb7",
+  "exponents_csv_sha256": "c7b64efda5eb279272cfbef50a2a5cb42f6de82aeb374de21262ff9de7290486",
+  "ensemble_lengths_csv_sha256": "81002cd3deeb7468abe0afb538d1bdc429b656c882aeed8c3eb598004bc4e451",
+  "raw_file_hashes_checked": 64,
+  "fit_rows_checked": 48,
+  "ensemble_length_rows_checked": 480,
+  "maximum_absolute_slope_difference": 1.6653345369377348e-16,
+  "maximum_absolute_bootstrap_endpoint_difference": 1.6653345369377348e-16,
+  "maximum_absolute_ensemble_mean_difference": 8.881784197001252e-16,
+  "maximum_absolute_replica_se_difference": 5.551115123125783e-17,
+  "absolute_tolerance": 1e-11,
+  "boundary": "Checks the saved analysis recipe and arithmetic only; the fit window, cutoff, observable and model remain scientific choices."
+}

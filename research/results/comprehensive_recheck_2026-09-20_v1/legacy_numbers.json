@@ -1,0 +1,93 @@
+{
+  "status": "passed_with_scope_limits",
+  "scope": "Recalculate the older manuscript's numerical baselines from saved summaries.\n\nThese aggregate CSVs do not supply per-replica histories, so this check cannot\nvalidate their uncertainty bars or recover their original random trajectories.\n",
+  "slopes": {
+    "model_a": {
+      "alpha": 0.49989954322106567,
+      "retained_points": 19,
+      "first_sweep": 3.0,
+      "last_sweep": 489.0,
+      "length_cutoff": 19.2
+    },
+    "model_b_x": {
+      "alpha": 0.18294562326785838,
+      "retained_points": 27,
+      "first_sweep": 3.0,
+      "last_sweep": 10000.0,
+      "length_cutoff": 14.399999999999999
+    },
+    "model_b_y": {
+      "alpha": 0.13815582796024098,
+      "retained_points": 27,
+      "first_sweep": 3.0,
+      "last_sweep": 10000.0,
+      "length_cutoff": 14.399999999999999
+    }
+  },
+  "bath_flow_endpoints": {
+    "model_a": {
+      "first": 0.29672241,
+      "last": 9.76e-06,
+      "endpoint_ratio": 30401.886270491803,
+      "first_sweep": 1.0,
+      "last_sweep": 2000.0
+    },
+    "model_b": {
+      "first": 0.14935882,
+      "last": 6.49e-06,
+      "endpoint_ratio": 23013.685670261944,
+      "first_sweep": 1.0,
+      "last_sweep": 10000.0
+    }
+  },
+  "concentration_exponents": {
+    "model_a": [
+      0.502129,
+      0.48819,
+      0.509742,
+      0.488389,
+      0.487661,
+      0.496239
+    ],
+    "model_b": [
+      0.164512,
+      0.167589,
+      0.166745,
+      0.161709,
+      0.158597,
+      0.132886
+    ],
+    "model_a_mean": 0.4953916666666667,
+    "model_a_sample_sd": 0.009085221530962624
+  },
+  "droplet_count": 513,
+  "lsw_moments": [
+    {
+      "order": 0,
+      "value": 0.9999999999999998,
+      "quadrature_error_estimate": 2.2129166669604207e-12
+    },
+    {
+      "order": 1,
+      "value": 1.0,
+      "quadrature_error_estimate": 4.8463281465356026e-12
+    }
+  ],
+  "input_sha256": {
+    "model_a/results/quench_kinetics.csv": "bc294d5164e4b0e42c5fce898595f6720bf5168489ddfcb3f530ad7ee6990efb",
+    "model_b/results/kawasaki_kinetics.csv": "117e4fb6ac946504b10ebd14d4de8407fa79045f663e0b5544eb73c532028262",
+    "model_a/results/concentration_exponent_sweep.csv": "14b66593a7f077571904c5db1bcc3b3d7768a3d2da53453c72a48ddff6dd3342",
+    "model_b/results/concentration_exponent_sweep.csv": "c76d8672aa4e36e3a8bc371d4531e6a8da4b14b53480a8844d09b76255a62a46",
+    "model_b/results/droplet_sizes_dilute_quench.csv": "904b92970bb65d6f08ad1ab61ba50c0de7cf6c7cc987955b7a25f2eef5bfb89b"
+  },
+  "source_sha256": {
+    "research/audit_legacy_numbers.py": "81753a1e679351369086fcf7d0c7fb119e05639f2fe163f7dc6328fdbeb9bf83",
+    "model_b/kawasaki_engine.py": "2452e882dc9acc217903d262215f0fa1ab6fa13d39f6db701de2e1b37ebeebf9"
+  },
+  "limitations": [
+    "Original raw replica uncertainty cannot be reconstructed from aggregate tables.",
+    "No monotonicity or total entropy-production claim follows from two bath-flow endpoints.",
+    "LSW normalization and first moment do not validate its 3D assumptions for 2D clusters.",
+    "Length cutoff is the historical fitting choice, not a verified asymptotic criterion."
+  ]
+}

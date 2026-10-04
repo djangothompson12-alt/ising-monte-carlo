@@ -1,0 +1,67 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Observation sensitivity — exploratory appendix</title>
+<style>body{font:17px/1.55 system-ui,sans-serif;color:#253247;max-width:1100px;margin:36px auto;padding:0 22px}
+h1{font-size:30px;line-height:1.2}h2{margin-top:40px}table{border-collapse:collapse;width:100%;font-size:14px;margin:18px 0}
+th,td{padding:8px;border-bottom:1px solid #d7dee8;text-align:left}th{background:#eef2f6}
+img{width:100%;height:auto}a{color:#1e589b}.notice{background:#fff4dc;padding:16px;border-left:4px solid #aa6900}
+@media(max-width:700px){table{font-size:11px}th,td{padding:4px}}</style>
+<h1>Does the processing effect depend on how length is measured?</h1>
+<p>26 September 2026 · AI-assisted exploratory appendix · not a new holdout or an external review.</p>
+<div class="notice">The existing question stays fixed: does preserving species fraction after reduced-resolution
+segmentation preserve the native finite-window growth exponent? This appendix checks a second length
+definition and a local majority filter. It is not a test that processing should recover 1/3.</div>
+<h2>The short answer</h2>
+<p>In these saved trajectories, fraction matching changes the chord-based exponent much less than the
+half-height exponent. The majority filter decreases the half-height exponent but increases the chord exponent.
+For the fraction-matched c = 0.15 images, the two exponents are very close and their paired difference interval
+includes zero. Processing effects depend on the length definition; they are not always large or in the same direction.</p>
+<table><thead><tr><th>composition</th><th>measurement</th><th>native</th><th>matched</th><th>majority</th></tr></thead><tbody><tr><td>0.50000</td><td>half</td><td>0.23141</td><td>0.18094</td><td>0.21924</td></tr><tr><td>0.50000</td><td>chord</td><td>0.17623</td><td>0.16886</td><td>0.19311</td></tr><tr><td>0.15000</td><td>half</td><td>0.24214</td><td>0.16563</td><td>0.23074</td></tr><tr><td>0.15000</td><td>chord</td><td>0.17816</td><td>0.16534</td><td>0.21730</td></tr></tbody></table>
+<p>Numbers above are fitted exponents, not domain lengths. The full paired intervals and every planned
+contrast are retained below. This supports a sensitivity warning, not a claim that one method is the true answer.</p>
+<h2>What was compared</h2>
+<p>The same 16 archived 128×128 Kawasaki trajectories (eight each at c = 0.50 and 0.15), isotropic
+Jx = Jy = 1 and T = 0.65 Tc. All six measurement series use the same positive, resolved times in each
+composition. No new dynamics were run. These short windows are an observation test, not an asymptotic-growth test.</p>
+<p><b>Observation:</b> native pixels; origin-zero 4×4 block means with nearest-count fraction matching;
+or exactly one simultaneous five-site majority pass. Five fixed tie priorities are averaged within each
+matched trajectory/time, not counted as extra independent runs. Only the observation filter uses periodic neighbours.</p>
+<p>Here “fraction” means the fraction of +1-labelled sites or pixels, not a calibrated phase volume fraction
+of a real alloy. Matching is exact at c = 0.50. At nominal c = 0.15, the native fraction is 0.1500244 and
+the nearest coarse-grid fraction is 0.1503906; that small, disclosed pixel-count residual is unavoidable on this grid.</p>
+<p><b>Length:</b> the existing normalized finite-image covariance half-height, or the number-weighted mean
+complete foreground chord across horizontal and vertical lines. Foreground means the +1 species.
+Chords touching image edges are excluded and counted; both measurements are non-wrapping.
+Coarse pixel spacing is converted back to native lattice sites. Neither length is a uniquely correct domain size.</p>
+<img src="growth_curves.png" alt="Growth curves for both compositions and both length definitions">
+<img src="processing_shifts.png" alt="All four processing shifts for each composition with paired intervals">
+<h2>Species fraction c = 0.50</h2><p>Eight independent trajectories; 24 of 24 times retained. Shared window: 1119–20000 post-quench sweeps. Removed times: [].</p><table><thead><tr><th>series</th><th>alpha</th><th>low</th><th>high</th></tr></thead><tbody><tr><td>native_half</td><td>0.23141</td><td>0.22486</td><td>0.23806</td></tr><tr><td>matched_half</td><td>0.18094</td><td>0.17568</td><td>0.18672</td></tr><tr><td>majority_half</td><td>0.21924</td><td>0.21283</td><td>0.22577</td></tr><tr><td>native_chord</td><td>0.17623</td><td>0.17072</td><td>0.18198</td></tr><tr><td>matched_chord</td><td>0.16886</td><td>0.16472</td><td>0.17329</td></tr><tr><td>majority_chord</td><td>0.19311</td><td>0.18730</td><td>0.19901</td></tr></tbody></table><h3>Every planned paired contrast</h3><table><thead><tr><th>contrast</th><th>delta</th><th>low</th><th>high</th></tr></thead><tbody><tr><td>matched - native (half)</td><td>-0.05047</td><td>-0.05293</td><td>-0.04782</td></tr><tr><td>majority - native (half)</td><td>-0.01217</td><td>-0.01295</td><td>-0.01127</td></tr><tr><td>matched - native (chord)</td><td>-0.00738</td><td>-0.01110</td><td>-0.00364</td></tr><tr><td>majority - native (chord)</td><td>0.01688</td><td>0.01565</td><td>0.01831</td></tr><tr><td>chord - half (native)</td><td>-0.05518</td><td>-0.06083</td><td>-0.05035</td></tr><tr><td>chord - half (matched)</td><td>-0.01208</td><td>-0.01757</td><td>-0.00584</td></tr><tr><td>chord - half (majority)</td><td>-0.02613</td><td>-0.03075</td><td>-0.02187</td></tr><tr><td>matched: chord shift - half shift</td><td>0.04310</td><td>0.03999</td><td>0.04619</td></tr><tr><td>majority: chord shift - half shift</td><td>0.02905</td><td>0.02789</td><td>0.03056</td></tr></tbody></table><h2>Species fraction c = 0.15</h2><p>Eight independent trajectories; 24 of 24 times retained. Shared window: 1119–20000 post-quench sweeps. Removed times: [].</p><table><thead><tr><th>series</th><th>alpha</th><th>low</th><th>high</th></tr></thead><tbody><tr><td>native_half</td><td>0.24214</td><td>0.23284</td><td>0.25011</td></tr><tr><td>matched_half</td><td>0.16563</td><td>0.15959</td><td>0.17108</td></tr><tr><td>majority_half</td><td>0.23074</td><td>0.22150</td><td>0.23855</td></tr><tr><td>native_chord</td><td>0.17816</td><td>0.17123</td><td>0.18481</td></tr><tr><td>matched_chord</td><td>0.16534</td><td>0.15939</td><td>0.17086</td></tr><tr><td>majority_chord</td><td>0.21730</td><td>0.20709</td><td>0.22652</td></tr></tbody></table><h3>Every planned paired contrast</h3><table><thead><tr><th>contrast</th><th>delta</th><th>low</th><th>high</th></tr></thead><tbody><tr><td>matched - native (half)</td><td>-0.07651</td><td>-0.08006</td><td>-0.07255</td></tr><tr><td>majority - native (half)</td><td>-0.01140</td><td>-0.01231</td><td>-0.01054</td></tr><tr><td>matched - native (chord)</td><td>-0.01281</td><td>-0.01534</td><td>-0.00999</td></tr><tr><td>majority - native (chord)</td><td>0.03914</td><td>0.03535</td><td>0.04255</td></tr><tr><td>chord - half (native)</td><td>-0.06398</td><td>-0.06873</td><td>-0.05924</td></tr><tr><td>chord - half (matched)</td><td>-0.00028</td><td>-0.00564</td><td>0.00453</td></tr><tr><td>chord - half (majority)</td><td>-0.01344</td><td>-0.01937</td><td>-0.00832</td></tr><tr><td>matched: chord shift - half shift</td><td>0.06370</td><td>0.06025</td><td>0.06743</td></tr><tr><td>majority: chord shift - half shift</td><td>0.05054</td><td>0.04640</td><td>0.05394</td></tr></tbody></table>
+<h2>What these intervals do and do not mean</h2>
+<p>Slopes are ordinary least-squares fits of log ensemble-mean length against log sweeps. The 1,000 paired
+bootstrap draws resample eight whole trajectories, using the same indices for all series (seed 912).
+The percentile 95% intervals describe run-resampling uncertainty; they do not remove systematic bias,
+establish a mechanism, or cover every possible analysis choice. The 18 correlated contrasts are descriptive
+and not adjusted for multiple comparisons. Small, opposite or unresolved effects must also be reported.</p>
+<h2>Boundary and composition checks</h2>
+<p>Censoring below is the fraction of foreground runs touching an edge, not the phase fraction.
+The ranges cover the time history of ensemble-mean diagnostics, with ties averaged within runs.
+Discarding edge chords favours shorter chords and can bias the slope as domains grow.
+This chord convention is not a finite-size correction. The majority pass can change observed species fraction.</p>
+<table><thead><tr><th>composition</th><th>operator</th><th>fraction_min</th><th>fraction_max</th><th>censored_min</th><th>censored_max</th><th>complete_min</th><th>complete_max</th></tr></thead><tbody><tr><td>0.50000</td><td>native</td><td>0.50000</td><td>0.50000</td><td>0.09562</td><td>0.16548</td><td>1321.62500</td><td>2392.37500</td></tr><tr><td>0.50000</td><td>matched</td><td>0.50000</td><td>0.50000</td><td>0.12915</td><td>0.21244</td><td>232.72500</td><td>416.07500</td></tr><tr><td>0.50000</td><td>majority</td><td>0.49951</td><td>0.50063</td><td>0.11005</td><td>0.19800</td><td>1058.87500</td><td>2039.25000</td></tr><tr><td>0.15000</td><td>native</td><td>0.15002</td><td>0.15002</td><td>0.04670</td><td>0.09408</td><td>875.50000</td><td>1504.50000</td></tr><tr><td>0.15000</td><td>matched</td><td>0.15039</td><td>0.15039</td><td>0.07588</td><td>0.13990</td><td>137.02500</td><td>225.00000</td></tr><tr><td>0.15000</td><td>majority</td><td>0.13526</td><td>0.14275</td><td>0.05565</td><td>0.12527</td><td>615.50000</td><td>1124.62500</td></tr></tbody></table>
+<h2>Checks and limits</h2>
+<p>The original native/fraction-matched half-height estimates and paired intervals were recomputed from
+archived snapshots using the original measurement definitions and time mask, and matched the archive to 1e−12.
+Known-size chord, boundary, unit-conversion, simultaneous-filter and synthetic-slope tests are supplied.
+Input and source hashes were captured before measurement and checked again afterwards.
+This is internal software verification, not independent academic validation.</p>
+<p>The data and primary effects were already known before this analysis; the protocol is a local dated plan,
+not an external preregistration. The existing reviewer PDF and evidence pack were not changed.
+There is no quantitative prediction for a real alloy, proof of a new growth law, or novelty claim here.</p>
+<p>Context: <a href="https://arxiv.org/abs/1001.3985">Majumder and Das (2010)</a> use a majority-spin observation
+rule and interface-to-interface lengths; our finite, foreground-only chords are not their exact implementation.
+<a href="https://arxiv.org/abs/1712.03183">Ledesma-Alonso et al.</a> address resolution sensitivity of microstructure descriptors.</p>
+<h2>Evidence</h2><p><a href="summary.json">All results and masks</a> ·
+<a href="observations.csv">Every measurement and tie outcome</a> ·
+<a href="contrasts.csv">All paired contrasts</a> · <a href="histories.csv">Time-dependent diagnostics</a> ·
+<a href="freeze.json">Before-analysis hashes</a> · <a href="manifest.json">After-analysis verification</a> ·
+<a href="protocol.md">Fixed exploratory protocol</a></p></html>

@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PAGES = ('README.md', 'EXTERNAL_REVIEW.md', 'docs/README.md',
          'docs/START_HERE.md', 'docs/REVIEWER_START_HERE.md',
          'docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md', 'manuscript/README.md',
-         'research/README.md', 'research/results/README.md')
+         'research/README.md', 'research/results/README.md', 'review/README.md')
 
 
 class PublicNavigationTests(unittest.TestCase):

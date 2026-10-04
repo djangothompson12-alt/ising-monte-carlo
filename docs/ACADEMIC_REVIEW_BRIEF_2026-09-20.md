@@ -1,6 +1,6 @@
-# Does preserving composition preserve the measured growth law?
+# Does preserving species fraction preserve measured coarsening?
 
-**Student project: Django Thompson. Working brief, 20 September 2026.**
+**Student project: Django Thompson. Working brief, updated 1 October 2026.**
 Prepared with substantial AI assistance; student review and approval are
 required before sending. This requests criticism, not endorsement.
 
@@ -13,12 +13,16 @@ native species fraction, do they recover the native finite-window growth
 exponent? This matters because image processing can change a measured domain
 length without changing the underlying simulated material.
 
+The comparison is with the native image's finite-window exponent, not recovery
+of the theoretical asymptotic one third. The narrow test does not explain every
+cause of the original below-one-third result.
+
 ## Main result
 
 Sixteen fresh L=128 trajectories, eight each at 50:50 and 15:85, were run at
 0.65 Tc with Jx=Jy=1. A protocol and source hashes were frozen before these
 runs. Measurements used the same 24 checkpoints between 1,119 and 20,000
-sweeps. Four-pixel block integration was followed by rank-based binary
+sweeps. Averaging each 4x4 block was followed by rank-based binary
 segmentation with five fixed tie priorities. Matching is exact at 50:50;
 off-critical matching retains the unavoidable integer-pixel rounding error.
 
@@ -38,6 +42,43 @@ The processed/native mean-length ratio decreases through the fit window:
 early lengths are inflated more than late ones. This flattens the log-log
 slope. A constant multiplicative length error would not change that slope.
 The identity explains the fitted difference, not its unique geometric cause.
+
+## Longer runs and why the short window was retained
+
+A separate 0.65 Tc campaign completed 128 trajectories across four lattice
+sizes and two compositions, each to one million sweeps. Its L=128 periodic
+half-height fits over the actual 21,336-1,000,000-sweep window were about 0.300
+at 50:50 and 0.281 at 15:85. Another 40-run symmetric 0.6 Tc campaign reached
+4.5 million sweeps, but the literature-matched measurement analysis remains
+unfinished. Neither campaign establishes an asymptotic plateau. These are
+different cohorts and observables from the primary image test, not pooled
+replications of it. See the [long-run comparison](EXPECTED_VS_OBSERVED_2026-09-18.md).
+
+The primary short window is a deliberate resolution stress test on identical
+snapshots, not evidence that longer simulations were unnecessary. Some coarse
+lengths approach or fall below one pixel; large shifts in this regime do not
+establish how often well-resolved microscopy would be affected. Finer reduction
+can give much smaller shifts. The later [chord appendix](CHORD_OBSERVATION_RESULTS_2026-09-26.md)
+also found smaller processing shifts with a different length definition.
+It is exploratory, uses the same known trajectories and excludes edge-censored
+foreground chords; it is not a matched Majumder-Das reproduction.
+
+## The separate materials-image audit
+
+The tool accepts a supplied binary mask, physical pixel spacing and a fixed
+field. It compares native, 2x and 4x representations, reporting directional
+lengths, phase area fraction, resolution warnings and source hashes. It does
+not segment raw microscopy or fit experimental ageing exponents.
+
+Across all 81 fields of the public FeM iron-ore dataset, median length changes
+were -0.898% at 2x and +1.610% at 4x. A post-hoc opposite tie rule changed the
+2x median to +1.925%. All fields remained resolved and unflagged by the
+three-pixel screen. These fields come from one mounted specimen, not 81
+independent specimens; the producer masks are references, not physical truth.
+The result exposes a measurement convention, not a known engineering failure.
+No owner-defined acceptable-error tolerance or outside use is claimed.
+See the [FeM evidence](FEM_PUBLIC_MASK_AUDIT_2026-09-22.md) and
+[materials audit validation record](MASK_RESOLUTION_AUDIT_VALIDATION_2026-09-22.md).
 
 ## Checks and limits
 
@@ -61,6 +102,24 @@ Public 3D Al-Ge masks provide a separate, static image-audit demonstration.
 They do not establish an experimental growth exponent or validate 2D alloy
 kinetics. Binary phase fraction is not generally conserved chemical composition.
 The tool has not yet been evaluated by an independent laboratory user.
+
+## Relation to the closest literature
+
+[Zabler et al. (2007), section 5.1 and Fig. 8](https://www.alexanderrack.eu/papers/zabler2007.pdf)
+already tested coarsening fits against segmentation thresholds and found a
+relatively stable threshold range. [Ledesma-Alonso et al. (2018)](https://arxiv.org/abs/1712.03183)
+studied resolution-dependent microstructure descriptors and proposed a
+decimation criterion. [Majumder and Das (2010)](https://arxiv.org/abs/1001.3985)
+used filtering, an initial-length correction and finite-size scaling;
+their [2013 study](https://arxiv.org/abs/1305.2556) found three domain lengths
+consistent up to constant factors after noise filtering. Our raw short-window
+measurements are not equivalent to those analyses.
+
+The candidate contribution is a quantified, paired dynamic benchmark after
+explicit fraction matching, not discovery that processing changes images or
+that equal fractions permit different geometry. Whether the benchmark adds
+enough to the published work remains a question for criticism, not an
+established novelty claim.
 
 ## Three questions for a reviewer
 

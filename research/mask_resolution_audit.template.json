@@ -3,6 +3,16 @@
   "license": "Replace with reuse and sharing conditions",
   "phase_definition": "Replace with the expert's precise foreground-feature definition",
   "tie_rule": "background",
+  "materials_context": {
+    "material_system": "For example: ferritic Fe-Cr alloy, nominal composition if approved",
+    "processing_condition": "For example: solution treated, then aged at a declared temperature and time",
+    "imaging_method": "For example: BSE-SEM, TEM or one declared tomography section",
+    "section_geometry": "Section plane, acquisition direction and whether the field is 2D or a selected 3D plane",
+    "calibration_source": "Instrument metadata, reconstruction metadata or checked scale-bar source",
+    "measurement_purpose": "The microstructural feature and engineering or research comparison this length is intended to support"
+  },
+  "decision_tolerance_fraction": null,
+  "decision_tolerance_reason": "Leave the tolerance null unless the problem owner defines what relative length change matters and why",
   "records": [
     {
       "id": "unique-mask-id",

@@ -30,6 +30,7 @@ manuscript/*.synctex.gz
 manuscript/*Notes.bib
 
 # Personal planning and correspondence: kept locally, not part of the research release.
+/AGENTS.md
 docs/admissions_and_external_validation_strategy.md
 docs/OUTREACH_DRAFTS.md
 docs/CURRENT_CRITICISM_EMAIL_DRAFT.md
@@ -37,6 +38,7 @@ docs/RELEASE_CHECKLIST.md
 docs/RESEARCH_LOG_2026-09-14.md
 docs/STUDENT_DRAFT_MODEL_A_2026-09-14.md
 docs/SECOND_ASSISTANT_AUDIT_TASK.md
+docs/PROJECT_HANDOFF_FOR_ESSAY_2026-09-29.md
 
 # Earlier local renderings; v3 has the same numerical results and portable provenance.
 research/results/geometry_controls_2026-09-20_v1/

@@ -21,6 +21,8 @@ class TestReferenceMeasurementsContract(unittest.TestCase):
         measured = reference_measurements(lattice)
         self.assertEqual(measured["mean_chord_length"], 4.0)
         self.assertTrue(np.isnan(measured["first_zero_correlation"]))
+        self.assertEqual(measured["native_plus_fraction"], 0.5)
+        self.assertEqual(measured["filtered_plus_fraction"], 0.5)
 
     def test_periodic_seam_does_not_split_one_chord(self) -> None:
         lattice = np.ones((8, 8), dtype=np.int8)
