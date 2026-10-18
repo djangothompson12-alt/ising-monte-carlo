@@ -7,8 +7,11 @@ the result.
 
 [Research summary](docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md) · [Live Model A demo](https://djangothompson12-alt.github.io/ising-monte-carlo/) · [Notes and methods](docs/README.md)
 
-**Review snapshot, 4 October 2026:** start with the [review guide](review/README.md)
-for the two-page PDF, reproducible evidence download and suggested checks.
+**Review update, 18 October 2026:** start with the
+[research handover](review/CLAUDE_RESEARCH_HANDOVER_2026-10-18.md) for the history,
+current question, evidence and latest audit work. The
+[review guide](review/README.md) distinguishes the current brief source from
+the historical PDF and evidence download.
 This is a working research draft shared for criticism, not a finished or peer-reviewed paper.
 
 ## The models

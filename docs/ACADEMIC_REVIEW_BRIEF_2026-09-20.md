@@ -1,6 +1,6 @@
 # Does preserving species fraction preserve measured coarsening?
 
-**Student project: Django Thompson. Working brief, updated 1 October 2026.**
+**Student project: Django Thompson. Working brief source, updated 15 October 2026.**
 Prepared with substantial AI assistance; student review and approval are
 required before sending. This requests criticism, not endorsement.
 
@@ -105,26 +105,31 @@ The tool has not yet been evaluated by an independent laboratory user.
 
 ## Relation to the closest literature
 
-[Zabler et al. (2007), section 5.1 and Fig. 8](https://www.alexanderrack.eu/papers/zabler2007.pdf)
-already tested coarsening fits against segmentation thresholds and found a
-relatively stable threshold range. [Ledesma-Alonso et al. (2018)](https://arxiv.org/abs/1712.03183)
-studied resolution-dependent microstructure descriptors and proposed a
-decimation criterion. [Majumder and Das (2010)](https://arxiv.org/abs/1001.3985)
-used filtering, an initial-length correction and finite-size scaling;
-their [2013 study](https://arxiv.org/abs/1305.2556) found three domain lengths
-consistent up to constant factors after noise filtering. Our raw short-window
-measurements are not equivalent to those analyses.
+[Zabler et al. (2007)](https://doi.org/10.1016/j.actamat.2007.05.028)
+already tested threshold-dependent coarsening fits, including a stable range.
+[Roland and Grant (1989)](https://doi.org/10.1103/PhysRevB.39.11971)
+used block-spin processing and multiple lengths in conserved Ising growth.
+[Ledesma-Alonso et al. (2018)](https://arxiv.org/abs/1712.03183)
+studied resolution-dependent descriptors and a reduction criterion.
+[Werz et al. (2014)](https://doi.org/10.1016/j.matchar.2014.01.022)
+combined downsampling, fraction adjustment and alloy-coarsening analysis.
+[Eidel et al. (2021)](https://doi.org/10.1002/zamm.202000245)
+considered mean-preserving coarsening and fraction-aware ties;
+[Korneev et al. (2018)](https://doi.org/10.1002/2018WR022886)
+found that porosity matching did not protect unresolved geometry/conductivity.
 
-The candidate contribution is a quantified, paired dynamic benchmark after
-explicit fraction matching, not discovery that processing changes images or
-that equal fractions permit different geometry. Whether the benchmark adds
-enough to the published work remains a question for criticism, not an
-established novelty claim.
+The possible contribution is a useful paired kinetic benchmark with declared
+success and failure regimes, not the general fact that processing changes
+measurements or equal fractions permit different geometry. An exact duplicate
+was not verified by the bounded search; novelty and significance are not
+established. An adequately resolved comparison and a justified baseline remain
+missing. [Majumder and Das's filtered, offset-corrected scaling analysis](https://arxiv.org/abs/1001.3985)
+is physics context, not equivalent to the raw finite-image fits here.
 
 ## Three questions for a reviewer
 
-1. Is the paired finite-window exponent benchmark a useful addition to
-   established resolution/segmentation studies, or already adequately covered?
+1. Beyond this prior work, would a resolved-to-under-resolved paired exponent
+   benchmark add useful methods evidence, or is the question already covered?
 2. Are the observable, paired uncertainty calculation and unresolved-case
    rules defensible? Which published baseline should be implemented next?
 3. Could a static mask audit inform a concrete imaging decision in your work?
@@ -142,3 +147,6 @@ responsible for understanding, reproducing and approving the work.
 
 No new growth law, full literature replication, established novelty,
 predictive alloy model, outside use or academic endorsement is claimed.
+
+This source update does not regenerate or approve the older PDF. Rebuild and
+check its two-page layout and evidence links after student review, before use.

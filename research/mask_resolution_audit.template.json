@@ -12,6 +12,7 @@
     "measurement_purpose": "The microstructural feature and engineering or research comparison this length is intended to support"
   },
   "decision_tolerance_fraction": null,
+  "decision_scope": "both_directions",
   "decision_tolerance_reason": "Leave the tolerance null unless the problem owner defines what relative length change matters and why",
   "records": [
     {

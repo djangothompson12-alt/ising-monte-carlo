@@ -19,6 +19,8 @@ does its measured characteristic length remain similar?
    warning when the measured length spans fewer than three coarse pixels.
 5. It saves the input, code and output hashes so the calculation can be checked
    and repeated.
+   It also checks the opposite exact-tie rule without replacing the declared
+   primary result or calling the two outcomes an uncertainty interval.
 6. A materials pilot must declare the alloy or material, processing condition,
    imaging method, section geometry, calibration source and intended use. It can
    classify a change only when the problem owner declares a tolerance in advance.
@@ -45,3 +47,12 @@ I built a reproducible check that shows whether a correlation-based length
 measured from a supplied binary microstructure mask changes when the same field
 is represented at a coarser pixel resolution, while retaining unresolved and
 under-resolved cases instead of hiding them.
+
+## Quick local check
+
+The static tool needs only the dependencies in `requirements-mask-audit.txt`.
+Run `python -m research.make_mask_resolution_demo --output output/my-demo`
+and open its `audit/report.html`. The circles are artificial, not alloy data.
+The separate exact checker tests the discrete calculation; the delivery
+verifier checks hashes and can replay an owner's local inputs. None certifies
+the mask, the physical calibration, a kinetic exponent or outside usefulness.

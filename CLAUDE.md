@@ -6,7 +6,19 @@ quickly getting a Claude session productive in the code.
 
 ## Repository shape
 
-### Current review entry point as of 4 October 2026
+### Current review entry point as of 18 October 2026
+
+Start with `review/CLAUDE_RESEARCH_HANDOVER_2026-10-18.md`: models, campaign
+identities, narrowed question, prior-art limits, negative/corrective evidence,
+latest audit work and current review status. Personal learning/admissions
+planning is in a separate local-only handover, not this public repository.
+
+`review/review_brief.pdf` remains the historical 1 October copy, not the latest
+local 15 October v2 PDF. Use the current Markdown brief for scientific wording.
+The update does not rerun simulations or establish originality, outside use,
+student mastery or publication readiness.
+
+### Earlier selected review snapshot: 4 October 2026
 
 Start with `review/README.md`, `docs/RESEARCH_SCOPE_2026-09-26.md`,
 `docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md` and

@@ -9,11 +9,49 @@ import unittest
 import numpy as np
 from PIL import Image
 
-from research.mask_resolution_audit import audit, load_mask, measure
+from research.mask_resolution_audit import audit, compare_lengths, load_mask, measure
 from research.metaldam_reference_mask_scale import measure_factor
 
 
 class MaskResolutionAuditTests(unittest.TestCase):
+    def test_opposite_axis_changes_cannot_pass_both_directions(self):
+        native = dict(factor=1, length=10., length_x=10., length_y=10.)
+        changed = dict(factor=2, length=10., length_x=12., length_y=8.)
+        mean = compare_lengths(changed, native, .1)
+        axes = compare_lengths(changed, native, .1, "both_directions")
+        self.assertEqual(mean["decision_status"], "within owner tolerance")
+        self.assertEqual(axes["decision_status"], "outside owner tolerance")
+        self.assertAlmostEqual(axes["length_change_percent"], 0.)
+        self.assertAlmostEqual(axes["length_x_change_percent"], 20.)
+        self.assertAlmostEqual(axes["length_y_change_percent"], -20.)
+        self.assertAlmostEqual(axes["max_directional_change_percent"], 20.)
+
+    def test_directional_comparison_keeps_missing_axes_unresolved(self):
+        native = dict(factor=1, length=np.nan, length_x=10., length_y=np.nan)
+        changed = dict(factor=4, length=8., length_x=8., length_y=8.)
+        comparison = compare_lengths(changed, native, .1, "both_directions")
+        self.assertEqual(comparison["decision_status"], "unresolved")
+        self.assertAlmostEqual(comparison["length_x_ratio"], .8)
+        self.assertTrue(np.isnan(comparison["length_y_ratio"]))
+        self.assertTrue(np.isnan(comparison["max_directional_change_percent"]))
+        with self.assertRaises(ValueError):
+            compare_lengths(changed, native, .1, "best_direction")
+
+    def test_directional_changes_are_invariant_to_units_and_exchange_axes(self):
+        native = dict(factor=1, length=15., length_x=10., length_y=20.)
+        changed = dict(factor=2, length=16., length_x=8., length_y=24.)
+        comparison = compare_lengths(changed, native, .1, "both_directions")
+        scaled = [{k: (v if k == "factor" else v * .06) for k, v in row.items()}
+                  for row in (native, changed)]
+        other = compare_lengths(scaled[1], scaled[0], .1, "both_directions")
+        for key in ("length_ratio", "length_x_ratio", "length_y_ratio"):
+            self.assertAlmostEqual(comparison[key], other[key])
+        for row in (native, changed):
+            row["length_x"], row["length_y"] = row["length_y"], row["length_x"]
+        transpose = compare_lengths(changed, native, .1, "both_directions")
+        self.assertEqual(comparison["decision_status"], transpose["decision_status"])
+        self.assertEqual(comparison["length_x_ratio"], transpose["length_y_ratio"])
+
     def fixture(self, folder: Path) -> tuple[Path, dict]:
         y, x = np.indices((64, 64))
         mask = (((y // 8 + x // 8) % 2) * 255).astype(np.uint8)
@@ -47,6 +85,7 @@ class MaskResolutionAuditTests(unittest.TestCase):
             self.assertEqual(float(rows[0]["length_ratio"]), 1)
             self.assertEqual(float(rows[0]["length_change_percent"]), 0)
             self.assertEqual(float(rows[0]["phase_fraction_change"]), 0)
+            self.assertIn("exact_half_height_checks", rows[0])
             self.assertGreater(float(rows[0]["direction_ratio_x_over_y"]), 0)
             self.assertIn(rows[0]["three_pixel_warning"], ("flag", "no flag"))
             self.assertGreater(float(rows[0]["minimum_pixels_per_length"]), 0)
@@ -80,11 +119,26 @@ class MaskResolutionAuditTests(unittest.TestCase):
             self.assertIn("<td>15 min</td>", html)
             self.assertNotIn("data:image", html)
             self.assertNotIn("expert_mask.npy", html)
+            self.assertIn("What to check next", html)
+            self.assertIn("Largest axis", html)
+            self.assertIn("opposite exact-tie", html)
+            with (folder / "audit" / "tie_sensitivity.csv").open(newline="") as stream:
+                sensitivity = list(csv.DictReader(stream))
+            self.assertEqual(len(sensitivity), 4)
+            self.assertEqual({r["variant"] for r in sensitivity}, {"declared", "opposite"})
+            with (folder / "audit" / "decision_summary.csv").open(newline="") as stream:
+                summary = list(csv.DictReader(stream))
+            self.assertEqual([int(r["factor"]) for r in summary], [2, 4])
+            self.assertTrue(all(r["criterion"] == "no owner tolerance" for r in summary))
             provenance = json.loads((folder / "audit" / "manifest.json").read_text())
             self.assertEqual(len(provenance["mask_sha256"]["first"]), 64)
             self.assertEqual(len(provenance["output_sha256"]["measurements.csv"]), 64)
             self.assertEqual(len(provenance["output_sha256"]["report.html"]), 64)
             self.assertIn("created_utc", provenance)
+            self.assertIn("mask_metrology.py", provenance["source_sha256"])
+            self.assertIn("metrology.py", provenance["source_sha256"])
+            self.assertEqual(set(provenance["output_sha256"]),
+                             {"measurements.csv", "tie_sensitivity.csv", "decision_summary.csv", "report.html"})
             self.assertIsNone(provenance["materials_context"])
             self.assertIsNone(provenance["decision_tolerance_fraction"])
             self.assertEqual(provenance["input_settings"][0]["roi"], [8, 56, 8, 56])
@@ -222,6 +276,29 @@ class MaskResolutionAuditTests(unittest.TestCase):
                 "outside owner tolerance", "unresolved",
             } for row in rows))
             self.assertIn("10% relative-length tolerance", report.read_text())
+
+    def test_directional_scope_is_declared_recorded_and_rendered(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            manifest, document = self.fixture(folder)
+            document.update(decision_scope="both_directions",
+                            decision_tolerance_fraction=.1,
+                            decision_tolerance_reason="Synthetic test criterion")
+            manifest.write_text(json.dumps(document))
+            report = audit(manifest, folder / "directional")
+            self.assertIn("each horizontal and vertical length separately", report.read_text())
+            self.assertIn("<th>X change</th>", report.read_text())
+            self.assertIn("not proof of physical", report.read_text())
+            provenance = json.loads((folder / "directional" / "manifest.json").read_text())
+            self.assertEqual(provenance["decision_scope"], "both_directions")
+            with (folder / "directional" / "measurements.csv").open() as stream:
+                self.assertTrue(all(r["decision_scope"] == "both_directions"
+                                    for r in csv.DictReader(stream)))
+            document["decision_scope"] = "best_direction"
+            manifest.write_text(json.dumps(document))
+            with self.assertRaisesRegex(ValueError, "decision_scope"):
+                audit(manifest, folder / "bad_scope")
+            self.assertFalse((folder / "bad_scope").exists())
 
 
 if __name__ == "__main__":

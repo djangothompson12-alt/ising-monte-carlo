@@ -50,6 +50,11 @@ person's name, quoting their assessment or including their files in a release.
 - Primary masks and one rectangular field per image, with reason for each:
 - Primary native measurement and 2×/4× comparison:
 - Exact 50:50 block tie rule (foreground or background):
+- Decision scope: mean length or both horizontal and vertical lengths?
+- Owner's relative-length tolerance and reason, recorded before analysis
+  (`decision_tolerance_fraction`; leave null if none is available):
+- The opposite exact-tie rule is reported automatically as a sensitivity
+  check; the primary rule is not selected for its favourable result.
 - Handling of a missing half-height crossing: report *unresolved*, not zero.
 - Partner's existing reference method, if any; whether it measures the same
   feature as this 2D correlation length:

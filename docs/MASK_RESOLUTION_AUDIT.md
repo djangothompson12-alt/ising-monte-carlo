@@ -11,6 +11,14 @@ mask is **not** the same experiment as collecting a lower-resolution
 micrograph and segmenting it again: instrument noise, contrast and
 classification errors are deliberately held out of this test.
 
+The practical question is: **does digital 2x or 4x reduction keep this
+declared length measurement within a tolerance the image owner chose in
+advance?** The report now checks both exact 50:50 block-tie conventions on
+the same field. It keeps the declared rule as the primary measurement and
+shows when the conclusion changes under the opposite rule. It never chooses
+the rule giving the better-looking result. This helps an owner judge a
+particular processing choice; it does not supply a universal resolution limit.
+
 There is a second boundary that matters for this project. The fraction of a
 binary image labelled as one **phase** is not generally the alloy's conserved
 chemical composition. Real phases can have different solute concentrations,
@@ -64,6 +72,15 @@ matter to their comparison, record it as `decision_tolerance_fraction` and
 explain it in `decision_tolerance_reason` before running the audit. Otherwise
 leave the tolerance null. The report will then show the measurements without
 inventing an acceptable/unacceptable classification after seeing the result.
+Declare `decision_scope` as `mean_length` (the backward-compatible default)
+or `both_directions`. The latter requires **each** horizontal and vertical
+length to stay within the owner tolerance. For example, changes of +20% and
+-20% cancel in the mean when the native directional lengths are equal;
+agreement of that mean alone is not agreement of the directional geometry.
+The report records both directional percentage changes and their maximum
+absolute change, whichever scope is chosen. These are paired sensitivity
+measurements, not uncertainty intervals or physical-accuracy estimates.
+A tolerance classification never removes a separate low-resolution warning.
 Multi-frame TIFF stacks are rejected: explicitly select and save one plane
 first, so the tool cannot silently analyse the wrong slice.
 Optional time metadata is retained but never used to fit kinetics.
@@ -79,7 +96,21 @@ python -m research.mask_resolution_audit \
   path/to/approved-mask-plan.json --output output/new-mask-audit
 ```
 
-The new folder contains `report.html`, `measurements.csv` and `manifest.json`.
+For this static CLI, demo and verification only, install
+`requirements-mask-audit.txt` instead of the full visualiser environment.
+Only NumPy, SciPy and Pillow are required. The workflow is tested with the
+plotting, simulation and UI imports blocked, but a fresh-machine installation
+is not claimed. Python 3.11 is the tested runtime. The exact runtime versions
+are recorded in each new audit manifest.
+
+The new folder contains `report.html`, `measurements.csv`, `tie_sensitivity.csv`,
+`decision_summary.csv` and `manifest.json`. The HTML opens with a short summary
+of what needs checking. Detailed measurements, method and source information
+are available underneath. `measurements.csv` retains the declared primary rule;
+`tie_sensitivity.csv` has both rules at 2x and 4x; `decision_summary.csv` records
+whether the declared criterion depends on the tie rule and retains any
+resolution warning even when the numerical tolerance is met. The two rules
+are a sensitivity comparison, not a statistical uncertainty interval.
 The manifest hashes each input mask and the analysis source and records the
 declared labels, field, physical pixel size and time for each image without
 copying the input file path. No mask pixels or image previews are embedded in
@@ -98,6 +129,73 @@ description, even though they omit mask pixels and file paths. Keep the
 output private until the image owner approves sharing those details.
 It will refuse to overwrite a prior output. A hash documents which file was
 used; it cannot certify the accuracy of a segmentation or the declared scale.
+Input hashes now identify the exact byte snapshots parsed and measured, not a
+second read after calculation. A source-file change during the calculation
+causes the audit to stop before writing its output directory.
+
+## Check the calculation
+
+Run the independent synthetic checker in a new folder:
+
+```sh
+python -m research.verify_mask_resolution_audit --output output/my-mask-verification
+```
+
+The checker independently counts centred pixel-pair products and interpolates
+the half-height crossing using exact rational arithmetic. It checks 18 small
+synthetic fields across three reduction factors, two tie rules and three
+pixel spacings: 324 measurements. Empty fields and missing directional
+crossings remain unresolved. It uses no averaging, correlation or crossing
+helper from the production audit. This is verification of the specified
+discrete calculation, not validation of physical sizes or segmentation.
+
+The current audit also recomputes binary pair counts exactly when FFT values
+are within 1e-12 of the half-height level. That number selects a numerical
+check; it is not measurement uncertainty. Tolerance decisions allow only
+eight floating-point epsilons of roundoff at their inclusive boundary.
+The frozen simulation analyses use their recorded historical sources.
+See the [current validation and tool comparison](MASK_AUDIT_REVIEW_2026-10-13.md)
+for the checks, limitations and the narrower claim about its purpose.
+
+The [bounded value and baseline specification](AUDIT_VALUE_AND_BASELINE_2026-10-15.md)
+separates a practical processing check from a new algorithm claim. The optional
+`python -m research.check_mask_covariance_conventions --output output/new-convention-check`
+companion checks the finite-field centring convention using separately counted
+synthetic pairs. It is not a PoreSpy execution, a full published-method baseline,
+or physical validation. Different centring/directional conventions must be
+declared before comparing measurements from different packages.
+
+For an exhaustive check of the smallest supported **4x4** measurement grid:
+
+```sh
+python -m research.verify_mask_resolution_audit --exhaustive-four-by-four \
+  --output output/my-exhaustive-mask-check
+```
+
+This enumerates all 65,536 binary fields at that shape and compares with the
+separate exact-rational reference. It does not exhaust larger fields, make a
+4x4 field physically adequate, or test the correctness of a segmentation.
+
+Before handing over an existing result, verify its four output hashes and,
+when the original plan/masks are available locally, replay its numerical tables:
+
+```sh
+python -m research.verify_mask_audit_delivery output/my-audit \
+  --input-plan path/to/the-original-plan.json --require-current-sources
+```
+
+Without `--input-plan`, only delivery integrity is checked; no numerical
+reproduction is claimed. Without `--require-current-sources`, an old source
+version is reported as different rather than silently certified as current.
+Hashes are not authentication: someone could alter a table and rehash it.
+Local replay detects a disagreement with the implementation and supplied
+inputs, not physical truth or an independently written algorithm.
+
+An allowlisted **local**, synthetic-only review copy can be prepared with
+`python -m research.build_mask_pilot_bundle --output output/new-mask-pilot-copy`.
+It includes a short README and the minimal dependencies, not private planning,
+raw microscopy or simulation archives. Preparing this copy does not send,
+publish or establish student approval of it.
 
 ## Checked public-data example
 

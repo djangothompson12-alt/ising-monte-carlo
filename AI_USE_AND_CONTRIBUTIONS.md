@@ -1,5 +1,105 @@
 # AI use and contribution record
 
+## Research handover and sharing preparation on 18 October 2026
+
+Django requested a comprehensive handover for another AI cross-check and an
+updated GitHub snapshot. Codex consolidated the models, separate campaign
+counts, question narrowing, prior-art boundaries, results, null/corrective
+evidence, audit limitations and unfinished review gates in
+`review/CLAUDE_RESEARCH_HANDOVER_2026-10-18.md`. It updated navigation and
+prepared the accumulated audit sources/tests for sharing. The existing suite
+passed all 268 tests; 21 local links in the new handover/review guide resolved.
+These are internal software/document checks, not a fresh recalculation of all
+archived data, physical validation or independent human review.
+
+Personal learning-progress and admissions-planning notes were summarised
+separately in ignored local storage, not included in the public update.
+The public PDF remains the historical 1 October copy, explicitly labelled;
+the updated Markdown brief is the current public scientific text. No frozen
+trajectory/result was changed, simulation launched, student mastery inferred,
+academic contacted or publication submitted by this preparation. Git sharing
+status must be checked from the actual commit/remote, not this draft record.
+
+## Bounded audit-value check and criticism brief on 15 October 2026
+
+After Django approved starting the bounded usefulness/novelty assessment,
+Codex checked primary software documentation and the published descriptor
+method. It wrote the value/baseline specification, a separately counted
+finite-field covariance-convention companion and six tests. On all 18 known
+synthetic fixtures, factors 1/2/4, both tie conventions and both phase labels,
+432 directional checks agreed with the production centred covariance to
+4.44e-16. These related checks are not independent materials observations.
+The companion checks established algebra and boundary conventions; it does
+not execute PoreSpy or implement the full published multi-descriptor method.
+The production estimator, simulation engine and frozen results are unchanged.
+
+Codex also condensed and regenerated the two-page criticism draft, retaining
+the main table, one illustrative figure, closest prior work, missing controls
+and AI disclosure. The PDF is not student-approved, externally reviewed or
+sent. Code, calculations, layout and prose here are AI-assisted contributions;
+no student hours, original mathematical discovery, laboratory utility or
+publication acceptance are inferred.
+
+## Literature-led reframing and completion planning on 15 October 2026
+
+At Django's explicit request, Codex ran an additional 54-query scholarly-web
+scope with selected primary full-text checks, recorded closer prior art and
+drafted a bounded December completion plan. Codex updated the historical
+report's dated addendum, current brief source and writing scaffold to remove
+any implication that generic processing sensitivity or fraction-versus-geometry
+is new. Numerical results, dynamics and raw data were not changed. The review
+is not systematic, proof of originality, specialist criticism or a student-
+authored literature paper. Django directed and requested the review; student
+understanding and approval of the revised claims remain to be demonstrated.
+Recipient recommendations and correspondence are private drafts, not messages
+sent, mentoring, pilot use or publication. No commit or push was performed.
+
+## Static-audit progression and methods scoping on 15 October 2026
+
+At Django's request, Codex fixed exact-input provenance, added an optional
+local delivery/replay verifier, separated the small audit from unnecessary
+plotting/UI dependencies, and prepared an allowlisted synthetic-only review
+copy builder. Codex wrote the exhaustive 4x4 exact-reference check, additional
+regression tests, and a supporting OLS processing-error-budget calculation
+replaying 72 previously inspected half-height comparisons. It reviewed the
+closest primary literature and software and drafted the scope/limitations
+memo in `docs/AUDIT_PROGRESS_AND_METHODS_SCOPE_2026-10-15.md`.
+
+This is AI-assisted implementation, verification, analysis and drafting, not
+new student-originated mathematics, unseen validation, a human expert's
+assessment, proof of novelty, laboratory use or a publication submission.
+No simulation engine or frozen historical result was changed. Student
+review and an accurate personal contribution account remain necessary.
+No outside message, commit, push or publication was part of this work.
+
+## Focused mask-audit improvements on 13 October 2026
+
+At Django's request, Codex reviewed official PoreSpy, MorphoLibJ and
+scikit-image documentation and the existing resolution literature. It
+implemented an automatic opposite-tie comparison on the same supplied mask,
+a clearer decision summary that retains resolution warnings, exact binary
+pair-count checks near the half-height level, and inclusive-tolerance
+roundoff handling. Codex wrote the independent exact-rational checker and
+ran the synthetic checks, repository tests and public-mask replays recorded
+in `docs/MASK_AUDIT_REVIEW_2026-10-13.md`. These are internal AI-assisted
+development and numerical verification, not new student-originated physics,
+independent human validation, a proven novelty claim, adoption or endorsement.
+Django must review the method and wording before presenting them. No academic
+or company was contacted and no commit or push was part of this task.
+
+## Audit and feasibility checks on 7 October 2026
+
+At Django's request, Codex added explicit mean-only versus both-direction
+tolerance scopes to the static mask audit, directional percentage changes and
+regression tests. Codex also wrote and ran a post-hoc native-resolution
+inventory of 72 existing size-128 archives, keeping the two temperature
+campaigns separate. It did not launch Monte Carlo runs, fit new exponents,
+change frozen analyses or certify physical accuracy. The inventory is a
+planning diagnostic on known data, not a new holdout. Codex drafted the
+plain-language development note and added the Werz et al. prior-art comparison
+to the scope document. Django must check and understand these additions before
+representing them publicly; no outside review or adoption is implied.
+
 ## Research sharing preparation on 4 October 2026
 
 Django explicitly authorised updating and pushing the research repository for

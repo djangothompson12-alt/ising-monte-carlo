@@ -197,7 +197,7 @@ def build(root, output):
     output.parent.mkdir(parents=True, exist_ok=True)
     styles = {
         "body": ParagraphStyle("Body", fontName="Helvetica", fontSize=9.5, leading=12.9, textColor=colors.HexColor(INK), spaceAfter=6),
-        "small": ParagraphStyle("Small", fontName="Helvetica", fontSize=8, leading=10.4, textColor=colors.HexColor(GREY), spaceAfter=5),
+        "small": ParagraphStyle("Small", fontName="Helvetica", fontSize=8.7, leading=11.5, textColor=colors.HexColor(GREY), spaceAfter=5),
         "section": ParagraphStyle("Section", fontName="Helvetica-Bold", fontSize=11.5, leading=14, textColor=colors.HexColor(TEAL), spaceBefore=9, spaceAfter=5),
         "title": ParagraphStyle("Title", fontName="Helvetica-Bold", fontSize=23, leading=26, textColor=colors.HexColor(INK), spaceAfter=9),
     }
@@ -207,7 +207,7 @@ def build(root, output):
     def h(text):
         p(text, "section")
 
-    p("TECHNICAL CRITICISM DRAFT | 1 OCTOBER 2026", "small")
+    p("TECHNICAL CRITICISM DRAFT | 15 OCTOBER 2026", "small")
     p("Does preserving species fraction<br/>preserve measured coarsening?", "title")
     p("Django Thompson | Student project | AI-assisted draft; student approval pending", "small")
     h("The question")
@@ -235,7 +235,7 @@ def build(root, output):
         ("TOPPADDING",(0,0),(-1,-1),6),("BOTTOMPADDING",(0,0),(-1,-1),6)]))
     story.append(table)
     story.append(Spacer(1,7))
-    p("<b>Main finding:</b> at fourfold reduction, fraction matching did not preserve the original fitted exponent. Matching is exact at 50:50; the 15:85 coarse fraction is rounded to the nearest attainable pixel count. Finer reduction can give much smaller differences: this is not a claim that matching never helps.")
+    p("<b>Main finding:</b> at fourfold reduction, fraction matching did not preserve the original fitted exponent. Matching is exact at 50:50; the 15:85 coarse fraction is rounded to the nearest attainable pixel count. Finer reduction can give much smaller differences. This is an under-resolution stress test, not evidence of equivalent bias in well-resolved microscopy.")
     p("Intervals use 1,000 paired whole-trajectory bootstrap draws, not independent checkpoints. They quantify run-sampling uncertainty conditional on this analysis, not uncertainty in real-alloy physics.", "small")
     h("Why use this short window when longer runs exist?")
     late = context["late"]
@@ -243,21 +243,21 @@ def build(root, output):
     story.append(PageBreak())
 
     p("METHOD, LIMITATIONS AND QUESTIONS FOR REVIEW", "small")
-    story.append(ratio_chart(curves, height=115))
-    p("<b>Figure 2.</b> Fresh trajectories only; each curve is the ratio of ensemble-mean lengths. The ratio decreases with time, so early lengths are inflated more than late ones and the fitted slope is reduced. Constant multiplicative length error would leave the slope unchanged. This accounting identity does not identify a unique geometric cause.", "small")
+    h("Why the fitted slope changes")
+    p("The ratio of processed to original ensemble-mean length decreases through the fitted window: early lengths are inflated more than late ones. That reduces the log-log slope. A constant multiplicative length difference would leave the slope unchanged. This accounting identity does not identify a unique geometric cause.", "small")
     h("How the measurement works")
     p("Lengths are the mean X/Y half-height crossings of variance-normalized, mean-subtracted covariance, using valid pairs without wrapping image edges. Coarse lengths are converted to original lattice spacing. Log ensemble-mean length is fitted against log sweeps on shared times. Rank segmentation retains the highest block means; five fixed tie priorities are averaged within each trajectory. These are not additional independent runs.")
     h("What the result does not establish")
     p("Some coarse lengths approach or fall below one pixel. Four grid/window origins and a second covariance length retained the negative shift, but an exploratory chord analysis found smaller shifts. No universal sensitivity is claimed. Two proposed exponent-warning screens accepted zero of 18 comparisons: they are not validated selectors. A direct-pair audit corrected a roundoff issue in factor-eight secondary results; the factor-four result was unchanged.", "small")
     h("A separate materials-image audit")
     fem, opposite = context["fem"]
-    p(f"The audit compares calibrated binary masks at native, 2x and 4x spacing and reports length, phase fraction and resolution warnings. Across all 81 FeM iron-ore fields [5], median length changes were {float(fem[1]['length_change_percent_median']):+.3f}% and {float(fem[2]['length_change_percent_median']):+.3f}%. A post-hoc opposite tie rule changed the 2x median to {float(opposite[1]['length_change_percent_median']):+.3f}%. All fields were resolved and unflagged, unlike the short-window exponent screens. These are fields from one specimen, not 81 specimens; producer masks are references, not physical truth. This is a static sensitivity test, not ageing validation, microscope calibration or laboratory adoption. Phase fraction is not generally chemical composition.", "small")
+    p(f"The prototype checks how direct 2x/4x reduction changes a supplied, calibrated binary mask's directional half-height length. It retains opposite-tie sensitivity and warnings, and uses an owner tolerance only if declared beforehand. Across 81 FeM fields [7], median changes were {float(fem[1]['length_change_percent_median']):+.3f}% and {float(fem[2]['length_change_percent_median']):+.3f}%; a post-hoc opposite tie rule changed the 2x median to {float(opposite[1]['length_change_percent_median']):+.3f}%. These are fields from one specimen, not 81 specimens. The tool does not segment raw microscopy, fit experimental kinetics or certify physical truth. Phase fraction is not generally chemical composition. No owner-defined pilot or laboratory use is claimed.", "small")
     h("Closest work and the possible contribution")
-    p("Zabler et al. [1] already tested coarsening fits against segmentation threshold; Ledesma-Alonso et al. [2] studied resolution-dependent descriptors. Majumder and Das [3,4] used noise filtering and initial-length/finite-size analysis; their three length measures agreed up to constant factors. Our short raw fits are not equivalent. The possible contribution is the paired dynamic benchmark after fraction matching, not discovery of image bias or a new growth law. Novelty remains unestablished.", "small")
+    p("Zabler et al. [1] tested threshold-dependent growth fits; Roland and Grant [2] studied block-spin processing and multiple lengths in conserved Ising growth. Ledesma-Alonso et al. [3] analysed descriptor preservation during reduction. Werz et al. [4] combined reduction, fraction adjustment and alloy kinetics; Eidel et al. [5] considered fraction-aware pixel coarsening. Korneev et al. [6] found porosity matching insufficient to protect unresolved geometry and conductivity.", "small")
+    p("The candidate contribution is a useful paired kinetic benchmark with declared success and failure regimes, not discovery of image bias or fraction-versus-geometry differences. No exact duplicate was verified in a bounded search; novelty and significance remain unestablished. An adequately resolved comparison and a justified existing-method baseline are still missing. This is why specialist criticism is sought before extending the study.", "small")
     h("Three questions for a reviewer")
-    p("1. Does this specific benchmark add anything useful beyond the closest prior work?<br/>2. Are the length definition, common time mask and paired uncertainty defensible?<br/>3. Could a static mask comparison inform an imaging decision in your work, and what reference and tolerance would make a fair pilot?", "small")
-    p('[1] Zabler et al., Acta Materialia 55 (2007), 5045-5055. <link href="https://doi.org/10.1016/j.actamat.2007.05.028" color="'+TEAL+'">doi:10.1016/j.actamat.2007.05.028</link><br/>[2] Ledesma-Alonso et al., Physical Review E 97 (2018), 023304. <link href="https://arxiv.org/abs/1712.03183" color="'+TEAL+'">arXiv:1712.03183</link><br/>[3] Majumder and Das, Physical Review E 81 (2010), 050102(R). <link href="https://arxiv.org/abs/1001.3985" color="'+TEAL+'">arXiv:1001.3985</link>', "small")
-    p('[4] Majumder and Das (2013), <link href="https://arxiv.org/abs/1305.2556" color="'+TEAL+'">arXiv:1305.2556</link>. [5] Gomes et al., FeM dataset, <link href="https://doi.org/10.5281/zenodo.5014700" color="'+TEAL+'">doi:10.5281/zenodo.5014700</link>.', "small")
+    p("1. Would a resolved-to-under-resolved paired exponent benchmark add useful evidence beyond this prior work?<br/>2. Are the observable, common time mask and paired uncertainty defensible, and which existing-method baseline is essential?<br/>3. Could the static audit inform a concrete imaging decision? What measurement and tolerance would make a small pilot useful?", "small")
+    p('[1] Zabler et al. (2007), <link href="https://doi.org/10.1016/j.actamat.2007.05.028" color="'+TEAL+'">Acta Materialia 55, 5045-5055</link>. [2] Roland and Grant (1989), <link href="https://doi.org/10.1103/PhysRevB.39.11971" color="'+TEAL+'">Physical Review B 39, 11971</link>.<br/>[3] Ledesma-Alonso et al. (2018), <link href="https://arxiv.org/abs/1712.03183" color="'+TEAL+'">Physical Review E 97, 023304</link>. [4] Werz et al. (2014), <link href="https://doi.org/10.1016/j.matchar.2014.01.022" color="'+TEAL+'">Materials Characterization</link>.<br/>[5] Eidel et al. (2021), <link href="https://doi.org/10.1002/zamm.202000245" color="'+TEAL+'">ZAMM, e202000245</link>. [6] Korneev et al. (2018), <link href="https://doi.org/10.1002/2018WR022886" color="'+TEAL+'">Water Resources Research</link>.<br/>[7] Gomes et al., <link href="https://doi.org/10.5281/zenodo.5014700" color="'+TEAL+'">FeM dataset</link>. Physics context: <link href="https://arxiv.org/abs/1001.3985" color="'+TEAL+'">Majumder and Das (2010)</link>; their filtered, offset-corrected scaling analysis is not equivalent to the raw finite-image fits here.', "small")
     p("Code, design, analysis and this draft used substantial AI assistance. Student approval and an accessible evidence copy must be checked before sharing. No independent review or outside use has occurred. This requests criticism, not endorsement.", "small")
 
     def footer(canvas, doc):
@@ -280,10 +280,12 @@ def build(root, output):
         "status":"AI-assisted criticism draft; student approval and external review pending",
         "builder_sha256": sha(Path(__file__)), "pdf_sha256":sha(output), "pages":pages,
         "fresh_analysis_manifest_sha256":sha(root/ANALYSIS/"manifest.json"),
+        "brief_source_sha256": sha(root/"docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md"),
+        "brief_source_boundary":"Manually condensed rendering, not an automatic Markdown conversion; both drafts require student approval",
         "freeze_sha256":sha(root/FREEZE), "primary":primary,
         "context": context,
         "illustration":illustration,
-        "figure_2_data":"Fresh factor-four origin-zero half-height observations; ratio of ensemble means",
+        "ratio_check_data":"Fresh factor-four origin-zero half-height observations; ratio of ensemble means, checked but no second figure rendered",
         "boundary":"Artifact generation verifies hashes and extraction, not all numerical calculations or novelty"
     }
     output.with_suffix(".provenance.json").write_text(json.dumps(provenance,indent=2)+"\n")

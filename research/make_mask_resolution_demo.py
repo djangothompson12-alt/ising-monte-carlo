@@ -31,6 +31,7 @@ def make(output: Path) -> Path:
         tie_rule="background",
         materials_context=None,
         decision_tolerance_fraction=None,
+        decision_scope="both_directions",
         records=[
             dict(id="synthetic_circles", specimen_id="first artificial image",
                  mask_path="synthetic_mask.npy", foreground_value=1,

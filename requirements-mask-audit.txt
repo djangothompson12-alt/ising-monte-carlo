@@ -1,0 +1,7 @@
+# Static mask-audit CLI, synthetic demo, exact checker and delivery replay only.
+# Python 3.11 is the tested runtime. The full model/visualisers use requirements.txt.
+# Tested on 15 Oct 2026: NumPy 2.0.2, SciPy 1.17.1, Pillow 12.3.0.
+# These inherited lower bounds are not a claim that every older combination is tested.
+numpy>=1.24
+scipy>=1.10
+Pillow>=10.0

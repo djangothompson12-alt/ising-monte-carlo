@@ -2,20 +2,29 @@
 
 This snapshot brings together the current Ising/Kawasaki measurement study for
 technical criticism. It was selected for public sharing on 4 October 2026.
+The 18 October update adds a consolidated handover and latest audit source/tests;
+it does not replace frozen trajectories or the earlier archive.
 The documents are AI-assisted working drafts, not a completed student-approved
 paper, peer review or laboratory endorsement.
 
 ## Start here
 
-1. [Two-page brief](review_brief.pdf): the question, main result and limitations.
-2. [Full short brief](../docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md): supporting context
-   and three questions for a reviewer.
-3. [Scope and closest literature](../docs/RESEARCH_SCOPE_2026-09-26.md): what is
+1. [18 October handover](CLAUDE_RESEARCH_HANDOVER_2026-10-18.md): models, cohorts,
+   question, evidence, prior art, audit and open gates.
+2. [Current short brief source](../docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md),
+   updated 15 October: main result, limitations and reviewer questions.
+3. [Historical two-page PDF](review_brief.pdf): 1 October copy, **not** the latest
+   15 October v2 local PDF. Read current wording in item 2.
+4. [Scope and closest literature](../docs/RESEARCH_SCOPE_2026-09-26.md): what is
    being tested, what is already known, and what would be an overclaim.
-4. [Portable evidence ZIP](focused_review_evidence_2026-10-01_v2.zip): 16 raw
+5. [Portable evidence ZIP](focused_review_evidence_2026-10-01_v2.zip): 16 raw
    primary trajectories, analysis tables, selected source dependencies,
    reproduction instructions, hashes and aggregate context. Download and unzip
    it to inspect the included README and CONTEXT documents.
+
+6. [Latest audit/methods scope](../docs/AUDIT_PROGRESS_AND_METHODS_SCOPE_2026-10-15.md)
+   and [practical baseline specification](../docs/AUDIT_VALUE_AND_BASELINE_2026-10-15.md):
+   verification, prior-art limits and missing usefulness evidence.
 
 The archive and PDF are unchanged copies of the 1 October evidence package.
 Their historical wording says they had not yet been published or delivered;
