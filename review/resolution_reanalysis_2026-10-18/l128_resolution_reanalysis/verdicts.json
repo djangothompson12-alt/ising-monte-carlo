@@ -1,0 +1,38 @@
+{
+ "c0": {
+  "native_length_first_last": [
+   1.761632647334027,
+   11.442689860366329
+  ],
+  "t_first_last": [
+   1091,
+   1000000
+  ],
+  "max_native_over_box": 0.08939601453411194,
+  "f2_integrated": "Success regime found",
+  "f2_fixed": "Inconclusive",
+  "f2_matched": "Inconclusive",
+  "f4_integrated": "No success regime in this data",
+  "f4_fixed": "Success regime found",
+  "f4_matched": "Success regime found"
+ },
+ "c1": {
+  "native_length_first_last": [
+   1.4846346317316663,
+   8.890969528551281
+  ],
+  "t_first_last": [
+   1091,
+   1000000
+  ],
+  "max_native_over_box": 0.06946069944180688,
+  "f2_integrated": "Inconclusive",
+  "f2_fixed": "Inconclusive",
+  "f2_matched": "Inconclusive",
+  "f4_integrated": "No success regime in this data",
+  "f4_fixed": "Inconclusive",
+  "f4_matched": "Inconclusive"
+ },
+ "study_level_primary": "not established",
+ "protocol_sha256": "ebcd809b24ee23477193e4f58e54eaa9289aaf94037d54bbed8d757e8e7c3464"
+}

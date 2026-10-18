@@ -1,0 +1,9 @@
+c0 f2 integrated [1,2) -0.0367 [-0.0379,-0.0356] BIASED
+c0 f2 integrated [2,3) -0.0267 [-0.0296,-0.0242] BIASED
+c0 f2 integrated [3,5) -0.0177 [-0.0198,-0.0128] PRESERVED
+c0 f4 integrated [0,1) -0.0067 [-0.0084,-0.0052] PRESERVED
+c0 f4 integrated [1,2) -0.0458 [-0.0478,-0.0421] BIASED
+c0 f4 integrated [2,3) -0.0589 [-0.1087,-0.0289] BIASED
+c0 f4 matched    [0,1) -0.0514 [-0.0534,-0.0492] BIASED
+c0 f4 matched    [1,2) -0.0122 [-0.0148,-0.0094] PRESERVED
+c0 f4 matched    [2,3) -0.0200 [-0.0622,+0.0000] UNDECIDED
