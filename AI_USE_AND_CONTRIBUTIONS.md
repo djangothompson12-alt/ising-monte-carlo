@@ -1,5 +1,15 @@
 # AI use and contribution record
 
+## Printed-tile camera test on 21 November 2026
+
+At Django's request, Claude wrote `research/print_test/`: a script turning
+twelve archived 0.65 Tc snapshots into printable two-colour tiles with a truth
+file, a photo-analysis script (blind Otsu segmentation, same length estimator,
+growth fit), a synthetic self-check, tests, a printing and photography guide
+and a draft protocol. The protocol is marked as a draft for Django to edit and
+commit before photographing. No tile has been printed or photographed; no
+physical result exists. Simulation data and frozen analyses are unchanged.
+
 ## Research handover and sharing preparation on 18 October 2026
 
 Django requested a comprehensive handover for another AI cross-check and an
