@@ -1,5 +1,21 @@
 # AI use and contribution record
 
+## Outreach brief corrections on 21 November 2026
+
+At Django's request, Claude audited his November outreach brief against this
+repository and published sources, then added a corrected copy as
+`review/OUTREACH_BRIEF_2026-11.md`. Corrections: headline numbers replaced with
+the saved 32-run factor-4 values (0.231 to 0.181 at 50:50; 0.242 to 0.166 at
+15:85); quench temperature stated per run set; the Al–Cu data described as a
+semi-solid mixture rather than above its melting point; Sun et al. (2017, 2018)
+added as prior work on the same Al–Cu dataset; the Gibbs dataset DOI filled
+in; the Ledesma-Alonso result moved to the front as the closest existing rule;
+the single-image check's scope clarified; review questions narrowed; draft
+placeholders removed; and the contribution statement aligned with this record.
+The November Al–Cu, blur, 43% and long-run numbers were carried over from
+Django's draft and could not be checked here because their data are not yet in
+the repository. No simulation, analysis or frozen result was changed.
+
 ## Research handover and sharing preparation on 18 October 2026
 
 Django requested a comprehensive handover for another AI cross-check and an
