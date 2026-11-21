@@ -34,6 +34,12 @@ python -m research.print_test.make_tiles --out output/print_test
 
 ## Printing
 
+- **QIDI Q2 (or any Orca-based slicer):** run
+  `python -m research.print_test.make_3mf` and open each `<tile>.3mf` in QIDI
+  Studio. Each is one object with a black base part (filament 1) and a white
+  squares part (filament 2), centred on the bed. With a QIDI Box, slice and
+  print. On a single spool, add a colour change at the 1.4 mm layer first.
+
 - Use matte black and matte white PLA if you have them. Shiny filament glares.
 - 0.2 mm layers, 100% infill is not needed; 3 walls and solid top/bottom are fine.
 - **Single-colour printer:** load `<tile>_combined.stl`. Print in black and
