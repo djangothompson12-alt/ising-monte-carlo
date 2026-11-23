@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a lab instrument, exact and quiet
+   IDEA a stage micrometer: the slide you image to learn what one pixel is worth
+   PICTURE the segmented micrograph at true pixels, beside a graduated pixel scale with the reading marked
+   COLOUR white ground, graphite ink, red/amber/green kept for the verdict only, steel blue for data marks
+   TYPE IBM Plex Sans 700 + IBM Plex Sans, Plex Mono for readings
+   LAYOUT laptop: image left, reading and scale right, table and series below; phone: title, image, reading, controls */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#121417);--ink:light-dark(#15191d,#e8eaec);--soft:light-dark(#5b636b,#9aa3ab);--rule:light-dark(#d9dde1,#2b3137);--panel:light-dark(#f4f5f6,#1a1e22);--bad:light-dark(#c3311d,#ff6b55);--mid:light-dark(#a8670a,#f0b040);--good:light-dark(#1d7a55,#4fcf96);--data:light-dark(#2a5d8f,#7fb3e6)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans",system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(24px,4vw,56px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font-size:clamp(32px,5vw,48px);line-height:1.05;letter-spacing:-.02em;margin:0 0 8px;font-weight:700}
+h2{font-size:22px;line-height:1.2;margin:0 0 12px;font-weight:700}
+p{margin:0 0 12px;max-width:68ch}
+.lede{color:var(--soft);font-size:17px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start}
+.stage{background:#0d0f11;border-radius:6px;padding:12px;aspect-ratio:1;display:grid;place-items:center;position:relative}
+.stage canvas{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.reading{font-family:"IBM Plex Mono",monospace;font-size:clamp(56px,9vw,88px);line-height:1;font-weight:600;white-space:nowrap}
+.reading small{font-size:.35em;font-weight:400;color:var(--soft)}
+.verdict{font-size:18px;font-weight:600;margin:10px 0 4px}
+.scale{position:relative;height:64px;margin:20px 0 8px}
+.scale .zone{position:absolute;top:0;height:14px}
+.scale .tick{position:absolute;top:16px;width:1px;height:10px;background:var(--ink)}
+.scale .lab{position:absolute;top:28px;transform:translateX(-50%);font-size:13px;color:var(--soft)}
+.scale .mark{position:absolute;top:-8px;width:3px;height:30px;background:var(--ink);transform:translateX(-50%);transition:left .35s}
+@media(prefers-reduced-motion:reduce){.scale .mark{transition:none}}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(9em,1fr));gap:8px 16px;margin:16px 0 0;padding:0}
+.facts div{border-top:1px solid var(--rule);padding-top:6px}
+.facts dt{font-size:13px;color:var(--soft)}
+.facts dd{margin:0;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(14em,1fr));gap:16px;background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:16px;margin-top:24px}
+label{display:block;font-size:14px;color:var(--soft);margin-bottom:4px}
+input[type=number],select{font:16px "IBM Plex Mono",monospace;width:100%;min-height:44px;padding:8px;border:1px solid var(--rule);border-radius:4px;background:var(--bg);color:var(--ink)}
+input[type=range]{width:100%;min-height:44px;accent-color:var(--data)}
+.crop{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+button,.file{font:600 15px "IBM Plex Sans",sans-serif;min-height:44px;padding:10px 16px;border-radius:4px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer;display:inline-flex;align-items:center}
+button.ghost{background:transparent;color:var(--ink)}
+button:focus-visible,.file:focus-within,input:focus-visible,select:focus-visible{outline:3px solid var(--data);outline-offset:2px}
+.file input{position:absolute;opacity:0;width:1px;height:1px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.drop{border:2px dashed var(--rule);border-radius:6px;padding:14px;margin-top:16px}
+.drop.on{border-color:var(--data)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:middle}
+th{font-size:13px;color:var(--soft);font-weight:600}
+td.n{text-align:right;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+tr.sel{background:var(--panel)}
+tbody tr{cursor:pointer}
+td input{max-width:8em;min-height:36px}
+.chip{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.fig{position:relative;min-height:300px}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+svg text{font:13px "IBM Plex Sans",sans-serif;fill:var(--soft);paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+.note{font-size:14px;color:var(--soft)}
+.series{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:clamp(20px,3vw,40px)}
+.ev td:first-child{white-space:nowrap;font-family:"IBM Plex Mono",monospace}
+code{font-family:"IBM Plex Mono",monospace;font-size:.92em;overflow-wrap:anywhere}
+footer{border-top:1px solid var(--rule)}
+@media(max-width:820px){.grid,.series{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){table{font-size:13px}th,td{padding:6px 4px}.crop{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header class="band" style="padding-bottom:0"><div class="wrap">
+<h1>Pixel check for coarsening fits</h1>
+<p class="lede">Before fitting a growth exponent from micrographs, check how many pixels your features span. Below about two, fitted exponents read too slow. Images are analysed in this browser and never uploaded.</p>
+</div></header>
+
+<main class="band"><div class="wrap">
+<div class="grid">
+  <div>
+    <div class="stage"><canvas id="view" width="128" height="128"></canvas></div>
+    <div class="note" id="viewcap" style="margin-top:6px"></div>
+    <div class="row" style="margin-top:10px">
+      <label class="file" tabindex="0">Choose images<input id="files" type="file" accept="image/png,image/jpeg,image/bmp,image/gif,image/webp" multiple></label>
+      <button class="ghost" id="show">Show original</button>
+      <button class="ghost" id="example">Reload example</button>
+    </div>
+    <div class="drop" id="drop"><span class="note">Or drop segmented masks or greyscale micrographs here. PNG, JPEG, BMP, GIF or WebP; save TIFFs as PNG first.</span></div>
+  </div>
+  <div>
+    <div class="note" id="which"></div>
+    <div class="reading" id="reading">-</div>
+    <div class="note">correlation length, in pixels</div>
+    <div class="verdict" id="verdict"></div>
+    <p id="advice"></p>
+    <div class="scale" id="scale" aria-hidden="true"></div>
+    <dl class="facts">
+      <div><dt>Horizontal</dt><dd id="lx">-</dd></div>
+      <div><dt>Vertical</dt><dd id="ly">-</dd></div>
+      <div><dt>Bright-phase fraction</dt><dd id="frac">-</dd></div>
+      <div><dt>Physical length</dt><dd id="phys">-</dd></div>
+    </dl>
+  </div>
+</div>
+
+<div class="controls">
+  <div>
+    <label for="thrmode">Segmentation</label>
+    <select id="thrmode"><option value="otsu">Otsu threshold, per image</option><option value="manual">Manual threshold, all images</option></select>
+    <input id="thr" type="range" min="0" max="1" step="0.005" value="0.5" disabled aria-label="Manual threshold">
+    <div class="note" id="thrnote"></div>
+  </div>
+  <div>
+    <label>Crop before measuring, px (top, bottom, left, right)</label>
+    <div class="crop">
+      <input id="ct" type="number" min="0" value="0" aria-label="Crop top">
+      <input id="cb" type="number" min="0" value="0" aria-label="Crop bottom">
+      <input id="cl" type="number" min="0" value="0" aria-label="Crop left">
+      <input id="cr" type="number" min="0" value="0" aria-label="Crop right">
+    </div>
+    <div class="note">Remove SEM data bars and scale bars.</div>
+  </div>
+  <div>
+    <label for="px">Pixel size (optional)</label>
+    <div class="row" style="flex-wrap:nowrap">
+      <input id="px" type="number" min="0" step="any" placeholder="e.g. 12.5">
+      <select id="unit" style="max-width:6em"><option>nm</option><option>µm</option><option>mm</option></select>
+    </div>
+  </div>
+</div>
+
+<section style="margin-top:40px">
+<h2>Images</h2>
+<p class="note" id="samplenote"></p>
+<div class="scroll"><table>
+<thead><tr><th>Image</th><th>Ageing time</th><th style="text-align:right">Length, px</th><th style="text-align:right">Fraction</th><th>Check</th></tr></thead>
+<tbody id="rows"></tbody>
+</table></div>
+</section>
+
+<section style="margin-top:40px" class="series">
+  <div>
+    <h2 id="sertitle">Ageing series</h2>
+    <p id="sertext" class="note">Enter ageing times for three or more images to fit a growth exponent.</p>
+    <dl class="facts" id="serfacts"></dl>
+    <div class="row" style="margin-top:16px"><button class="ghost" id="copy">Copy summary</button><span class="note" id="copied"></span></div>
+  </div>
+  <div class="fig" id="fig"><svg id="chart" role="img" aria-label="Length against ageing time, log-log"></svg></div>
+</section>
+</div></main>
+
+<section class="band" style="background:var(--panel)"><div class="wrap">
+<h2>What the bands are based on</h2>
+<p>The check measures the two-point correlation length: how far apart two pixels can be and still usually be in the same phase, read where the correlation falls to one half, averaged over the horizontal and vertical directions. It is shorter than a feature's full width, so at one pixel a feature still spans a few pixels; it just looks blocky.</p>
+<div class="scroll"><table class="ev">
+<thead><tr><th>Length</th><th>What happened to fitted exponents in tests</th></tr></thead>
+<tbody>
+<tr><td>under 1 px</td><td>Always too slow. About 0.01 when only the earliest images were this coarse; 0.05 to 0.16 when most of the series was, across simulations and two real X-ray datasets (Al–Ge, Al–Cu).</td></tr>
+<tr><td>1 to 2 px</td><td>Typically 0.02 to 0.025 too slow on real images.</td></tr>
+<tr><td>2 to 3 px</td><td>Within about 0.01 for sharp images. Half to one pixel of blur pushed errors to 0.02 to 0.04.</td></tr>
+<tr><td>3 px and over</td><td>Within about 0.01, even with a pixel of blur.</td></tr>
+</tbody></table></div>
+<p style="margin-top:16px">The series check coarsens your own images by a further 2× (block averaging, then thresholding at the midpoint) and refits. On 16 held-out simulated series with known answers, a change above 0.01 flagged all 22 fits that were biased by more than 0.01, with no misses, but also flagged 16 of 26 fits that were not, and the change was typically two to three times the real error. It is a cautious screen, not a measurement.</p>
+<h2 style="margin-top:28px">Limits</h2>
+<p>The evidence comes from 2D lattice simulations and slices of two public tomography datasets, not SEM, and no laboratory has validated this check. It flags risk; it does not correct an exponent, and coarsening a single image further was not accurate enough to predict the size of the error. The closest published rule is the resolution criterion of Ledesma-Alonso et al. (Phys. Rev. E 97, 023304, 2018), which in these tests asked for roughly 1.2 to 1.9 pixels.</p>
+</div></section>
+
+<footer class="band"><div class="wrap note">
+<p>Made by Django Thompson as part of a gap-year project on image resolution and coarsening, with code written with AI assistance and checked against the project's Python measurement. Method, data and limits: <a href="https://github.com/djangothompson12-alt/ising-monte-carlo">github.com/djangothompson12-alt/ising-monte-carlo</a>.</p>
+</div></footer>
+
+<script id="core">
+const Core = {
+  otsu(g) {
+    let mn = Infinity, mx = -Infinity;
+    for (const v of g) { if (v < mn) mn = v; if (v > mx) mx = v; }
+    if (mx - mn < 1e-12) return mn;
+    const B = 256, h = new Float64Array(B), w = (mx - mn) / B;
+    for (const v of g) h[Math.min(B - 1, Math.floor((v - mn) / w))]++;
+    const c = i => mn + (i + .5) * w;
+    const w1 = new Float64Array(B), m1 = new Float64Array(B), w2 = new Float64Array(B), m2 = new Float64Array(B);
+    let a = 0, s = 0;
+    for (let i = 0; i < B; i++) { a += h[i]; s += h[i] * c(i); w1[i] = a; m1[i] = a ? s / a : 0; }
+    a = 0; s = 0;
+    for (let i = B - 1; i >= 0; i--) { a += h[i]; s += h[i] * c(i); w2[i] = a; m2[i] = a ? s / a : 0; }
+    let best = -1, idx = 0;
+    for (let i = 0; i < B - 1; i++) {
+      const v = w1[i] * w2[i + 1] * (m1[i] - m2[i + 1]) ** 2;
+      if (v > best) { best = v; idx = i; }
+    }
+    return c(idx);
+  },
+  segment(g, t) { const f = new Float32Array(g.length); for (let i = 0; i < g.length; i++) f[i] = g[i] > t ? 1 : -1; return f; },
+  axisLength(f, w, h, horizontal) {
+    let mean = 0; for (const v of f) mean += v; mean /= f.length;
+    const z = new Float32Array(f.length); let vr = 0;
+    for (let i = 0; i < f.length; i++) { z[i] = f[i] - mean; vr += z[i] * z[i]; }
+    vr /= f.length;
+    if (vr <= 1e-12) return NaN;
+    const rmax = Math.floor(Math.min(w, h) / 2);
+    let prev = 1;
+    for (let r = 1; r <= rmax; r++) {
+      let s = 0;
+      if (horizontal) { for (let y = 0; y < h; y++) { const o = y * w; for (let x = 0; x < w - r; x++) s += z[o + x] * z[o + x + r]; } }
+      else { const d = r * w; for (let i = 0; i < (h - r) * w; i++) s += z[i] * z[i + d]; }
+      const pairs = horizontal ? h * (w - r) : w * (h - r);
+      const c = s / pairs / vr;
+      if (prev >= .5 && .5 > c) return r - 1 + (prev - .5) / (prev - c);
+      prev = c;
+    }
+    return NaN;
+  },
+  measure(f, w, h) {
+    const lx = Core.axisLength(f, w, h, true), ly = Core.axisLength(f, w, h, false);
+    let up = 0; for (const v of f) if (v > 0) up++;
+    return { lx, ly, length: (lx + ly) / 2, resolved: isFinite(lx) && isFinite(ly), fraction: up / f.length };
+  },
+  coarsen(f, w, h, k) {
+    const W = Math.floor(w / k), H = Math.floor(h / k), out = new Float32Array(W * H);
+    for (let Y = 0; Y < H; Y++) for (let X = 0; X < W; X++) {
+      let s = 0;
+      for (let y = 0; y < k; y++) for (let x = 0; x < k; x++) s += f[(Y * k + y) * w + X * k + x];
+      out[Y * W + X] = s >= 0 ? 1 : -1;
+    }
+    return { f: out, w: W, h: H };
+  },
+  slope(t, L) {
+    const x = t.map(Math.log), y = L.map(Math.log), n = x.length;
+    const mx = x.reduce((a, b) => a + b) / n, my = y.reduce((a, b) => a + b) / n;
+    let sxy = 0, sxx = 0; for (let i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) ** 2; }
+    return sxy / sxx;
+  },
+  band(L) {
+    if (!isFinite(L)) return { key: 'bad', name: 'Unresolved', text: 'The correlation never fell to one half inside the image. Features may be larger than half the field, or the segmentation failed.' };
+    if (L < 1) return { key: 'bad', name: 'Too coarse to fit', text: 'Below one pixel, fits read too slow in every test: by about 0.01 when only the earliest images were this coarse, and by 0.05 to 0.16 when most of the series was. Image this stage at higher magnification.' };
+    if (L < 2) return { key: 'mid', name: 'At risk', text: 'Between one and two pixels, exponents read about 0.02 too slow in tests on real images. Treat the fit as a lower bound.' };
+    if (L < 3) return { key: 'mid', name: 'Fine if sharp', text: 'Within about 0.01 in tests on sharp images. If the image is blurred by a pixel or more, aim for three.' };
+    return { key: 'good', name: 'Enough pixels', text: 'At three pixels or more, errors stayed within about 0.01 in tests, even with some blur.' };
+  }
+};
+</script>
+<script>
+{
+const SAMPLES = [{"t": 646, "n": 128, "bits": "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"}, {"t": 1300, "n": 128, "bits": "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"}, {"t": 2617, "n": 128, "bits": "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"}, {"t": 5266, "n": 128, "bits": "D////wD+AAA2H/wP/gAH/B////8Av/AAP3/8B/4AD/8f////gR//AD///A/+AA/8H////5Af/wA//4AD/gAP+D/////wA/8AH/8AFfwIH/wf//5f8AH9gA//AA/+ABfgD//AH/AAf4AH/gAP/gAfgAAfwA34AB/AB/4AD/8AP4AABgAB+AAPwAf+AA//gP8AAAAAAfgAD8AH/gAP/wf/AAAAAAH+AA/gD+YAD/wH/wCAADAB/gAH4A/gAA+AB//TgAfwAf8AA+gOwDAfgAf/38AD/gD7AAH4DwA/nwAH4d/wA/4B/8AA9E8AP98BB+Hf+AP+Af/gAPBsAP//AH/h/9gB/gH/4ABwfED//gB/wf/4Af4Bf+4AfnwAf/wAeAB/+AP+Af//AH78AH/8APgAH+AD/4H//4B/+AB/+APwAB/gB/+B//+Af//AP/wB4AAfwAf/gf//h///wH/4AeAAH8AB/4H4HgP4D/h++APgAB/wAPuB+A4D8Afwf+gH4AAf8AAf8/gAAcAH/P/8B8AAH/gAH/H4AAHgH//////DBB/+AB/x+AAD+A+///////8f/4Af4fgAA/gP/+5/////v//AH+D8AAP4D//8f/+/////wB+A/AAH/j//8H//gH///8A+gHwAD/47/+B//gA////APAB4AA//P/+Ac/wYB///4DgA+AA/////wAAAEAD+f+AwADgAP5/758AAAAAA/n8AMAA4Bf+f+APAAEAAALA+ABwAeAP/j/mABAABAAAAAAB8AHgH/g/4gAAAAeAAAAAAfgA4A/wH+AAAAAfwAAAAAD4AOAf8B/gAAAAP8AAAAAB+ADgP/AfwAgAAP/AAwAAAfwAgA/wDAAcAAD/wAaAAAP/AIAH8AAAfwAB/8Af4AB//3/AB/AAAH+AA//wH+AAf/8/wAf4AADf3wf/8P/gAP//+8ADAAAD//8///B/4AH////AcAAAG//v///4f/Af5j//8HgHAgP/////+H/gP+Af///4B4AD/////+w/4H/gH///+A+AA//9/5/gP+B/4A////g/gAf///wP4H/Af+AP/nv4f/wAf//8D+B/wP/AD/x/+//+AD///APhf/P/4A/4P////4AF//wD/f/wd/h/4Af////wAP/8A///8Cf//+AH////8AAH/AB//8AH//7gB/////gAAfgAf//gB//8OAf////4AAAYAH3/4A/gADwHH///+ADAAAP8f/APwAB8AAAf7/gDwAAf+A/8B4AAPwAAmAP4D8AAF/AP//+AAD/AAAAD/D/BAB/wB///gAAP/AAAAf//gAH/+AP/f4AAA/wAAgD//+AD/+AP//8A+AH+EAAAfv/wB/8ADwf/AP8B/xgAAA//8Ab4AAAD/wD+Af+fgAAD/+AH+IAAAf8B/gD/j4AAA//mP/gAAAH+A/4A/8+AAQP/4P/wAgAA/AP+AP8PgAeAf4H/wAIAAHwH/4D/D8AHwHwB/8A/ggB+B/+A/w/QB8B+Af/gP4ACfgf/wD8PwA/wAAH/4H/xADYH/+A/D8AP8AAB/+B/vAAAB//Afx/B//gAA//gf/wAAA//4D+fwf/4AAP/AH/8ABDt//x//8C//AAD/wB//AAB///8f//g//wAA//gP/wAA///7AH/4P/8AAP+AD8AAAP///4AP8P//AAD/gB/AAAD///+AD+D//4AA/wAfwAAB+f//gAHwH/+eAP8AP8AAAPgA/8AB+B///yB+AA34APAIAP/AAfAP//+AfAAB/gDwAAB/4AP8Af//gfxAAf4AfgAAH/wD/AD//4H8AAP+AP4BnAa8AP8Af/+B/AB//+H/A/wA/gD8AA//gfAL///g/wP8AP+Y/+AH/4AAD///4PwD/AAP/P/gB//gAB///+DwD/wAD/x/8AX/+IA/9//g8A/+AD/wf/wB//iAP///4PgP/AAf4H/4AH/4AB///+H4AfwQD4B/+ABP+AA////h+AP4AAWAf/gAD/wAP+x/4PwD+BwUAAP4AAD8AD+AA+H+B/gPACAB8AAAfAA/AAPD/wf4BwAAAPgBwDwAOAAAD///+Af4AAX4AfA8AAAAAA////sP+AAH8ALwH4AAAAAf///8D/wD7/AD8D8gAAAAP////B//h//wA///8gOAAD////AP/4f/8Af///EDsAAf//+EH/+D//AH///z3/IAD//+AA//g//wB//////eAAP/3gAP/AP/+A/fD////AAB/4QAB/wH7/8/wAf///wAAG+ABAPgB+//P8AD///8AAA/gA3+gAQP//+AA/8P//AAH4H/+gEAH///AAH+AP/wAB8B/+AAAA///wAB+AAD8AAfAf/gBBAPn/8EAfgAA/gABx//4AzwHwf/AADwAAP4AAMP/+AH+B8HP+AAAAAD/AAD///AD/gfAAHgAAAAA/4AA//+AA/7HgAB+AAAeQP/4AP//AAP//4AAfAAAHsB//AA//AAB//+wAHxAAA+Af/8APwQAAf//v4B9wAAf4H//gD4AAAP//f+Af+AAP/B//4AOAAAH//3/8A/8IP/w//+AAEAWA/9w//gD/4H/+P//gABAP4D+YD/8AP+D//j//4AAQF+A/gA//AD/9//4//+AAEH/gP4AP/wA////+I//AAAf/wD/AD/+AH////wH/4AcP/+A/4AX/4B/gP/wB/wAHv//wH+AA/+AfwD/oAP8Az///+B3gAM/A/8Af4AB/A="}, {"t": 10600, "n": 128, "bits": "A////4D/AAfwP/gf/wA/+AP///6Af4AF4P/4D/8CP/gD///+AD/gBeH/8A/+AF/4D////sAf+ADh/+AH/gB/+A/////AH/gAA//AAf4A/+AP//4PwAf8AAf8AAf+AP/gD//+A+AD6AAH+AAH/wB/wAPf8AfgA/gAB/gAB/4APwAAB+ABwAAAwAf8AAf+AH8AAABgAfwAAAAH8AAD/gB/gQAAeAD8AAAAB/AAB/8B/4PgAHwA/AAAYA/4AB/wAf+H4ADsAf8AAGA/gAAfAAH/j+AA/AD/gAD//wEAfwAH///gAHwA//AA//8AB/8AB///4AB4AP/4Af//AB/8AAcB/uAAfAH/+AD//wAX/AAGAP/wAPwB//gA//8AH/wAxgD/8AD8Af/4AP8AAH/8Af4A//AC/AH/+AD/AAB//AT8AP/wAPyA/vgA/4AAP/wH+AD/8AH8wf/oAf/AAP/8B/gA//AB/AH/+AH//AD//w/4AP34Af4D/fAD/+ww////+AD//AH+AfvAA///0/////wA//wB/kH4AAHkf/v////8B///Af8A/gABgH///////gf//wD/Af4AB6B///7//+AH//8AfwD+AAHgf7////+AH///gC8A/AAB+H//////gAf//+B+APwAA/h+P/Af/wAH///gf9B8AA/4P/vwCD8AB///4H+AfAB/////gAE6AAP/f8AfgH8D////+ACBgAAD8AAAfwB8A////8AAAAAAg/AAAH4QOAP///8AAAAAAAAAAAB8AAAD/sH+AAAAAAAAAAACf4AAD/4B/AAAAAcAAAAAAH8AQA/8AAwAAAA/AAAAAAB/wAAP/AAAAAAAP8AAAAAAf8AAB/gAAA8AAH/AAwACQH/4ABCAAAAf4AD/4AHgA8B/+OAAAAAAf+AA/+AH8B/Af/7gAAAAAP/+A/fgD+A/wH//8AAAAAD//gf/8A/gP8H///AAAAAA///P//If4D/95//4/gAAAP/////zn/A//+f///4ADAD/////9//wH//v////wDgA//////+/+A//z///3+f4AH////P///gP/w/+/////8A////j///gD/AB///////AP///4f//4B/wAH/7////0AP//AH/9+AP+AB/+/////gAH/gB///4B/gAf/nn//7wAB/4Af///Af4AT+g7///8AAACAH///8H+AAfAP////vgAAAB///8B/gAHABD///74AAAA/4f/A/4AAAAAP//+/AAAAv+P/4P+AAAAAD4f4P8ACAP/D/+P/gAAAAAcC2B/6AAD8gP///wAAADAHAAQf+gAD+IAf//8AAAHwAgAAH/8AA/gAA///AAg/+AAAAD//gAP4AAe//wz+B/gAAAAX/8AP+AAAP/9P/gf4AAAAA//ED/gAADP5//4D/xAAAQD//BvwAAAD8P/+g/8AAAEA//3/8AAAA/D//4//gAAf4B////AAAAP0//4P//xAf/iA///wCAABgP/+D///gH/wAP//AA8AAAB//gf//4B/+AB//gB/gAAAf/4B///Df/gAP/wAf4QAAP//AP//g//8AD/8AP+AAAD//wD//4H//AA//AD/gAAA//8An/8P//gAP/gB/4AAAf//gB/8D//4AD/8Af+AAAH//8AH+AK/+AAf/AH3wAAB///wAf4B//wAH/wAf8AAAf//8AHiAd/+AA/4AH9AAAH///gAI4H//gIH8AB/AAAB/x/4AAOwf/8AD/AAf8AAAP4f/4AGcP//gAfwAD/AAoA8AH+AD/AA34AH8AA/wA/AOAA/gAfgAN/AB/AAP8APwBOCP4AH5AD/wAfAw//wD/AfgAeABuAA//AAAP/+8A/wHxAH/h//gP/8AAH///Af+B8QB/9//4D//gAP///8D/A+AAf//f+Af/4AD////A/wfgAH//z/gH/+AC////w/9H7AA//8f4Af/4AH///8f+A/wAP38D+AAG+AAP//D3/gP+AD5gI/AAB/wAHf/gd/wj+AB+AAPgAAf8AAB/gD/8f/gH/gAD4AAH/AAAP4AH/P34B74AH/AAB/wAAAgAB///8A/8AB/gAAf/gAAAAAf//+AP/AAfwAAP74AAAAAP///gD/wAH+AAD/5wAAAAD///4A/8AB/gAn///4AAAA///+AP/AAf4AH////4AAAP//fgD/+AP+AB////+AAAD//8AB//AD/gf//////AAgXv+AAf/wD/8H///////AAD//AAH/4A//B//3////wAAf/wAB/8AP////wB///4AAH/8Agf+AD////4AD///+AAf/A8HMAA////oAA////wAH/h/gDgAD//4KAAP4DX8AAH//+AwAA///AAAAAA//gAB///wcDAH//gAAAAAf74AAf//4GB4B//4AAAAAAP/wAB3/4AAfAf/+AAgAAAAf8AAe/+AAfwP/7gCcAIAAH/AAH//gAH/D/wAA/AAAAD/4AAD/4AB/4/wAAPwAF/Q//gACH8wAP//8AAz/AD/QA/4QAALMAD//+AAA/gA/4AffEAAADAA///mAAP8A//AD/wAAAD4AH///wAD/D//4AfuAAAA/AB///94B/4//+AP/gAAQfwAf/4/+Af+f//gP/+AAMH/AP/gP/+B////9D//AAPH/+A/4A//z////+A//wAHx//gP+AP///////xD/8AH+//4D/gAf+//yP/gA/+AH///+A/4AH/j/8H/4QP/g="}, {"t": 21336, "n": 128, "bits": "AH///QH/wAB//8P//wA/8AD///8B/gAA///Df/+AP/AB///9gf4IAP//QD//gD/wA////4H+AAB//gA//4A/8AP///+B/AAAf/4AH/+AP+AD9///gfgAAP/+AA//ID/gA/f//8A4AAD//wAP/wB/4AB3/f/APAAA//8AD/gAf+AAYdwH4CQEAP/xAAfgAH+4AAAID+AAAAB8AAAH4AB/+BgACA/wAAAA8AAAB+AA//uYAAAP/wAAB/AAAAfgAP/72AAAA//AAA/gAAAH4AD///AAAAD/wAAPwAABB/AAf//wAAAAf8AAH8AAB4fwAB//8CAAAHfAAD/AAAPD4AAP//AAAAB/+AA/wQADw+AAB//4AAAQ7/gA/4AAA//wAAP//gAAAf/4AP8AAAP/8AAB//4AAAH/+AD/AAAP//AAAP//AAAA//gAfwAc//v+AAB//wD8AP/4AP8AH////4AAf/+A/wD/+AH/A//////gAH//gP8D//wA/gv/////4AA//wD/A//8AP4P//////AAP/8A/wH/8AH/3//////wAD//AP8Af+AA////////+AD//wD/AH8AAP////////4Af/+APwEfAAH////////4AH//gD4AHAAD//////P/+AB//gB+ABQAA/////8D8DgIf/8AfwDAAA/////gA/AAIf//AH+AAAB/////wAAAAAf//gB/gAAAf////8AAAAAH/54AP4AAAf////gAAAAAB/+aAD8AAAf////gAAAAAAf/AAA7gAAH////4AAAEAAAAAAAH4AAB//7AOAAABAAAAAAAD/gAAP/wAAAAAAIAAAAAAA/4AAD/gAAAAAAAAAAAAAAf+AAAAAAAAAAAAAAA4AA8f/8AAAAAAAFIAAAAAcAAP///IAAAAAAA+AfwwAH4AD////AAHgAAAP7P9/AB+AB////wCDwAAAH+///4A/gAf//+4AB+AAAD////+PfYAB////wAfhAAA///////2AA///38AH4AAAP//7////gAP/v//DF/+BAB///////4AD+B//8/f/j4Af///f//+AB/Af//P//8+AA///////g4vwH//////fgAP/0/////P/8Af///////AD/9f//////+AP//////+5A/4AD//////gA////////wHgAAf/////wAP///////9xwAAP/////8AAAD//////cAAAP//////AACA/7v////wAAB//////gAIAPAA////8AAAf/////wAAARwAP////AAAH/5////AAAF8AAAf//8AAAX4A///+AAD/AAAAf//AAB4AAA///mAAf+QABP//wAQ8AAAP///8AH/gAAAPP8AAPgAAB////AA/4AAAAB/4AH4AAAE///wAB+AAAAAP/AD+AgABP//8AA/gAAAAA/2C+IAAAA///gAP+AAAAAB/wPgAAAAAf//gD/gAAHwAD/P4AAAAAH//4A/8AAPcAAf//AAAAAH//8gP/ACH/4AD//wAAAABD//Pg/8AB//AA//8DwAAAAf//4P/AA//8Af//B8AAAAf//+B/wAfH/AD3/w/AAAAD///gf8AH//4Af/+P8AAAA//34H/AB//+AH//j/4AAAP//8A/4Af//gH//w/8AAAH//+AP+A///wB//wP/wAAD///AD/gP//8Af/+D/8AAA///wAH4Hf//AH+YB//AAAB//wAB+B///wD/HA//wAAAf/kAAf8f//+A/xAP/8AAAH/wAAH/z///wP4AD//AAAB/8AAB//+4P+DgBA//4AAAf+AAAf/+gBPgAAAP//AAAPxAAfn/8AAF4AAAP//wAAA8AHP5/+AABfAAAH//wAAA/AA/+P/gAAHgAAB//8AIAPwAP/gf+AAD/AAAf//D/4/8AA/4H/wAAf+AAB//w////AAP/B/+AAH/8AAH/8O7//wAP/4D+AAB//AAB//B///+AD/+A/wAA//wAAH+Af///gA//AH+AAP/8AAB9gH///4AP/wB/gAD/+AAAPcB7//+AD/wAf8AA//AAAADEf//8AA/8AH/AAP/4AAAAAH///AAf/AB/wAD/4AACAAB///8AH/wAP8AA//gAAgAAB//+AA/8AD/gAf/+AAAABAf//wB//AAP8AP//wAYAAAH//+B/+AAH/AD//8B/mAAD///gf/gAD/wB///N//gAAf//4H/0AA/8gf7/3//4AIB//4B//AAf/gD+/////cAAf/8AX/wAH/4P///////AAH//AH/8AB/v//////f/4AA//AB/+AAf///xv/4H//AAP/wA/+AAH///4A8AAP/wAD/+GP/gAf///8AAAAD/8AA//j//AAH///8AAAAA//AAH/x/8AAA///9AAAAAP/4AAf/f3AAAf///AAAAAP/+AAH///wAP////AAAAAD//wAAf/+cAA////AAAAAA//8AAB///AEf///wAAAAAPn/wAATD/gB////8AAAAHz4/8AAAQfwAO////AAAAB+YH/0AAAD8AD///wAAA8If+A//AAAD/AA///8AAAP+P/AP/4AAB/5AH//4AEAD/v/gD/+AAAf+AB//4APgf///YA//oAAH/gAf/+AB/////+AP38AAP/gAP//gAf/////gD/+AAH//gB//wAf/////8AN/gAA//4Af/8AH//////AD/4AgP//AH/9AB/+f/f/gA/+AA///wB/+AAP//P//+AP/A="}];
+const $ = id => document.getElementById(id);
+const state = { items: [], sel: 0, showOrig: false };
+const colour = k => getComputedStyle(document.documentElement).getPropertyValue('--' + k).trim();
+
+function cropOf() { return ['ct', 'cb', 'cl', 'cr'].map(id => Math.max(0, parseInt($(id).value) || 0)); }
+
+function analyse(it) {
+  const [t, b, l, r] = cropOf();
+  const w = it.w - l - r, h = it.h - t - b;
+  if (w < 8 || h < 8) { it.res = null; it.err = 'Crop leaves under 8 pixels.'; return; }
+  const g = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) g[y * w + x] = it.gray[(y + t) * it.w + x + l];
+  const thr = $('thrmode').value === 'otsu' ? Core.otsu(g) : parseFloat($('thr').value);
+  const f = Core.segment(g, thr);
+  it.err = null; it.thr = thr; it.cw = w; it.ch = h; it.field = f; it.g = g;
+  it.res = Core.measure(f, w, h);
+  it.coarse = Core.measure(...(o => [o.f, o.w, o.h])(Core.coarsen(f, w, h, 2)));
+}
+
+function draw() {
+  const it = state.items[state.sel];
+  const cv = $('view'), cx = cv.getContext('2d');
+  if (!it || !it.field) { cx.clearRect(0, 0, cv.width, cv.height); return; }
+  cv.width = it.cw; cv.height = it.ch;
+  const im = cx.createImageData(it.cw, it.ch);
+  for (let i = 0; i < it.field.length; i++) {
+    const v = state.showOrig ? Math.round(it.g[i] * 255) : (it.field[i] > 0 ? 236 : 22);
+    im.data[4 * i] = im.data[4 * i + 1] = im.data[4 * i + 2] = v; im.data[4 * i + 3] = 255;
+  }
+  cx.putImageData(im, 0, 0);
+  $('viewcap').textContent = (state.showOrig ? 'Original' : 'Segmented') + `, ${it.cw} × ${it.ch} px`;
+  $('show').textContent = state.showOrig ? 'Show segmented' : 'Show original';
+  const res = it.res, bd = Core.band(res.length);
+  $('which').textContent = it.name;
+  $('reading').innerHTML = isFinite(res.length) ? `${res.length.toFixed(2)}<small> px</small>` : '-';
+  $('verdict').innerHTML = `<span class="chip" style="background:var(--${bd.key})"></span>${bd.name}`;
+  $('advice').textContent = bd.text;
+  $('lx').textContent = isFinite(res.lx) ? res.lx.toFixed(2) + ' px' : 'unresolved';
+  $('ly').textContent = isFinite(res.ly) ? res.ly.toFixed(2) + ' px' : 'unresolved';
+  $('frac').textContent = res.fraction.toFixed(3);
+  const ps = parseFloat($('px').value);
+  $('phys').textContent = ps > 0 && isFinite(res.length) ? (res.length * ps).toPrecision(3) + ' ' + $('unit').value : 'add pixel size';
+  $('thrnote').textContent = `Threshold used: ${it.thr.toFixed(3)} (0 = black, 1 = white)`;
+  const max = 5, pos = v => Math.min(100, Math.max(0, v / max * 100));
+  const zones = [[0, 1, 'bad'], [1, 3, 'mid'], [3, max, 'good']];
+  $('scale').innerHTML = zones.map(([a, b, k]) => `<div class="zone" style="left:${pos(a)}%;width:${pos(b) - pos(a)}%;background:var(--${k})"></div>`).join('')
+    + [0, 1, 2, 3, 4, 5].map(v => `<div class="tick" style="left:${pos(v)}%"></div><div class="lab" style="left:${Math.min(97, Math.max(2, pos(v)))}%">${v}${v === 5 ? '+' : ''}</div>`).join('')
+    + (isFinite(res.length) ? `<div class="mark" style="left:${pos(res.length)}%"></div>` : '');
+}
+
+function table() {
+  $('rows').innerHTML = state.items.map((it, i) => {
+    const r = it.res, bd = r ? Core.band(r.length) : { key: 'bad', name: it.err };
+    return `<tr data-i="${i}" class="${i === state.sel ? 'sel' : ''}"><td>${esc(it.name)}</td>
+      <td><input type="number" min="0" step="any" data-t="${i}" value="${it.t ?? ''}" aria-label="Ageing time for ${esc(it.name)}"></td>
+      <td class="n">${r && isFinite(r.length) ? r.length.toFixed(2) : '-'}</td><td class="n">${r ? r.fraction.toFixed(3) : '-'}</td>
+      <td><span class="chip" style="background:var(--${bd.key})"></span>${bd.name}</td></tr>`;
+  }).join('');
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+function series() {
+  const ok = state.items.filter(it => it.res && it.res.resolved && it.coarse.resolved && it.t > 0);
+  const facts = $('serfacts');
+  if (ok.length < 3) { facts.innerHTML = ''; $('sertext').textContent = 'Enter ageing times for three or more resolved images to fit a growth exponent.'; drawChart([]); state.summary = null; return; }
+  ok.sort((a, b) => a.t - b.t);
+  const t = ok.map(i => i.t), n0 = Core.slope(t, ok.map(i => i.res.length)), n2 = Core.slope(t, ok.map(i => i.coarse.length * 2));
+  const minL = Math.min(...ok.map(i => i.res.length)), d = n2 - n0, bd = Core.band(minL);
+  const risky = Math.abs(d) > .01;
+  $('sertext').textContent = (risky
+    ? `Coarsening your images 2× moves the exponent by ${d.toFixed(3)}. In simulation tests this warning caught every fit biased by more than 0.01, but it also fired on 16 of 26 fits that were fine, and it overstated the real error by two to three times. Treat it as a reason to check, not as a measured error.`
+    : `Coarsening your images 2× moves the exponent by only ${d.toFixed(3)}. In simulation tests, no fit biased by more than 0.01 gave a change this small.`)
+    + ` The smallest features, in the earliest image, are ${minL.toFixed(2)} px: ${bd.name.toLowerCase()}.`;
+  const rows = [['Exponent as imaged', n0.toFixed(3)], ['After 2× coarsening', n2.toFixed(3)], ['Change', (d >= 0 ? '+' : '') + d.toFixed(3)], ['Images fitted', ok.length]];
+  facts.innerHTML = rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join('');
+  state.summary = `Pixel check: ${ok.length} images, ageing times ${t.join(', ')}. Exponent as imaged ${n0.toFixed(3)}; after 2x coarsening ${n2.toFixed(3)} (change ${d.toFixed(3)}). Smallest correlation length ${minL.toFixed(2)} px (${bd.name}). Segmentation: ${$('thrmode').value}.`;
+  drawChart(ok);
+}
+
+function drawChart(ok) {
+  const s = $('chart'), W = s.clientWidth, H = s.clientHeight;
+  if (!ok.length || !W) { s.innerHTML = `<text x="16" y="28">Length against time appears here.</text>`; return; }
+  const m = { l: 48, r: 92, t: 16, b: 40 };
+  const pts = ok.map(i => [i.t, i.res.length, i.coarse.length * 2]);
+  const xs = pts.map(p => Math.log(p[0])), ys = pts.flatMap(p => [Math.log(p[1]), Math.log(p[2])]);
+  const [x0, x1] = [Math.min(...xs), Math.max(...xs)], [y0, y1] = [Math.min(...ys) - .1, Math.max(...ys) + .1];
+  const X = v => m.l + (Math.log(v) - x0) / (x1 - x0 || 1) * (W - m.l - m.r), Y = v => H - m.b - (Math.log(v) - y0) / (y1 - y0) * (H - m.t - m.b);
+  const line = k => pts.map((p, j) => `${j ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[k]).toFixed(1)}`).join('');
+  const data = colour('data'), soft = colour('soft');
+  const last = pts[pts.length - 1];
+  s.innerHTML = `<line x1="${m.l}" y1="${H - m.b}" x2="${W - m.r}" y2="${H - m.b}" stroke="${soft}" stroke-width="1"/>
+    <path d="${line(2)}" fill="none" stroke="${soft}" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <path d="${line(1)}" fill="none" stroke="${data}" stroke-width="2.5"/>
+    ${pts.map(p => `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="${data}"/>`).join('')}
+    <text x="${X(last[0]) + 8}" y="${Math.max(Y(last[1]), Y(last[2])) + 16}" style="fill:${data}">as imaged</text>
+    <text x="${X(last[0]) + 8}" y="${Math.min(Y(last[1]), Y(last[2])) - 6}">2× coarser</text>
+    <text x="${m.l}" y="${H - 12}">${pts[0][0]}</text><text x="${W - m.r}" y="${H - 12}" text-anchor="end">${last[0]}</text>
+    <text x="${(m.l + W - m.r) / 2}" y="${H - 12}" text-anchor="middle">ageing time, log scale</text>
+    <text x="4" y="${Y(pts[0][1]) + 4}">${pts[0][1].toFixed(1)} px</text>`;
+}
+
+function refresh() { state.items.forEach(analyse); table(); draw(); series(); }
+
+function loadSamples() {
+  state.items = SAMPLES.map(s => {
+    const raw = atob(s.bits), gray = new Float32Array(s.n * s.n);
+    for (let i = 0; i < gray.length; i++) gray[i] = (raw.charCodeAt(i >> 3) >> (7 - (i & 7))) & 1;
+    return { name: `example_t${s.t}.png`, t: s.t, w: s.n, h: s.n, gray };
+  });
+  $('samplenote').textContent = 'Example: six snapshots of one simulated 50:50 alloy (128 × 128 sites, 2D Kawasaki Ising model at 0.65 Tc), times in Monte Carlo sweeps. Replace them with your own images.';
+  state.sel = 0; refresh();
+}
+
+async function loadFiles(list) {
+  const items = [];
+  for (const file of list) {
+    try {
+      const bmp = await createImageBitmap(file);
+      const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+      const cx = c.getContext('2d'); cx.drawImage(bmp, 0, 0);
+      const d = cx.getImageData(0, 0, c.width, c.height).data, gray = new Float32Array(c.width * c.height);
+      for (let i = 0; i < gray.length; i++) gray[i] = (.2126 * d[4 * i] + .7152 * d[4 * i + 1] + .0722 * d[4 * i + 2]) / 255;
+      const num = file.name.match(/(\d+(?:\.\d+)?)/g);
+      items.push({ name: file.name, t: num ? parseFloat(num[num.length - 1]) : null, w: c.width, h: c.height, gray });
+    } catch (e) { items.push({ name: file.name, w: 0, h: 0, gray: new Float32Array(0), err: 'Could not read this file' }); }
+  }
+  if (!items.length) return;
+  state.items = items.filter(i => i.w); state.sel = 0;
+  $('samplenote').textContent = 'Times were guessed from the last number in each file name. Check them.';
+  refresh();
+}
+
+$('files').addEventListener('change', e => loadFiles([...e.target.files]));
+const drop = $('drop');
+['dragover', 'dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('on'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove('on')));
+drop.addEventListener('drop', e => { e.preventDefault(); loadFiles([...e.dataTransfer.files]); });
+$('rows').addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr && e.target.tagName !== 'INPUT') { state.sel = +tr.dataset.i; table(); draw(); } });
+$('rows').addEventListener('change', e => { const i = e.target.dataset.t; if (i !== undefined) { state.items[i].t = parseFloat(e.target.value) || null; series(); } });
+$('thrmode').addEventListener('change', () => { $('thr').disabled = $('thrmode').value === 'otsu'; refresh(); });
+$('thr').addEventListener('change', refresh);
+['ct', 'cb', 'cl', 'cr'].forEach(id => $(id).addEventListener('change', refresh));
+['px', 'unit'].forEach(id => $(id).addEventListener('input', draw));
+$('show').addEventListener('click', () => { state.showOrig = !state.showOrig; draw(); });
+$('example').addEventListener('click', loadSamples);
+$('copy').addEventListener('click', async () => {
+  if (!state.summary) { $('copied').textContent = 'Nothing to copy yet.'; return; }
+  try { await navigator.clipboard.writeText(state.summary); $('copied').textContent = 'Copied.'; }
+  catch (e) { $('copied').textContent = state.summary; }
+});
+const ro = new ResizeObserver(() => series()); ro.observe($('fig'));
+loadSamples();
+}
+</script>
+</body>
+</html>
