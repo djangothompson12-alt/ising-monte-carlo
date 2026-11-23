@@ -7,6 +7,11 @@ the result.
 
 [Research summary](docs/ACADEMIC_REVIEW_BRIEF_2026-09-20.md) · [Live Model A demo](https://djangothompson12-alt.github.io/ising-monte-carlo/) · [Notes and methods](docs/README.md)
 
+**November 2026:** the current short summary for outside readers is the
+[outreach brief](review/OUTREACH_BRIEF_2026-11.md). Its Al–Cu blind test, blur
+and long-run results come from November work that is not yet in this repository;
+they will be added before any of those numbers are cited as checkable here.
+
 **Review update, 18 October 2026:** start with the
 [research handover](review/CLAUDE_RESEARCH_HANDOVER_2026-10-18.md) for the history,
 current question, evidence and latest audit work. The

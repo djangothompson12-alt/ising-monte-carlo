@@ -34,6 +34,11 @@ original segmentation was correct or that the field represents the material.
 
 ## What it does not do
 
+It also does not predict how wrong a fitted growth rate will be. Coarsening a
+single image shows whether a length is sensitive to resolution, but in the
+November real-image tests it was not accurate enough to estimate the error in a
+growth exponent; that needs images followed over time.
+
 The tool does not segment raw microscopy images, simulate a real alloy, fit an
 ageing exponent, measure bulk chemical composition, predict strength or prove
 laboratory usefulness. Numerical downsampling is also not identical to taking
