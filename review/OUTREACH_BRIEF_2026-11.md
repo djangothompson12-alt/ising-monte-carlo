@@ -82,9 +82,11 @@ that correlation length divided by the pixel size. It is shorter than a
 domain's full width, so at "one pixel per domain" a domain still spans a few
 pixels; it just looks blocky.
 
-Splitting the two steps showed where the error comes from. In the 32-run test,
-block averaging alone changed the exponent by about −0.001 at 50:50, while
-turning the averaged image back into two phases added about −0.054.
+Which step causes the error depends on how coarse the image is. At 4× and
+50:50, block averaging alone changed the exponent by about −0.001 and
+thresholding added almost all of the error. At 2×, measuring the averaged grey
+image directly was further off (about −0.036) than after thresholding (about
+−0.005). Neither step can be blamed in general.
 
 Each test and its pass/fail rule were written down before the test was run. An
 AI assistant drafted these rules. One real-image test wasn't fully blind; see
@@ -208,10 +210,10 @@ agrees otherwise.
 1. Is the two-point correlation length the right size measure for growth
    measured from micrographs, or would you trust something else, such as
    particle size from segmentation?
-2. Most of the bias comes from turning the coarse image back into two phases,
-   not from the averaging. Is there anything in how real microscopes or
-   segmentation pipelines work that would make that step better or worse than
-   my version?
+2. My coarse camera averages pixel blocks and then thresholds the result,
+   and which of those two steps causes the error changes with how coarse the
+   image is. Is there anything in how real detectors or segmentation pipelines
+   work that would make either step better or worse than my version?
 3. In your work, are growth rates ever fitted from images where features are
    only a few pixels across, for example at the earliest ageing times?
 4. Do you know of a time series of images (one alloy at several ageing times)
