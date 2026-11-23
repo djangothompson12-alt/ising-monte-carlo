@@ -1,0 +1,8 @@
+{
+ "cases": 48,
+ "biased": 22,
+ "flagged_biased": 22,
+ "unbiased": 26,
+ "flagged_unbiased": 16,
+ "correlation_k_gt_1": 0.9582995302508007
+}

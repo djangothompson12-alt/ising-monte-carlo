@@ -1,5 +1,16 @@
 # AI use and contribution record
 
+## Preprint package on 23 November 2026
+
+At Django's request, Claude wrote `paper/`: a figure and table script that
+refits the 32 development and 16 held-out 0.65 Tc trajectories at 1×, 2×, 4×
+and 8×, and a LaTeX preprint skeleton whose methods, simulation results,
+screen-validation paragraph, limitations and references Claude drafted from
+those outputs. The abstract, introduction, real-image results and discussion
+are left for Django to write. While doing this Claude found that the claim
+'thresholding, not averaging, causes most of the error' holds only at 4×,
+50:50, and corrected the outreach brief.
+
 ## Research handover and sharing preparation on 18 October 2026
 
 Django requested a comprehensive handover for another AI cross-check and an
