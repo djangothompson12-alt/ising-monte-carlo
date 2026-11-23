@@ -1,5 +1,15 @@
 # AI use and contribution record
 
+## Pixel check browser tool on 23 November 2026
+
+At Django's request, Claude wrote `tools/pixel_check/`: a self-contained web
+page that segments images (Otsu or manual), measures the half-height
+correlation length with a JavaScript port of `research/imaging.image_length`,
+bands it using the evidence summarised in the November outreach brief, and
+refits an ageing series after 2× block-average coarsening. A Node-based test
+confirms identical lengths and exponents to the Python code on archived
+snapshots. The page is unvalidated outside this project and says so.
+
 ## Research handover and sharing preparation on 18 October 2026
 
 Django requested a comprehensive handover for another AI cross-check and an
