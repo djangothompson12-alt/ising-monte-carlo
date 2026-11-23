@@ -160,12 +160,12 @@ footer{border-top:1px solid var(--rule)}
 <div class="scroll"><table class="ev">
 <thead><tr><th>Length</th><th>What happened to fitted exponents in tests</th></tr></thead>
 <tbody>
-<tr><td>under 1 px</td><td>Always too slow: by 0.05 to 0.16 across simulations and two real X-ray datasets (Al–Ge, Al–Cu).</td></tr>
+<tr><td>under 1 px</td><td>Always too slow. About 0.01 when only the earliest images were this coarse; 0.05 to 0.16 when most of the series was, across simulations and two real X-ray datasets (Al–Ge, Al–Cu).</td></tr>
 <tr><td>1 to 2 px</td><td>Typically 0.02 to 0.025 too slow on real images.</td></tr>
 <tr><td>2 to 3 px</td><td>Within about 0.01 for sharp images. Half to one pixel of blur pushed errors to 0.02 to 0.04.</td></tr>
 <tr><td>3 px and over</td><td>Within about 0.01, even with a pixel of blur.</td></tr>
 </tbody></table></div>
-<p style="margin-top:16px">The series check coarsens your own images by a further 2× (block averaging, then thresholding at the midpoint) and refits. If that moves the exponent by more than 0.01, your images sit close to where resolution starts to bias the fit.</p>
+<p style="margin-top:16px">The series check coarsens your own images by a further 2× (block averaging, then thresholding at the midpoint) and refits. On 16 held-out simulated series with known answers, a change above 0.01 flagged all 22 fits that were biased by more than 0.01, with no misses, but also flagged 16 of 26 fits that were not, and the change was typically two to three times the real error. It is a cautious screen, not a measurement.</p>
 <h2 style="margin-top:28px">Limits</h2>
 <p>The evidence comes from 2D lattice simulations and slices of two public tomography datasets, not SEM, and no laboratory has validated this check. It flags risk; it does not correct an exponent, and coarsening a single image further was not accurate enough to predict the size of the error. The closest published rule is the resolution criterion of Ledesma-Alonso et al. (Phys. Rev. E 97, 023304, 2018), which in these tests asked for roughly 1.2 to 1.9 pixels.</p>
 </div></section>
@@ -237,7 +237,7 @@ const Core = {
   },
   band(L) {
     if (!isFinite(L)) return { key: 'bad', name: 'Unresolved', text: 'The correlation never fell to one half inside the image. Features may be larger than half the field, or the segmentation failed.' };
-    if (L < 1) return { key: 'bad', name: 'Too coarse to fit', text: 'Below one pixel, fitted exponents always read too slow in tests, by 0.05 or more. Image this stage at higher magnification.' };
+    if (L < 1) return { key: 'bad', name: 'Too coarse to fit', text: 'Below one pixel, fits read too slow in every test: by about 0.01 when only the earliest images were this coarse, and by 0.05 to 0.16 when most of the series was. Image this stage at higher magnification.' };
     if (L < 2) return { key: 'mid', name: 'At risk', text: 'Between one and two pixels, exponents read about 0.02 too slow in tests on real images. Treat the fit as a lower bound.' };
     if (L < 3) return { key: 'mid', name: 'Fine if sharp', text: 'Within about 0.01 in tests on sharp images. If the image is blurred by a pixel or more, aim for three.' };
     return { key: 'good', name: 'Enough pixels', text: 'At three pixels or more, errors stayed within about 0.01 in tests, even with some blur.' };
@@ -318,8 +318,8 @@ function series() {
   const minL = Math.min(...ok.map(i => i.res.length)), d = n2 - n0, bd = Core.band(minL);
   const risky = Math.abs(d) > .01;
   $('sertext').textContent = (risky
-    ? `Coarsening your images 2× moves the exponent by ${d.toFixed(3)}, more than 0.01. They are close to where resolution starts to bias the fit.`
-    : `Coarsening your images 2× moves the exponent by only ${d.toFixed(3)}. Resolution is unlikely to be driving this fit.`)
+    ? `Coarsening your images 2× moves the exponent by ${d.toFixed(3)}. In simulation tests this warning caught every fit biased by more than 0.01, but it also fired on 16 of 26 fits that were fine, and it overstated the real error by two to three times. Treat it as a reason to check, not as a measured error.`
+    : `Coarsening your images 2× moves the exponent by only ${d.toFixed(3)}. In simulation tests, no fit biased by more than 0.01 gave a change this small.`)
     + ` The smallest features, in the earliest image, are ${minL.toFixed(2)} px: ${bd.name.toLowerCase()}.`;
   const rows = [['Exponent as imaged', n0.toFixed(3)], ['After 2× coarsening', n2.toFixed(3)], ['Change', (d >= 0 ? '+' : '') + d.toFixed(3)], ['Images fitted', ok.length]];
   facts.innerHTML = rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join('');
